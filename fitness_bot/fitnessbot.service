@@ -1,0 +1,12 @@
+[Unit]
+Description=Fitness Telegram Bot
+After=network.target
+
+[Service]
+ExecStart=/root/fitness_bot/venv/bin/python3 /root/fitness_bot/bot.py
+WorkingDirectory=/root/fitness_bot/
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
