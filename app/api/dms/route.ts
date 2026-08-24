@@ -5,6 +5,8 @@ export const dynamic = "force-dynamic";
 const actions = new Set(["bootstrap", "client", "health"]);
 
 export async function POST(request: Request) {
+  const startedAt = Date.now();
+  const requestId = request.headers.get("x-vercel-id") || "";
   let body: unknown;
   try {
     body = await request.json();
@@ -23,6 +25,13 @@ export async function POST(request: Request) {
   if (!initData || initData.length > 8192 || !actions.has(action)) {
     return Response.json({ ok: false, error: "invalid_request" }, { status: 400 });
   }
+
+  console.log(JSON.stringify({
+    level: "info",
+    message: "dms_request_started",
+    action,
+    requestId,
+  }));
 
   try {
     const upstream = await fetch(getDmsAppsScriptUrl(), {
@@ -44,14 +53,42 @@ export async function POST(request: Request) {
     try {
       result = JSON.parse(text) as Record<string, unknown>;
     } catch {
+      console.error(JSON.stringify({
+        level: "error",
+        message: "dms_upstream_invalid_response",
+        action,
+        requestId,
+        upstreamStatus: upstream.status,
+        durationMs: Date.now() - startedAt,
+      }));
       return Response.json({ ok: false, error: "invalid_upstream_response" }, { status: 502 });
     }
     const status = Number(result.status);
+    const responseStatus = status >= 400 && status <= 599 ? status : upstream.ok ? 200 : 502;
+    const log = responseStatus >= 400 ? console.error : console.log;
+    log(JSON.stringify({
+      level: responseStatus >= 400 ? "error" : "info",
+      message: responseStatus >= 400 ? "dms_request_failed" : "dms_request_completed",
+      action,
+      requestId,
+      upstreamStatus: upstream.status,
+      responseStatus,
+      error: typeof result.error === "string" ? result.error : "",
+      durationMs: Date.now() - startedAt,
+    }));
     return Response.json(result, {
-      status: status >= 400 && status <= 599 ? status : upstream.ok ? 200 : 502,
+      status: responseStatus,
       headers: { "Cache-Control": "no-store" },
     });
-  } catch {
+  } catch (error) {
+    console.error(JSON.stringify({
+      level: "error",
+      message: "dms_backend_unavailable",
+      action,
+      requestId,
+      error: error instanceof Error ? error.name : "unknown",
+      durationMs: Date.now() - startedAt,
+    }));
     return Response.json({ ok: false, error: "backend_unavailable" }, { status: 503 });
   }
 }
