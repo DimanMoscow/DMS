@@ -13,7 +13,24 @@ test("repository does not contain committed secrets or legacy bot entrypoints", 
 });
 
 test("health endpoint never exposes backend URL", async () => {
-  const source = await readFile("app/api/health/route.ts", "utf8");
-  assert.doesNotMatch(source, /DMS_APPS_SCRIPT_URL\s*[:=]\s*process\.env/);
-  assert.match(source, /dataMode/);
+  const [healthSource, shellSource] = await Promise.all([
+    readFile("app/api/health/route.ts", "utf8"),
+    readFile("app/_components/mini-app-shell.tsx", "utf8"),
+  ]);
+  assert.doesNotMatch(healthSource, /DMS_APPS_SCRIPT_URL\s*[:=]\s*process\.env/);
+  assert.doesNotMatch(shellSource, /script\.google\.com|DMS_APPS_SCRIPT_URL/);
+  assert.match(healthSource, /dataMode/);
+});
+
+test("Mini App proxy is strictly read-only and keeps Telegram credentials ephemeral", async () => {
+  const [routeSource, shellSource] = await Promise.all([
+    readFile("app/api/dms/route.ts", "utf8"),
+    readFile("app/_components/mini-app-shell.tsx", "utf8"),
+  ]);
+
+  assert.match(routeSource, /new Set\(\["bootstrap", "client", "health"\]\)/);
+  assert.doesNotMatch(routeSource, /create|update|delete|payment|cancel|confirm/i);
+  assert.doesNotMatch(routeSource, /console\.(log|info|debug).*initData/i);
+  assert.doesNotMatch(shellSource, /localStorage|sessionStorage|document\.cookie/);
+  assert.doesNotMatch(shellSource, /console\.(log|info|debug).*initData/i);
 });
