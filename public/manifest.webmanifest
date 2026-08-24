@@ -1,0 +1,9 @@
+{
+  "name": "DMS Fitness",
+  "short_name": "DMS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
+  "lang": "ru"
+}
