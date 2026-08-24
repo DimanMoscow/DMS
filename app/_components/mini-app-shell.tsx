@@ -186,7 +186,7 @@ export function MiniAppShell() {
             <h1>{firstName ? `${firstName}, всё под контролем` : "DMS Fitness"}</h1>
             <p className="hero-copy">Клиенты, расписание и учёт — в одном интерфейсе.</p>
           </section>
-          <ConnectionState telegramFound={Boolean(telegram)} loading={loading} error={error}
+          <ConnectionState telegramFound={Boolean(initData)} loading={loading} error={error}
             connected={connected} onRetry={() => loadBootstrap(initData)} />
           {data && <HomeView data={data} onNavigate={navigate} />}
         </>
