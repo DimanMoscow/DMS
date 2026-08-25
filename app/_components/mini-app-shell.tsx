@@ -1,15 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 type TelegramUser = { first_name?: string };
+type TelegramBackButton = {
+  show: () => void;
+  hide: () => void;
+  onClick: (callback: () => void) => void;
+  offClick: (callback: () => void) => void;
+};
 type TelegramWebApp = {
   initData?: string;
   initDataUnsafe?: { user?: TelegramUser };
   ready: () => void;
   expand: () => void;
+  isVersionAtLeast?: (version: string) => boolean;
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
+  BackButton?: TelegramBackButton;
 };
 
 declare global {
@@ -59,15 +67,27 @@ const reportLabels: Record<string, string> = {
 };
 
 async function requestDms<T>(initData: string, action: string, payload = {}): Promise<T> {
-  const response = await fetch("/api/dms", {
-    method: "POST",
-    cache: "no-store",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ initData, action, payload }),
-  });
-  const result = (await response.json()) as ApiResponse<T>;
-  if (!response.ok || !result.ok || !result.data) throw new Error(result.error || "request_failed");
-  return result.data;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 25_000);
+  try {
+    const response = await fetch("/api/dms", {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData, action, payload }),
+      signal: controller.signal,
+    });
+    const result = (await response.json()) as ApiResponse<T>;
+    if (!response.ok || !result.ok || !result.data) throw new Error(result.error || "request_failed");
+    return result.data;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("request_timeout");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 function readableError(error: unknown) {
@@ -78,6 +98,7 @@ function readableError(error: unknown) {
     invalid_signature: "Telegram-авторизация не прошла проверку.",
     backend_unavailable: "Сервер учёта временно не отвечает.",
     invalid_upstream_response: "Apps Script ещё не обновлён до версии Mini App API.",
+    request_timeout: "Сервер отвечает слишком долго. Повторите попытку.",
   };
   return messages[code] || "Не удалось загрузить данные. Повторите попытку.";
 }
@@ -98,6 +119,7 @@ export function MiniAppShell() {
   const [clientDetail, setClientDetail] = useState<ClientDetail | null>(null);
   const [clientLoading, setClientLoading] = useState(false);
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
+  const clientRequestId = useRef(0);
   const hydrated = useSyncExternalStore(() => () => undefined, () => true, () => false);
   const telegram = hydrated ? (window.Telegram?.WebApp ?? null) : null;
   const initData = telegram?.initData ?? "";
@@ -143,28 +165,62 @@ export function MiniAppShell() {
 
   const openClient = (clientId: string) => {
     if (!initData) return;
+    const requestId = ++clientRequestId.current;
     setClientLoading(true);
     setClientDetail(null);
+    setError("");
     requestDms<ClientDetail>(initData, "client", { clientId })
-      .then(setClientDetail)
-      .catch((reason) => setError(readableError(reason)))
-      .finally(() => setClientLoading(false));
+      .then((next) => {
+        if (clientRequestId.current === requestId) setClientDetail(next);
+      })
+      .catch((reason) => {
+        if (clientRequestId.current === requestId) setError(readableError(reason));
+      })
+      .finally(() => {
+        if (clientRequestId.current === requestId) setClientLoading(false);
+      });
   };
 
-  const loadSystemHealth = () => {
+  const closeClient = useCallback(() => {
+    clientRequestId.current += 1;
+    setClientDetail(null);
+    setClientLoading(false);
+  }, []);
+
+  const loadSystemHealth = useCallback(() => {
     if (!initData) return;
     setSystemHealth(null);
+    setError("");
     requestDms<SystemHealth>(initData, "health")
-      .then(setSystemHealth)
+      .then((next) => { setSystemHealth(next); setError(""); })
       .catch((reason) => setError(readableError(reason)));
-  };
+  }, [initData]);
 
-  const navigate = (next: View) => {
+  const navigate = useCallback((next: View) => {
     setView(next);
-    setClientDetail(null);
+    closeClient();
     if (next === "more" && !systemHealth) loadSystemHealth();
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  }, [closeClient, loadSystemHealth, systemHealth]);
+
+  useEffect(() => {
+    const app = window.Telegram?.WebApp;
+    const backButton = app?.BackButton;
+    if (!backButton || (app.isVersionAtLeast && !app.isVersionAtLeast("6.1"))) return;
+    const clientPanelOpen = view === "clients" && Boolean(clientDetail || clientLoading);
+    const handleBack = () => {
+      if (clientPanelOpen) closeClient();
+      else if (view !== "home") navigate("home");
+    };
+
+    if (view === "home" && !clientPanelOpen) {
+      backButton.hide();
+      return;
+    }
+    backButton.show();
+    backButton.onClick(handleBack);
+    return () => backButton.offClick(handleBack);
+  }, [clientDetail, clientLoading, closeClient, navigate, view]);
 
   const firstName = telegram?.initDataUnsafe?.user?.first_name;
   const connected = Boolean(data && !error);
@@ -178,6 +234,8 @@ export function MiniAppShell() {
           {connected ? "На связи" : "Система"}
         </button>
       </header>
+
+      {view !== "home" && error && <aside className="state-card state-error"><span>{error}</span></aside>}
 
       {view === "home" && (
         <>
@@ -195,7 +253,7 @@ export function MiniAppShell() {
       {view === "today" && data && <TodayView data={data} />}
       {view === "clients" && data && (
         clientDetail || clientLoading
-          ? <ClientCard detail={clientDetail} loading={clientLoading} onBack={() => setClientDetail(null)} />
+          ? <ClientCard detail={clientDetail} loading={clientLoading} onBack={closeClient} />
           : <ClientsView clients={clients} query={clientQuery} onQuery={setClientQuery} onOpen={openClient} />
       )}
       {view === "report" && data && <ReportView report={data.report} />}
