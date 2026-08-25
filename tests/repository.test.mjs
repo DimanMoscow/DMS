@@ -34,3 +34,13 @@ test("Mini App proxy is strictly read-only and keeps Telegram credentials epheme
   assert.doesNotMatch(shellSource, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(shellSource, /console\.(log|info|debug).*initData/i);
 });
+
+test("Mini App supports Telegram back navigation and bounded requests", async () => {
+  const shellSource = await readFile("app/_components/mini-app-shell.tsx", "utf8");
+
+  assert.match(shellSource, /BackButton/);
+  assert.match(shellSource, /backButton\.onClick\(handleBack\)/);
+  assert.match(shellSource, /backButton\.offClick\(handleBack\)/);
+  assert.match(shellSource, /controller\.abort\(\), 25_000/);
+  assert.match(shellSource, /request_timeout/);
+});
