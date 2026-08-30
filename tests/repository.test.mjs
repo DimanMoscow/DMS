@@ -22,17 +22,30 @@ test("health endpoint never exposes backend URL", async () => {
   assert.match(healthSource, /dataMode/);
 });
 
-test("Mini App proxy is strictly read-only and keeps Telegram credentials ephemeral", async () => {
+test("Mini App proxy exposes only the approved actions and keeps Telegram credentials ephemeral", async () => {
   const [routeSource, shellSource] = await Promise.all([
     readFile("app/api/dms/route.ts", "utf8"),
     readFile("app/_components/mini-app-shell.tsx", "utf8"),
   ]);
 
-  assert.match(routeSource, /new Set\(\["bootstrap", "client", "health"\]\)/);
-  assert.doesNotMatch(routeSource, /create|update|delete|payment|cancel|confirm/i);
+  assert.match(routeSource, /new Set\(\["bootstrap", "client", "health", "set_queue_decision", "confirm_day"\]\)/);
   assert.doesNotMatch(routeSource, /console\.(log|info|debug).*initData/i);
   assert.doesNotMatch(shellSource, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(shellSource, /console\.(log|info|debug).*initData/i);
+});
+
+test("today mutations reuse the queue contract and prevent duplicate client-side actions", async () => {
+  const shellSource = await readFile("app/_components/mini-app-shell.tsx", "utf8");
+
+  assert.match(shellSource, /set_queue_decision/);
+  assert.match(shellSource, /confirm_day/);
+  assert.match(shellSource, /Подтвердить день можно после/);
+  assert.match(shellSource, /const ready = allDecided && dayEnded/);
+  assert.match(shellSource, /Number\(hour\) - 3/);
+  assert.match(shellSource, /item\.processed \|\| Boolean\(busyKey\)/);
+  assert.match(shellSource, /setData\(result\.bootstrap\)/);
+  assert.match(shellSource, /await refreshBootstrap\(\)/);
+  assert.match(shellSource, /повторных списаний нет/);
 });
 
 test("Mini App supports Telegram back navigation and bounded requests", async () => {
