@@ -2,7 +2,7 @@ import { getDmsAppsScriptUrl } from "@/lib/dms-server-config";
 
 export const dynamic = "force-dynamic";
 
-const actions = new Set(["bootstrap", "client", "health"]);
+const actions = new Set(["bootstrap", "client", "health", "set_queue_decision", "confirm_day"]);
 
 export async function POST(request: Request) {
   const startedAt = Date.now();

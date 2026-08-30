@@ -7,7 +7,7 @@ export async function GET() {
     {
       ok: true,
       service: "dms-fitness-miniapp",
-      release: "0.2.0",
+      release: "0.2.1",
       dataMode: isDmsBackendConfigured() ? "connected" : "not-configured",
       timestamp: new Date().toISOString(),
     },

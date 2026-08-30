@@ -33,11 +33,11 @@ type ClientSummary = {
 };
 type WaitingTraining = {
   queueId: string; time: string; endTime: string; client: string; blockId: string;
-  matching: string; decision: string; status: string;
+  matching: string; decision: string; status: string; processed: boolean;
 };
 type Bootstrap = {
   generatedAt: string;
-  today: { title: string; waiting: WaitingTraining[] };
+  today: { title: string; dateKey: string; waiting: WaitingTraining[] };
   summary: {
     activeClients: number; openBlocks: number; lowBlocks: number; debtClients: number;
     queueWaiting: number; queueErrors: number; exhaustedOpenBlocks: number;
@@ -56,6 +56,18 @@ type SystemHealth = {
   exhaustedOpenBlocks: number; triggerCount: number;
 };
 type ApiResponse<T> = { ok: boolean; error?: string; data?: T };
+type DecisionCode = "done" | "free" | "charge";
+type Confirmation =
+  | { kind: "decision"; item: WaitingTraining; decision: DecisionCode }
+  | { kind: "day"; count: number };
+type MutationResponse = {
+  bootstrap: Bootstrap;
+  mutation?: { notice?: string };
+};
+type ConfirmDayResponse = {
+  bootstrap: Bootstrap;
+  confirmation?: { changed: boolean; added: number; skipped: number };
+};
 
 const reportLabels: Record<string, string> = {
   trainings: "Проведено тренировок",
@@ -99,14 +111,30 @@ function readableError(error: unknown) {
     backend_unavailable: "Сервер учёта временно не отвечает.",
     invalid_upstream_response: "Apps Script ещё не обновлён до версии Mini App API.",
     request_timeout: "Сервер отвечает слишком долго. Повторите попытку.",
+    already_processed: "Событие уже обработано. Данные дня обновлены.",
+    queue_not_found: "Событие больше не найдено в очереди. Данные дня обновлены.",
+    not_today: "Событие уже не относится к текущему дню. Обновите Mini App.",
+    operation_busy: "Другое действие ещё выполняется. Повторите через несколько секунд.",
+    day_not_ready: "Не все события дня готовы к обработке. Проверьте решения и блоки.",
+    invalid_decision: "Такое решение для события недоступно.",
+    mini_app_api_failed: "Не удалось записать действие. Состояние учёта перечитано.",
   };
-  return messages[code] || "Не удалось загрузить данные. Повторите попытку.";
+  return messages[code] || "Не удалось выполнить запрос. Повторите попытку.";
 }
 
 function money(value: number) {
   return new Intl.NumberFormat("ru-RU", {
     style: "currency", currency: "RUB", maximumFractionDigits: 0,
   }).format(value || 0);
+}
+
+function moscowTimestamp(dateKey: string, time: string) {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+  const timeMatch = /^(\d{1,2}):(\d{2})$/.exec(time);
+  if (!dateMatch || !timeMatch) return Number.NaN;
+  const [, year, month, day] = dateMatch;
+  const [, hour, minute] = timeMatch;
+  return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour) - 3, Number(minute));
 }
 
 export function MiniAppShell() {
@@ -119,6 +147,9 @@ export function MiniAppShell() {
   const [clientDetail, setClientDetail] = useState<ClientDetail | null>(null);
   const [clientLoading, setClientLoading] = useState(false);
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
+  const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  const [busyKey, setBusyKey] = useState("");
+  const [notice, setNotice] = useState("");
   const clientRequestId = useRef(0);
   const hydrated = useSyncExternalStore(() => () => undefined, () => true, () => false);
   const telegram = hydrated ? (window.Telegram?.WebApp ?? null) : null;
@@ -187,6 +218,48 @@ export function MiniAppShell() {
     setClientLoading(false);
   }, []);
 
+  const refreshBootstrap = useCallback(async () => {
+    if (!initData) return;
+    try {
+      setData(await requestDms<Bootstrap>(initData, "bootstrap"));
+    } catch {
+      // Keep the last known state visible when the refresh itself fails.
+    }
+  }, [initData]);
+
+  const confirmAction = useCallback(async () => {
+    if (!initData || !confirmation || busyKey) return;
+    const activeConfirmation = confirmation;
+    const key = activeConfirmation.kind === "day" ? "day" : activeConfirmation.item.queueId;
+    const action = activeConfirmation.kind === "day" ? "confirm_day" : "set_queue_decision";
+    const payload = activeConfirmation.kind === "day"
+      ? { dateKey: data?.today.dateKey }
+      : { queueId: activeConfirmation.item.queueId, decision: activeConfirmation.decision };
+
+    setBusyKey(key);
+    setConfirmation(null);
+    setError("");
+    setNotice("");
+    try {
+      if (activeConfirmation.kind === "day") {
+        const result = await requestDms<ConfirmDayResponse>(initData, action, payload);
+        setData(result.bootstrap);
+        setNotice(result.confirmation?.changed
+          ? `День подтверждён: записано ${result.confirmation.added}, без списания ${result.confirmation.skipped}.`
+          : "День уже был обработан — повторных списаний нет.");
+      } else {
+        const result = await requestDms<MutationResponse>(initData, action, payload);
+        setData(result.bootstrap);
+        setNotice(`${activeConfirmation.item.client}: ${result.mutation?.notice || "решение сохранено"}.`);
+      }
+    } catch (reason) {
+      setError(readableError(reason));
+      await refreshBootstrap();
+    } finally {
+      setBusyKey("");
+    }
+  }, [busyKey, confirmation, data?.today.dateKey, initData, refreshBootstrap]);
+
   const loadSystemHealth = useCallback(() => {
     if (!initData) return;
     setSystemHealth(null);
@@ -199,6 +272,8 @@ export function MiniAppShell() {
   const navigate = useCallback((next: View) => {
     setView(next);
     closeClient();
+    setConfirmation(null);
+    setNotice("");
     if (next === "more" && !systemHealth) loadSystemHealth();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [closeClient, loadSystemHealth, systemHealth]);
@@ -236,6 +311,7 @@ export function MiniAppShell() {
       </header>
 
       {view !== "home" && error && <aside className="state-card state-error"><span>{error}</span></aside>}
+      {view !== "home" && notice && <aside className="state-card state-success" aria-live="polite"><span>{notice}</span></aside>}
 
       {view === "home" && (
         <>
@@ -250,7 +326,12 @@ export function MiniAppShell() {
         </>
       )}
 
-      {view === "today" && data && <TodayView data={data} />}
+      {view === "today" && data && <TodayView data={data} busyKey={busyKey}
+        onDecision={(item, decision) => setConfirmation({ kind: "decision", item, decision })}
+        onConfirmDay={() => setConfirmation({
+          kind: "day",
+          count: data.today.waiting.filter((item) => !item.processed).length,
+        })} />}
       {view === "clients" && data && (
         clientDetail || clientLoading
           ? <ClientCard detail={clientDetail} loading={clientLoading} onBack={closeClient} />
@@ -266,6 +347,8 @@ export function MiniAppShell() {
         <NavButton label="Клиенты" icon="◉" active={view === "clients"} disabled={!data} onClick={() => navigate("clients")} />
         <NavButton label="Отчёт" icon="▥" active={view === "report"} disabled={!data} onClick={() => navigate("report")} />
       </nav>
+      {confirmation && <ConfirmationSheet confirmation={confirmation} busy={Boolean(busyKey)}
+        onCancel={() => setConfirmation(null)} onConfirm={confirmAction} />}
     </main>
   );
 }
@@ -281,9 +364,10 @@ function ConnectionState(props: {
 }
 
 function HomeView({ data, onNavigate }: { data: Bootstrap; onNavigate: (view: View) => void }) {
+  const waitingCount = data.today.waiting.filter((item) => !item.processed).length;
   const cards = [
     { label: "Клиентов", value: data.summary.activeClients, tone: "" },
-    { label: "Ожидает сегодня", value: data.today.waiting.length, tone: "" },
+    { label: "Ожидает сегодня", value: waitingCount, tone: "" },
     { label: "Малый остаток", value: data.summary.lowBlocks, tone: data.summary.lowBlocks ? "warn" : "" },
     { label: "С долгом", value: data.summary.debtClients, tone: data.summary.debtClients ? "warn" : "" },
   ];
@@ -291,9 +375,9 @@ function HomeView({ data, onNavigate }: { data: Bootstrap; onNavigate: (view: Vi
     <section className="metric-grid">{cards.map((card) =>
       <div className={`metric-card ${card.tone}`} key={card.label}><strong>{card.value}</strong><span>{card.label}</span></div>
     )}</section>
-    <section className="section-heading"><h2>Разделы</h2><span>только чтение</span></section>
+    <section className="section-heading"><h2>Разделы</h2><span>рабочий кабинет</span></section>
     <section className="section-grid">
-      <SectionButton icon="◷" title="Сегодня" text={`${data.today.waiting.length} ожидают подтверждения`} onClick={() => onNavigate("today")} />
+      <SectionButton icon="◷" title="Сегодня" text={`${waitingCount} ожидают подтверждения`} onClick={() => onNavigate("today")} />
       <SectionButton icon="◉" title="Клиенты" text={`${data.clients.length} активных карточек`} onClick={() => onNavigate("clients")} />
       <SectionButton icon="₽" title="Финансы" text={`Отчёт за ${data.report.month || "текущий месяц"}`} onClick={() => onNavigate("report")} />
       <SectionButton icon="⋯" title="Состояние системы" text={data.summary.queueErrors ? "Есть ошибки очереди" : "Ошибок очереди нет"} onClick={() => onNavigate("more")} />
@@ -301,18 +385,118 @@ function HomeView({ data, onNavigate }: { data: Bootstrap; onNavigate: (view: Vi
   </>;
 }
 
-function TodayView({ data }: { data: Bootstrap }) {
+function TodayView({ data, busyKey, onDecision, onConfirmDay }: {
+  data: Bootstrap;
+  busyKey: string;
+  onDecision: (item: WaitingTraining, decision: DecisionCode) => void;
+  onConfirmDay: () => void;
+}) {
+  const pending = data.today.waiting.filter((item) => !item.processed);
+  const decided = pending.filter((item) =>
+    ["Проведена", "Отмена без списания", "Отмена со списанием"].includes(item.decision)
+  );
+  const latestEndTime = pending.reduce((latest, item) => item.endTime > latest ? item.endTime : latest, "");
+  const latestEndAt = moscowTimestamp(data.today.dateKey, latestEndTime);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!Number.isFinite(latestEndAt) || now >= latestEndAt) return;
+    const delay = Math.max(1_000, Math.min(60_000, latestEndAt - now + 1_000));
+    const timer = window.setTimeout(() => setNow(Date.now()), delay);
+    return () => window.clearTimeout(timer);
+  }, [latestEndAt, now]);
+  const dayEnded = Number.isFinite(latestEndAt) && now >= latestEndAt;
+  const allDecided = pending.length > 0 && decided.length === pending.length;
+  const ready = allDecided && dayEnded;
+
   return <Page title="Сегодня" subtitle={data.today.title}>
-    {!data.today.waiting.length ? <Empty text="Ожидающих подтверждения событий нет." /> :
+    {!data.today.waiting.length ? <Empty text="Событий на сегодня нет." /> :
       <section className="list-stack">{data.today.waiting.map((item) =>
-        <article className="training-row" key={item.queueId}>
-          <time>{item.time || "—"}<small>{item.endTime ? `до ${item.endTime}` : ""}</small></time>
-          <div><strong>{item.client}</strong><span>{item.blockId || "Разовая"} · {item.decision || "без решения"}</span></div>
-          <span className="status-badge">{item.status}</span>
+        <article className={`training-card ${item.processed ? "training-processed" : ""}`} key={item.queueId}>
+          <header className="training-summary">
+            <time>{item.time || "—"}<small>{item.endTime ? `до ${item.endTime}` : ""}</small></time>
+            <div><strong>{item.client}</strong><span>{item.blockId || "Разовая"} · {item.decision || "без решения"}</span></div>
+            <span className="status-badge">{item.status}</span>
+          </header>
+          <div className="decision-actions" aria-label={`Решение для ${item.client}`}>
+            <DecisionButton label="Проведена" active={item.decision === "Проведена"}
+              disabled={item.processed || Boolean(busyKey)} onClick={() => onDecision(item, "done")} />
+            <DecisionButton label="Отмена без списания" active={item.decision === "Отмена без списания"}
+              disabled={item.processed || Boolean(busyKey)} onClick={() => onDecision(item, "free")} />
+            <DecisionButton label="Отмена со списанием" active={item.decision === "Отмена со списанием"}
+              disabled={item.processed || Boolean(busyKey)} onClick={() => onDecision(item, "charge")} />
+          </div>
+          {item.processed && <p className="processed-note">Событие обработано — повторное действие заблокировано.</p>}
         </article>
       )}</section>}
-    <p className="read-only-note">Подтверждение дня остаётся в Telegram-боте. Этот экран ничего не списывает.</p>
+    <section className="day-confirmation">
+      <div>
+        <strong>{pending.length ? `${decided.length} из ${pending.length} решений выбраны` : "День обработан"}</strong>
+        <span>{pending.length
+          ? dayEnded
+            ? "Проверьте решения перед записью в журнал."
+            : `Подтвердить день можно после ${latestEndTime || "окончания тренировок"}.`
+          : "Повторных списаний не будет."}</span>
+      </div>
+      <button className="primary-button" type="button" disabled={!ready || Boolean(busyKey)} onClick={onConfirmDay}>
+        {busyKey === "day" ? "Подтверждаю…" : "Подтвердить день"}
+      </button>
+    </section>
+    {!allDecided && pending.length > 0 && <p className="action-hint">Назначьте одно из трёх решений каждому событию.</p>}
   </Page>;
+}
+
+function DecisionButton({ label, active, disabled, onClick }: {
+  label: string; active: boolean; disabled: boolean; onClick: () => void;
+}) {
+  return <button className={`decision-button ${active ? "decision-active" : ""}`}
+    type="button" disabled={disabled} onClick={onClick}>{label}</button>;
+}
+
+function ConfirmationSheet({ confirmation, busy, onCancel, onConfirm }: {
+  confirmation: Confirmation; busy: boolean; onCancel: () => void; onConfirm: () => void;
+}) {
+  const copy = confirmation.kind === "day"
+    ? {
+        title: "Подтвердить день?",
+        body: `Будут обработаны ${confirmation.count} событий. Проведённые и отменённые со списанием попадут в журнал; повторный запрос не спишет их второй раз.`,
+        confirm: "Подтвердить день",
+      }
+    : {
+        done: {
+          title: "Отметить как проведённую?",
+          body: "Решение сохранится в очереди. Одна тренировка спишется только после кнопки «Подтвердить день».",
+          confirm: "Да, проведена",
+        },
+        free: {
+          title: "Отменить без списания?",
+          body: "Событие закроется при подтверждении дня, баланс блока не изменится.",
+          confirm: "Да, без списания",
+        },
+        charge: {
+          title: "Отменить со списанием?",
+          body: "После подтверждения дня из блока спишется одна тренировка без проведения.",
+          confirm: "Да, списать",
+        },
+      }[confirmation.decision];
+  const subject = confirmation.kind === "decision"
+    ? `${confirmation.item.time || "—"} · ${confirmation.item.client}`
+    : "Финальная запись решений";
+
+  return <div className="sheet-backdrop" role="presentation"
+    onMouseDown={(event) => { if (event.currentTarget === event.target && !busy) onCancel(); }}>
+    <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="confirmation-title">
+      <span className="sheet-handle" />
+      <p className="confirmation-subject">{subject}</p>
+      <h2 id="confirmation-title">{copy.title}</h2>
+      <p>{copy.body}</p>
+      <div className="confirmation-actions">
+        <button type="button" className="secondary-button" disabled={busy} onClick={onCancel}>Назад</button>
+        <button type="button" className="primary-button" disabled={busy} onClick={onConfirm}>
+          {busy ? "Записываю…" : copy.confirm}
+        </button>
+      </div>
+    </section>
+  </div>;
 }
 
 function ClientsView(props: {
