@@ -35,6 +35,17 @@ function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+function sourceTreeSha256(directory, fileNames) {
+  const hash = crypto.createHash("sha256");
+  for (const fileName of fileNames) {
+    hash.update(fileName);
+    hash.update("\0");
+    hash.update(fs.readFileSync(path.join(directory, fileName)));
+    hash.update("\0");
+  }
+  return hash.digest("hex");
+}
+
 function repositoryFileName(file) {
   if (file.type === "JSON") return `${file.name}.json`;
   if (file.type === "SERVER_JS") return `${file.name}.gs`;
@@ -161,6 +172,79 @@ assert.deepEqual(
   verification.expectedVersionDiff,
   "The v38 to v39 changed-file set differs",
 );
+
+for (const [candidate, expected] of Object.entries(verification.candidates ?? {})) {
+  const baseSources = actualSources[expected.baseVersion];
+  assert.ok(baseSources, `${candidate}: unknown base version ${expected.baseVersion}`);
+
+  const candidateDirectory = path.join(appsScriptDirectory, "candidates", candidate);
+  const expectedFileNames = Object.keys(baseSources).sort();
+  const actualFileNames = fs
+    .readdirSync(candidateDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+    .sort();
+  assert.deepEqual(actualFileNames, expectedFileNames, `${candidate}: candidate file set differs`);
+  assert.equal(actualFileNames.length, expected.fileCount, `${candidate}: file count differs`);
+  assert.equal(
+    sourceTreeSha256(candidateDirectory, actualFileNames),
+    expected.sourceTreeSha256,
+    `${candidate}: source tree SHA-256 differs`,
+  );
+
+  const candidateSources = {};
+  const placeholderCounts = Object.fromEntries(
+    verification.repositorySanitizations.map((rule) => [rule.label, 0]),
+  );
+
+  for (const fileName of actualFileNames) {
+    const source = fs.readFileSync(path.join(candidateDirectory, fileName), "utf8");
+    candidateSources[fileName] = source;
+
+    for (const rule of verification.repositorySanitizations) {
+      const occurrences = source.split(rule.placeholder).length - 1;
+      const expectedOccurrences =
+        fileName === rule.file ? rule.allowedReplacementsPerVersion : 0;
+      assert.equal(
+        occurrences,
+        expectedOccurrences,
+        `${candidate}/${fileName}: ${rule.label} placeholder count differs`,
+      );
+      placeholderCounts[rule.label] += occurrences;
+    }
+
+    for (const [label, pattern] of prohibitedPatterns) {
+      pattern.lastIndex = 0;
+      assert.equal(pattern.test(source), false, `${candidate}/${fileName}: found ${label}`);
+    }
+
+    if (fileName.endsWith(".json")) {
+      JSON.parse(source);
+    } else {
+      new vm.Script(source, { filename: `${candidate}/${fileName}` });
+    }
+  }
+
+  for (const rule of verification.repositorySanitizations) {
+    assert.equal(
+      placeholderCounts[rule.label],
+      rule.allowedReplacementsPerVersion,
+      `${candidate}: unexpected ${rule.label} placeholder total`,
+    );
+  }
+
+  const candidateChangedFiles = actualFileNames.filter(
+    (fileName) => candidateSources[fileName] !== baseSources[fileName],
+  );
+  assert.deepEqual(
+    candidateChangedFiles,
+    expected.expectedChangedFiles,
+    `${expected.baseVersion} to ${candidate} changed-file set differs`,
+  );
+  console.log(
+    `${expected.baseVersion} -> ${candidate} candidate changed files: ${candidateChangedFiles.join(", ")}`,
+  );
+}
 
 console.log("Apps Script snapshots verified: 15 files and two documented redactions per version.");
 console.log(`v38 -> v39 changed files: ${changedFiles.join(", ")}`);

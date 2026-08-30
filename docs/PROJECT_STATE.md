@@ -4,24 +4,28 @@ Last verified: 2026-08-30 (UTC).
 
 ## Confirmed state
 
-- GitHub source of truth: `main` at baseline
-  `b433de7070b6fd42c781522df8f70b3854b4fc33`.
+- GitHub source of truth before this change: `main` at
+  `a266f3ee51415de7990d7b02dd470b4f0717d3ca`.
 - MiniApp production: release `0.2.1`; Vercel deployment
   `dpl_9Vu1JfHte7C1Kc5j3MHVHxV5GECq` is `READY`, and `/api/health` reports
   `dataMode: connected`.
 - Apps Script production deployment points to numbered version `v38`.
-- Numbered version `v39` is saved but not published. Its only source change from `v38`
-  is the dry-run preflight in `ZZZZZZZZZZMiniAppAdmin.gs` before day-confirmation
-  mutations.
+- Numbered version `v39` is saved but not published. It failed the safety gate because
+  `confirmDmsMiniAppDay_()` calls the write-capable `syncCalendarToQueue()` before its
+  dry-run.
+- `apps-script/candidates/v40` is a Git-only 15-file candidate derived from `v39`.
+  It plans Calendar→Queue changes read-only, preflights the projected Queue, and applies
+  the frozen plan only when the day is ready. It is not yet Apps Script HEAD or a
+  numbered version.
 - Repository snapshots contain 15 files per version and pass
   `node apps-script/scripts/verify-snapshots.mjs`.
 
 ## Open risk and next step
 
-Production `v38` can begin day-confirmation work before all future-training blockers
-are known. Candidate `v39` adds a complete dry-run first, but it still requires a safe
-validation against non-production-impacting cases. If that passes, publishing `v39`
-and running the final gate/smoke are separate approved operations.
+Production `v38` and saved `v39` do not provide a zero-write blocked path. After the
+`v40` candidate is reviewed and merged, updating Apps Script HEAD, creating numbered
+`v40`, verifying the exported content, updating the production deployment, and running
+the production smoke are separate approved operations.
 
 ## Known limitations
 
