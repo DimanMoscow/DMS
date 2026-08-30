@@ -19,8 +19,9 @@
   read API.
 - Apps Script repository copies of `ZZZZZZZZZZMiniAppAdmin.gs`: MiniApp administrative
   mutations.
-- `apps-script/candidates/v40`: sanitized source matching the deployed numbered `v40`;
-  the repository copy itself still has no live runtime effect.
+- `apps-script/versions/v40`: sanitized snapshot matching the deployed numbered `v40`.
+- `apps-script/candidates/v40`: retained reviewed release candidate, byte-identical to
+  the `v40` snapshot; repository copies have no live runtime effect.
 - `CalendarSync.gs`, `QueueProcessing.gs`, and `ZZZZZZZRuntime.gs`: shared calendar,
   queue, dry-run, reconciliation, and processing logic.
 - Telegram files: bot UI, commands, scheduling, client/block management, and alerts.
@@ -32,9 +33,9 @@
 | Component | Production runtime | Repository role |
 | --- | --- | --- |
 | MiniApp | Vercel deployment | Canonical source in `app/`, `lib/`, `public/` |
-| Apps Script | Google Apps Script deployment on `v40` | Production-matching sanitized source in `apps-script/candidates/v40` |
+| Apps Script | Google Apps Script deployment on `v40` | Production-matching sanitized snapshot in `apps-script/versions/v40` |
 | Saved `v39` | Historical numbered version; not deployed | Reviewable snapshot beside `v38` |
-| Repository `v40` copy | No runtime effect by itself | Auditable source matching deployed `v40` after documented URL substitution |
+| Retained `v40` candidate | No runtime effect by itself | Reviewed source matching `versions/v40` byte-for-byte |
 | Sheets / Calendar | Live Google services | No production data is stored in Git |
 | Telegram | Telegram API calling Apps Script webhook | Bot behavior is implemented in Apps Script files |
 

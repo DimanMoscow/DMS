@@ -3,11 +3,13 @@
 This directory stores read-only, source-controlled snapshots exported through the
 official Google Apps Script API `projects.getContent` method.
 
-- `versions/v38` is the source snapshot used by the current production deployment.
-- `versions/v39` is a saved numbered version that failed the zero-write safety gate and
-  must not be deployed.
-- `candidates/v40` is the complete repository candidate derived from `v39`; it is not an
-  Apps Script numbered version until a separately approved write-and-version operation.
+- `versions/v38` is the previous production snapshot.
+- `versions/v39` is a historical saved numbered version that failed the zero-write
+  safety gate and was never deployed.
+- `versions/v40` is the sanitized snapshot of the numbered version used by the current
+  production deployment.
+- `candidates/v40` is retained as the reviewed release candidate and must remain
+  byte-identical to `versions/v40` until it is deliberately retired.
 - Each version contains all 15 Apps Script project files: one manifest and 14
   server-side JavaScript files.
 
@@ -46,11 +48,12 @@ not be committed because they contain the real deployment URL and project ID.
 | `v38` | `86445b8620f0ada671eaddb0fde8523bb9d36162599bb06819c22fa135e5ac3f` |
 | `v39` | `4e35dd105cb7aa6f140ce7cbee42ebfa9c59c3eff7f8b2adab41a5edabf15744` |
 
-`verification.json` records the original and sanitized SHA-256 value of every
-numbered-version file and the full source-tree SHA-256 of `candidates/v40`. When
-the local exact exports are present, the verifier proves that every repository
-file is byte-identical to its export after exactly the two documented URL
-replacements above.
+`verification.json` records the original and sanitized SHA-256 values for the retained
+exact exports, the verified source-tree SHA-256 of `v40`, and the required identity
+between `versions/v40` and `candidates/v40`. The numbered `v40` source was compared with
+the candidate through the official API during its release and matched after exactly the
+two documented URL replacements above. When a retained local exact export is present,
+the verifier also repeats the per-file export comparison.
 
 Run the verification with:
 
@@ -58,7 +61,6 @@ Run the verification with:
 node apps-script/scripts/verify-snapshots.mjs
 ```
 
-Importing or merging these files does not change the Apps Script project. The
-production deployment remains on `v38`; writing the `v40` candidate to HEAD,
-creating its numbered version, or changing the deployment requires a separate
+Importing or merging these files does not change the Apps Script project. Production is
+on numbered `v40`; any future HEAD, version, or deployment write remains a separately
 approved operation.

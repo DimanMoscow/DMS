@@ -218,6 +218,23 @@
           "redactions": []
         }
       }
+    },
+    "v40": {
+      "numberedVersion": 40,
+      "baseVersion": "v39",
+      "matchesCandidate": "v40",
+      "fileCount": 15,
+      "sourceTreeSha256": "580464e6b14c2ae47a0f4a8c8eb8e62354dd7753a9b11e3b86facdf1a452e6bf",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZZZMiniAppAdmin.gs"
+      ],
+      "liveVerification": {
+        "method": "Google Apps Script API projects.getContent",
+        "verifiedAt": "2026-08-30T21:39:54.777Z",
+        "result": "Exact numbered v40 export matched the candidate after the two documented operational URL substitutions"
+      }
     }
   },
   "candidates": {
