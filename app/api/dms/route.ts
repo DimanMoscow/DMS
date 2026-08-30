@@ -26,6 +26,17 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "invalid_request" }, { status: 400 });
   }
 
+  const backendUrl = getDmsAppsScriptUrl();
+  if (!backendUrl) {
+    console.error(JSON.stringify({
+      level: "error",
+      message: "dms_backend_not_configured",
+      action,
+      requestId,
+    }));
+    return Response.json({ ok: false, error: "backend_not_configured" }, { status: 503 });
+  }
+
   console.log(JSON.stringify({
     level: "info",
     message: "dms_request_started",
@@ -34,7 +45,7 @@ export async function POST(request: Request) {
   }));
 
   try {
-    const upstream = await fetch(getDmsAppsScriptUrl(), {
+    const upstream = await fetch(backendUrl, {
       method: "POST",
       redirect: "follow",
       cache: "no-store",

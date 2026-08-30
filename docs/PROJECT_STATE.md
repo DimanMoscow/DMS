@@ -24,9 +24,10 @@ Last verified: 2026-08-30 (UTC).
 
 ## Open risk and next step
 
-The day-confirmation zero-write risk is closed in production `v40`. The next runtime
-hardening step is to remove the MiniApp's hard-coded Apps Script fallback URL and require
-explicit environment configuration.
+The day-confirmation zero-write risk is closed in production `v40`. MiniApp source now
+requires explicit server-only `DMS_APPS_SCRIPT_URL`; a production release still requires
+a separately approved Vercel deployment with that environment variable configured. The
+next repository hardening step is a minimal CI and repeatable release gate.
 
 ## Known limitations
 
@@ -34,8 +35,8 @@ explicit environment configuration.
   assumed to deploy anything.
 - `package.json` is `0.2.0`; the deployed release marker is maintained separately as
   `0.2.1` in `/api/health`.
-- `lib/dms-server-config.ts` contains a hard-coded production Apps Script fallback URL.
-  It should be removed in a separate code change so configuration is environment-only.
+- Current MiniApp production `0.2.1` predates the environment-only source change; Git
+  changes do not affect it until an explicit Vercel deployment is approved.
 - Apps Script snapshots are sanitized repository copies, not the live runtime. Their two
   production URLs are placeholders and must be supplied outside Git.
 - Exact unsanitized API exports are intentionally local-only. Their SHA-256 controls are

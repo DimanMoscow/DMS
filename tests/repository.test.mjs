@@ -13,12 +13,17 @@ test("repository does not contain committed secrets or legacy bot entrypoints", 
 });
 
 test("health endpoint never exposes backend URL", async () => {
-  const [healthSource, shellSource] = await Promise.all([
+  const [healthSource, shellSource, configSource, proxySource] = await Promise.all([
     readFile("app/api/health/route.ts", "utf8"),
     readFile("app/_components/mini-app-shell.tsx", "utf8"),
+    readFile("lib/dms-server-config.ts", "utf8"),
+    readFile("app/api/dms/route.ts", "utf8"),
   ]);
   assert.doesNotMatch(healthSource, /DMS_APPS_SCRIPT_URL\s*[:=]\s*process\.env/);
   assert.doesNotMatch(shellSource, /script\.google\.com|DMS_APPS_SCRIPT_URL/);
+  assert.doesNotMatch(configSource, /script\.google\.com/);
+  assert.match(configSource, /process\.env\.DMS_APPS_SCRIPT_URL/);
+  assert.match(proxySource, /backend_not_configured/);
   assert.match(healthSource, /dataMode/);
 });
 
