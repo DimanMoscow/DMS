@@ -9,7 +9,7 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const appsScriptDirectory = path.resolve(scriptDirectory, "..");
 const verificationPath = path.join(appsScriptDirectory, "verification.json");
 const verification = JSON.parse(fs.readFileSync(verificationPath, "utf8"));
-const versions = ["v38", "v39"];
+const versions = Object.keys(verification.versions);
 const sanitizationPatterns = {
   appsScriptProductionUrl: /https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec/g,
   miniAppProductionUrl:
@@ -78,7 +78,10 @@ for (const version of versions) {
   assert.equal(expected.fileCount, 15, `${version}: metadata must describe 15 files`);
 
   const versionDirectory = path.join(appsScriptDirectory, "versions", version);
-  const expectedFileNames = Object.keys(expected.files).sort();
+  const expectedFileNames = expected.files
+    ? Object.keys(expected.files).sort()
+    : Object.keys(actualSources[expected.baseVersion] ?? {}).sort();
+  assert.equal(expectedFileNames.length, 15, `${version}: reference file set is missing`);
   const actualFileNames = fs
     .readdirSync(versionDirectory, { withFileTypes: true })
     .filter((entry) => entry.isFile())
@@ -95,11 +98,13 @@ for (const version of versions) {
   for (const fileName of actualFileNames) {
     const source = fs.readFileSync(path.join(versionDirectory, fileName), "utf8");
     actualSources[version][fileName] = source;
-    assert.equal(
-      sha256(source),
-      expected.files[fileName].repositorySourceSha256,
-      `${version}/${fileName}: repository SHA-256 differs`,
-    );
+    if (expected.files) {
+      assert.equal(
+        sha256(source),
+        expected.files[fileName].repositorySourceSha256,
+        `${version}/${fileName}: repository SHA-256 differs`,
+      );
+    }
 
     for (const rule of verification.repositorySanitizations) {
       const occurrences = source.split(rule.placeholder).length - 1;
@@ -133,8 +138,31 @@ for (const version of versions) {
     );
   }
 
+  if (expected.sourceTreeSha256) {
+    assert.equal(
+      sourceTreeSha256(versionDirectory, actualFileNames),
+      expected.sourceTreeSha256,
+      `${version}: source tree SHA-256 differs`,
+    );
+  }
+
+  if (expected.baseVersion) {
+    const baseSources = actualSources[expected.baseVersion];
+    assert.ok(baseSources, `${version}: unknown base version ${expected.baseVersion}`);
+    const changedFromBase = actualFileNames.filter(
+      (fileName) => actualSources[version][fileName] !== baseSources[fileName],
+    );
+    assert.deepEqual(
+      changedFromBase,
+      expected.expectedChangedFiles,
+      `${expected.baseVersion} to ${version} changed-file set differs`,
+    );
+  }
+
   const exactExportPath = path.join(appsScriptDirectory, ".local-exports", `${version}.json`);
   if (fs.existsSync(exactExportPath)) {
+    assert.ok(expected.files, `${version}: exact-export file metadata is missing`);
+    assert.ok(expected.exactExportSha256, `${version}: exact-export SHA-256 is missing`);
     const exactExport = fs.readFileSync(exactExportPath);
     assert.equal(
       sha256(exactExport),
@@ -160,6 +188,23 @@ for (const version of versions) {
         `${version}/${fileName}: repository source is not the exact sanitized export`,
       );
     }
+  }
+}
+
+for (const [version, expected] of Object.entries(verification.versions)) {
+  if (!expected.matchesCandidate) continue;
+  const candidateDirectory = path.join(
+    appsScriptDirectory,
+    "candidates",
+    expected.matchesCandidate,
+  );
+  const fileNames = Object.keys(actualSources[version]).sort();
+  for (const fileName of fileNames) {
+    assert.equal(
+      actualSources[version][fileName],
+      fs.readFileSync(path.join(candidateDirectory, fileName), "utf8"),
+      `${version}/${fileName}: differs from candidate ${expected.matchesCandidate}`,
+    );
   }
 }
 
@@ -246,5 +291,7 @@ for (const [candidate, expected] of Object.entries(verification.candidates ?? {}
   );
 }
 
-console.log("Apps Script snapshots verified: 15 files and two documented redactions per version.");
+console.log(
+  `Apps Script snapshots verified: ${versions.join(", ")}; 15 files and two documented redactions per version.`,
+);
 console.log(`v38 -> v39 changed files: ${changedFiles.join(", ")}`);

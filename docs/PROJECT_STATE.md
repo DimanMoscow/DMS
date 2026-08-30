@@ -12,8 +12,9 @@ Last verified: 2026-08-30 (UTC).
   `dataMode: connected`.
 - Apps Script production deployment points to numbered version `v40`.
 - Numbered version `v39` is retained as a historical saved version and is not deployed.
-- `apps-script/candidates/v40` is the sanitized 15-file repository source matching the
-  deployed `v40` after the two documented operational URL substitutions.
+- `apps-script/versions/v40` is the sanitized 15-file snapshot matching deployed `v40`
+  after the two documented operational URL substitutions. The reviewed
+  `apps-script/candidates/v40` source is retained byte-identically.
 - The `v40` day-confirmation safety fix passed the zero-write blocked-case test: the
   blocked logical state remains byte-identical and no writer is invoked. Targeted tests,
   the repository verifier, the full local gate, the live read-only Apps Script gate, and
@@ -23,10 +24,9 @@ Last verified: 2026-08-30 (UTC).
 
 ## Open risk and next step
 
-The day-confirmation zero-write risk is closed in production `v40`. Before broader
-feature development, normalize the deployed `v40` repository copy as a numbered
-snapshot and remove the MiniApp's hard-coded Apps Script fallback URL in separate,
-reviewed changes.
+The day-confirmation zero-write risk is closed in production `v40`. The next runtime
+hardening step is to remove the MiniApp's hard-coded Apps Script fallback URL and require
+explicit environment configuration.
 
 ## Known limitations
 
@@ -38,9 +38,6 @@ reviewed changes.
   It should be removed in a separate code change so configuration is environment-only.
 - Apps Script snapshots are sanitized repository copies, not the live runtime. Their two
   production URLs are placeholders and must be supplied outside Git.
-- The production-matching `v40` source still resides under `apps-script/candidates/v40`
-  rather than `apps-script/versions/v40`; the directory name alone must not be used to
-  infer deployment status.
 - Exact unsanitized API exports are intentionally local-only. Their SHA-256 controls are
   recorded in `apps-script/verification.json` and `apps-script/README.md`.
 - No `.clasp.json` or repository-to-Apps-Script write workflow is configured.

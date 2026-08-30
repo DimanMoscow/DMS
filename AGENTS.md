@@ -29,6 +29,10 @@
 - Documentation-only change: `git diff --check` and inspect the complete file list.
 - Apps Script snapshot or verifier change:
   `node apps-script/scripts/verify-snapshots.mjs`.
+- Files under `apps-script/versions/**` are immutable production snapshots. Verify
+  them with the snapshot verifier and recorded tree/SHA values; never normalize or
+  format them to satisfy cosmetic checks. Run `git diff --check` only on changed
+  files outside that directory.
 - Isolated MiniApp change: run the relevant test plus lint/type/build checks affected by it.
 - Cross-boundary, authentication, queue, day-confirmation, release, or deployment change:
   run `npm run check`, the Apps Script verifier, and the full authorized smoke gate.
