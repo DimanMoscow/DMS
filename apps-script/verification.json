@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 2,
+  "source": "Google Apps Script API projects.getContent",
+  "repositorySanitizations": [
+    {
+      "label": "appsScriptProductionUrl",
+      "file": "TelegramBot.gs",
+      "placeholder": "__DMS_APPS_SCRIPT_PRODUCTION_URL__",
+      "allowedReplacementsPerVersion": 1
+    },
+    {
+      "label": "miniAppProductionUrl",
+      "file": "ZZZZZZZZZMiniAppTelegram.gs",
+      "placeholder": "__DMS_MINI_APP_PRODUCTION_URL__",
+      "allowedReplacementsPerVersion": 1
+    }
+  ],
+  "expectedVersionDiff": [
+    "ZZZZZZZZZZMiniAppAdmin.gs"
+  ],
+  "versions": {
+    "v38": {
+      "exactExportSha256": "86445b8620f0ada671eaddb0fde8523bb9d36162599bb06819c22fa135e5ac3f",
+      "fileCount": 15,
+      "files": {
+        "appsscript.json": {
+          "type": "JSON",
+          "originalSourceSha256": "343f02a12e80a6b440315bda34f114ba324efc6eb4db8e794ded2166c0567507",
+          "repositorySourceSha256": "343f02a12e80a6b440315bda34f114ba324efc6eb4db8e794ded2166c0567507",
+          "redactions": []
+        },
+        "Код.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "558eb4251179ef11c18e8d9c9c454e2a11231ea6ae128bf782cfc46eb79507fd",
+          "repositorySourceSha256": "558eb4251179ef11c18e8d9c9c454e2a11231ea6ae128bf782cfc46eb79507fd",
+          "redactions": []
+        },
+        "CalendarSync.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "717ea61be5086144833fe3ce8bb910ea8b2b780d8003a5abec56c4b1b85d2fe2",
+          "repositorySourceSha256": "717ea61be5086144833fe3ce8bb910ea8b2b780d8003a5abec56c4b1b85d2fe2",
+          "redactions": []
+        },
+        "QueueProcessing.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "bc97fd321b94fe139d92db66aa2a81a04142b7a69829e026070b99650c005b25",
+          "repositorySourceSha256": "bc97fd321b94fe139d92db66aa2a81a04142b7a69829e026070b99650c005b25",
+          "redactions": []
+        },
+        "TelegramBot.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "41ff8b2cd5545abff4cff2e2c411b03f679e237d24e7f8e2e26ea868220ca036",
+          "repositorySourceSha256": "401053176729150a7683910f304fdf001146a25dea92c19318321322db28d8f4",
+          "redactions": [
+            "appsScriptProductionUrl"
+          ]
+        },
+        "TelegramScheduling.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "7dbe65947915f1cd307751b517ae0014b113d592cde88a331840f22202714581",
+          "repositorySourceSha256": "7dbe65947915f1cd307751b517ae0014b113d592cde88a331840f22202714581",
+          "redactions": []
+        },
+        "TelegramFinal.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "baa7c5588437bd62b65f865811aba0c4385bc5de89f8fa5b998e1fcfa210a739",
+          "repositorySourceSha256": "baa7c5588437bd62b65f865811aba0c4385bc5de89f8fa5b998e1fcfa210a739",
+          "redactions": []
+        },
+        "ZZTelegramArchive.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "cb817ed8873ffda7157dea46f63495d009745f7a11d658fad516cb1eb41ee301",
+          "repositorySourceSha256": "cb817ed8873ffda7157dea46f63495d009745f7a11d658fad516cb1eb41ee301",
+          "redactions": []
+        },
+        "ZZZTelegramBlockEdit.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "70ed42924238c29c8afb95ba2a4f72b8605f1012280e1887802661b65ae3e2ff",
+          "repositorySourceSha256": "70ed42924238c29c8afb95ba2a4f72b8605f1012280e1887802661b65ae3e2ff",
+          "redactions": []
+        },
+        "ZZZZTelegramUpcoming.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "f52a284faa2efdbf807495663c808c7c7420addf20489d4e3a230f0565cf54e1",
+          "repositorySourceSha256": "f52a284faa2efdbf807495663c808c7c7420addf20489d4e3a230f0565cf54e1",
+          "redactions": []
+        },
+        "ZZZZZTelegramUpcomingActions.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "f1ea0d0672739ba326a475c8c2a31e258bc3e2f48fbfcc8f407a248720acdb74",
+          "repositorySourceSha256": "f1ea0d0672739ba326a475c8c2a31e258bc3e2f48fbfcc8f407a248720acdb74",
+          "redactions": []
+        },
+        "ZZZZZZZRuntime.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "cd0661b0aac674aaa804f71b3198f46e01da4a91615432977ba915cf383e4a7c",
+          "repositorySourceSha256": "cd0661b0aac674aaa804f71b3198f46e01da4a91615432977ba915cf383e4a7c",
+          "redactions": []
+        },
+        "ZZZZZZZZMiniAppApi.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "0ba3fc409518f3a201f272911372e5bc46df929cc1802657759192933cce5537",
+          "repositorySourceSha256": "0ba3fc409518f3a201f272911372e5bc46df929cc1802657759192933cce5537",
+          "redactions": []
+        },
+        "ZZZZZZZZZMiniAppTelegram.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "c12ce1ffadf0319ae59a68d25a119f35b5dbf28e34edf664d5baafe69eb16b0a",
+          "repositorySourceSha256": "a71f27d23139d06664316152b648227bc470269cc19fea28c0f46739175e19c4",
+          "redactions": [
+            "miniAppProductionUrl"
+          ]
+        },
+        "ZZZZZZZZZZMiniAppAdmin.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "f2adc041d39f27a1547ffb9f171e836f7fa23048e88130fdf2b661e4319ac6c1",
+          "repositorySourceSha256": "f2adc041d39f27a1547ffb9f171e836f7fa23048e88130fdf2b661e4319ac6c1",
+          "redactions": []
+        }
+      }
+    },
+    "v39": {
+      "exactExportSha256": "4e35dd105cb7aa6f140ce7cbee42ebfa9c59c3eff7f8b2adab41a5edabf15744",
+      "fileCount": 15,
+      "files": {
+        "appsscript.json": {
+          "type": "JSON",
+          "originalSourceSha256": "343f02a12e80a6b440315bda34f114ba324efc6eb4db8e794ded2166c0567507",
+          "repositorySourceSha256": "343f02a12e80a6b440315bda34f114ba324efc6eb4db8e794ded2166c0567507",
+          "redactions": []
+        },
+        "Код.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "558eb4251179ef11c18e8d9c9c454e2a11231ea6ae128bf782cfc46eb79507fd",
+          "repositorySourceSha256": "558eb4251179ef11c18e8d9c9c454e2a11231ea6ae128bf782cfc46eb79507fd",
+          "redactions": []
+        },
+        "CalendarSync.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "717ea61be5086144833fe3ce8bb910ea8b2b780d8003a5abec56c4b1b85d2fe2",
+          "repositorySourceSha256": "717ea61be5086144833fe3ce8bb910ea8b2b780d8003a5abec56c4b1b85d2fe2",
+          "redactions": []
+        },
+        "QueueProcessing.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "bc97fd321b94fe139d92db66aa2a81a04142b7a69829e026070b99650c005b25",
+          "repositorySourceSha256": "bc97fd321b94fe139d92db66aa2a81a04142b7a69829e026070b99650c005b25",
+          "redactions": []
+        },
+        "TelegramBot.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "41ff8b2cd5545abff4cff2e2c411b03f679e237d24e7f8e2e26ea868220ca036",
+          "repositorySourceSha256": "401053176729150a7683910f304fdf001146a25dea92c19318321322db28d8f4",
+          "redactions": [
+            "appsScriptProductionUrl"
+          ]
+        },
+        "TelegramScheduling.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "7dbe65947915f1cd307751b517ae0014b113d592cde88a331840f22202714581",
+          "repositorySourceSha256": "7dbe65947915f1cd307751b517ae0014b113d592cde88a331840f22202714581",
+          "redactions": []
+        },
+        "TelegramFinal.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "baa7c5588437bd62b65f865811aba0c4385bc5de89f8fa5b998e1fcfa210a739",
+          "repositorySourceSha256": "baa7c5588437bd62b65f865811aba0c4385bc5de89f8fa5b998e1fcfa210a739",
+          "redactions": []
+        },
+        "ZZTelegramArchive.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "cb817ed8873ffda7157dea46f63495d009745f7a11d658fad516cb1eb41ee301",
+          "repositorySourceSha256": "cb817ed8873ffda7157dea46f63495d009745f7a11d658fad516cb1eb41ee301",
+          "redactions": []
+        },
+        "ZZZTelegramBlockEdit.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "70ed42924238c29c8afb95ba2a4f72b8605f1012280e1887802661b65ae3e2ff",
+          "repositorySourceSha256": "70ed42924238c29c8afb95ba2a4f72b8605f1012280e1887802661b65ae3e2ff",
+          "redactions": []
+        },
+        "ZZZZTelegramUpcoming.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "f52a284faa2efdbf807495663c808c7c7420addf20489d4e3a230f0565cf54e1",
+          "repositorySourceSha256": "f52a284faa2efdbf807495663c808c7c7420addf20489d4e3a230f0565cf54e1",
+          "redactions": []
+        },
+        "ZZZZZTelegramUpcomingActions.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "f1ea0d0672739ba326a475c8c2a31e258bc3e2f48fbfcc8f407a248720acdb74",
+          "repositorySourceSha256": "f1ea0d0672739ba326a475c8c2a31e258bc3e2f48fbfcc8f407a248720acdb74",
+          "redactions": []
+        },
+        "ZZZZZZZRuntime.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "cd0661b0aac674aaa804f71b3198f46e01da4a91615432977ba915cf383e4a7c",
+          "repositorySourceSha256": "cd0661b0aac674aaa804f71b3198f46e01da4a91615432977ba915cf383e4a7c",
+          "redactions": []
+        },
+        "ZZZZZZZZMiniAppApi.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "0ba3fc409518f3a201f272911372e5bc46df929cc1802657759192933cce5537",
+          "repositorySourceSha256": "0ba3fc409518f3a201f272911372e5bc46df929cc1802657759192933cce5537",
+          "redactions": []
+        },
+        "ZZZZZZZZZMiniAppTelegram.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "c12ce1ffadf0319ae59a68d25a119f35b5dbf28e34edf664d5baafe69eb16b0a",
+          "repositorySourceSha256": "a71f27d23139d06664316152b648227bc470269cc19fea28c0f46739175e19c4",
+          "redactions": [
+            "miniAppProductionUrl"
+          ]
+        },
+        "ZZZZZZZZZZMiniAppAdmin.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "43cc2563c7e1d99fd25436ddeedba0edbef1b73f242676e7a0f57908851a445d",
+          "repositorySourceSha256": "43cc2563c7e1d99fd25436ddeedba0edbef1b73f242676e7a0f57908851a445d",
+          "redactions": []
+        }
+      }
+    }
+  }
+}
