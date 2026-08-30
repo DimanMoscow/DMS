@@ -10,8 +10,9 @@
 ## Layout
 
 - MiniApp: `app/`, `lib/`, `public/`, `tests/`.
-- Apps Script snapshots: `apps-script/versions/v38` and `apps-script/versions/v39`;
-  Git-only candidates: `apps-script/candidates/`.
+- Apps Script repository copies: `apps-script/versions/` and
+  `apps-script/candidates/`; check `docs/PROJECT_STATE.md` to identify the copy that
+  matches the current production deployment.
 - Snapshot integrity: `apps-script/verification.json` and
   `apps-script/scripts/verify-snapshots.mjs`.
 
