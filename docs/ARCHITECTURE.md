@@ -17,6 +17,7 @@
 - `app/api/dms/route.ts`: server-only action allow-list and Apps Script proxy.
 - `apps-script/versions/*/ZZZZZZZZMiniAppApi.gs`: MiniApp authentication and read API.
 - `apps-script/versions/*/ZZZZZZZZZZMiniAppAdmin.gs`: MiniApp administrative mutations.
+- `apps-script/candidates/v40`: complete Git-only candidate; it has no live runtime effect.
 - `CalendarSync.gs`, `QueueProcessing.gs`, and `ZZZZZZZRuntime.gs`: shared calendar,
   queue, dry-run, reconciliation, and processing logic.
 - Telegram files: bot UI, commands, scheduling, client/block management, and alerts.
@@ -29,7 +30,8 @@
 | --- | --- | --- |
 | MiniApp | Vercel deployment | Canonical source in `app/`, `lib/`, `public/` |
 | Apps Script | Google Apps Script deployment on `v38` | Sanitized snapshots in `apps-script/versions/` |
-| Candidate `v39` | Saved numbered version; not deployed | Reviewable snapshot beside `v38` |
+| Saved `v39` | Numbered version; not deployed and rejected by safety gate | Reviewable snapshot beside `v38` |
+| Candidate `v40` | No runtime presence | Complete proposed source in `apps-script/candidates/v40` |
 | Sheets / Calendar | Live Google services | No production data is stored in Git |
 | Telegram | Telegram API calling Apps Script webhook | Bot behavior is implemented in Apps Script files |
 
