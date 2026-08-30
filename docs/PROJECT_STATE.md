@@ -4,28 +4,29 @@ Last verified: 2026-08-30 (UTC).
 
 ## Confirmed state
 
-- GitHub source of truth before this change: `main` at
-  `a266f3ee51415de7990d7b02dd470b4f0717d3ca`.
+- The release source was merged into `main` at
+  `3fc83fb438d3cb1e01eb6eacc17656fa7d3260f1`; current `origin/main` remains the
+  repository source of truth.
 - MiniApp production: release `0.2.1`; Vercel deployment
   `dpl_9Vu1JfHte7C1Kc5j3MHVHxV5GECq` is `READY`, and `/api/health` reports
   `dataMode: connected`.
-- Apps Script production deployment points to numbered version `v38`.
-- Numbered version `v39` is saved but not published. It failed the safety gate because
-  `confirmDmsMiniAppDay_()` calls the write-capable `syncCalendarToQueue()` before its
-  dry-run.
-- `apps-script/candidates/v40` is a Git-only 15-file candidate derived from `v39`.
-  It plans Calendar→Queue changes read-only, preflights the projected Queue, and applies
-  the frozen plan only when the day is ready. It is not yet Apps Script HEAD or a
-  numbered version.
-- Repository snapshots contain 15 files per version and pass
+- Apps Script production deployment points to numbered version `v40`.
+- Numbered version `v39` is retained as a historical saved version and is not deployed.
+- `apps-script/candidates/v40` is the sanitized 15-file repository source matching the
+  deployed `v40` after the two documented operational URL substitutions.
+- The `v40` day-confirmation safety fix passed the zero-write blocked-case test: the
+  blocked logical state remains byte-identical and no writer is invoked. Targeted tests,
+  the repository verifier, the full local gate, the live read-only Apps Script gate, and
+  the post-deployment smoke all passed.
+- Repository Apps Script source sets contain 15 files each and pass
   `node apps-script/scripts/verify-snapshots.mjs`.
 
 ## Open risk and next step
 
-Production `v38` and saved `v39` do not provide a zero-write blocked path. After the
-`v40` candidate is reviewed and merged, updating Apps Script HEAD, creating numbered
-`v40`, verifying the exported content, updating the production deployment, and running
-the production smoke are separate approved operations.
+The day-confirmation zero-write risk is closed in production `v40`. Before broader
+feature development, normalize the deployed `v40` repository copy as a numbered
+snapshot and remove the MiniApp's hard-coded Apps Script fallback URL in separate,
+reviewed changes.
 
 ## Known limitations
 
@@ -37,6 +38,9 @@ the production smoke are separate approved operations.
   It should be removed in a separate code change so configuration is environment-only.
 - Apps Script snapshots are sanitized repository copies, not the live runtime. Their two
   production URLs are placeholders and must be supplied outside Git.
+- The production-matching `v40` source still resides under `apps-script/candidates/v40`
+  rather than `apps-script/versions/v40`; the directory name alone must not be used to
+  infer deployment status.
 - Exact unsanitized API exports are intentionally local-only. Their SHA-256 controls are
   recorded in `apps-script/verification.json` and `apps-script/README.md`.
 - No `.clasp.json` or repository-to-Apps-Script write workflow is configured.

@@ -15,9 +15,12 @@
 - `app/_components/mini-app-shell.tsx`: MiniApp presentation, navigation, request state,
   and client-side safeguards.
 - `app/api/dms/route.ts`: server-only action allow-list and Apps Script proxy.
-- `apps-script/versions/*/ZZZZZZZZMiniAppApi.gs`: MiniApp authentication and read API.
-- `apps-script/versions/*/ZZZZZZZZZZMiniAppAdmin.gs`: MiniApp administrative mutations.
-- `apps-script/candidates/v40`: complete Git-only candidate; it has no live runtime effect.
+- Apps Script repository copies of `ZZZZZZZZMiniAppApi.gs`: MiniApp authentication and
+  read API.
+- Apps Script repository copies of `ZZZZZZZZZZMiniAppAdmin.gs`: MiniApp administrative
+  mutations.
+- `apps-script/candidates/v40`: sanitized source matching the deployed numbered `v40`;
+  the repository copy itself still has no live runtime effect.
 - `CalendarSync.gs`, `QueueProcessing.gs`, and `ZZZZZZZRuntime.gs`: shared calendar,
   queue, dry-run, reconciliation, and processing logic.
 - Telegram files: bot UI, commands, scheduling, client/block management, and alerts.
@@ -29,9 +32,9 @@
 | Component | Production runtime | Repository role |
 | --- | --- | --- |
 | MiniApp | Vercel deployment | Canonical source in `app/`, `lib/`, `public/` |
-| Apps Script | Google Apps Script deployment on `v38` | Sanitized snapshots in `apps-script/versions/` |
-| Saved `v39` | Numbered version; not deployed and rejected by safety gate | Reviewable snapshot beside `v38` |
-| Candidate `v40` | No runtime presence | Complete proposed source in `apps-script/candidates/v40` |
+| Apps Script | Google Apps Script deployment on `v40` | Production-matching sanitized source in `apps-script/candidates/v40` |
+| Saved `v39` | Historical numbered version; not deployed | Reviewable snapshot beside `v38` |
+| Repository `v40` copy | No runtime effect by itself | Auditable source matching deployed `v40` after documented URL substitution |
 | Sheets / Calendar | Live Google services | No production data is stored in Git |
 | Telegram | Telegram API calling Apps Script webhook | Bot behavior is implemented in Apps Script files |
 
