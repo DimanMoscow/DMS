@@ -16,10 +16,10 @@
   external state and must be checked before work.
 - `clasp push`, Apps Script API `updateContent`, editor saves to HEAD, numbered-version
   creation, and deployment updates are write operations.
-- Prepare and review changes in Git first. Verify the complete 15-file set and run:
+- Prepare and review changes in Git first. Verify the complete 15-file set with:
 
   ```bash
-  node apps-script/scripts/verify-snapshots.mjs
+  npm run verify:apps-script
   ```
 
 - Creating a numbered version does not publish it. Updating the production deployment is
@@ -28,9 +28,16 @@
 
 ## Production gate
 
-The order is: targeted tests → full local gate → read-only state verification → approved
-deployment → final smoke. For day-confirmation logic, validate the dry-run result before
-allowing any mutation. Production-data smoke actions must be individually approved.
+The order is: targeted tests → `npm run check` → read-only state verification → approved
+deployment → final smoke. `npm run check` runs MiniApp lint, tests, TypeScript, build,
+and the Apps Script snapshot verifier. For day-confirmation logic, validate the dry-run
+result before allowing any mutation. Production-data smoke actions must be individually
+approved.
+
+GitHub Actions runs the same `npm run check` gate for pull requests and pushes to
+`main`. It also runs `git diff --check` on changed files outside
+`apps-script/versions/**`; immutable production snapshots are covered by the verifier
+and recorded hashes instead. CI is read-only and never deploys either runtime.
 
 ## Configuration and secrets
 

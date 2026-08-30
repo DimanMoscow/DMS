@@ -19,6 +19,9 @@ npm run check
 npm run dev
 ```
 
+`npm run check` is the repository release gate: MiniApp lint, tests, explicit
+TypeScript check and production build, followed by Apps Script snapshot verification.
+
 Секреты и Telegram-токен в репозиторий не добавляются. Серверные настройки задаются
 только через переменные окружения. Для прокси MiniApp обязательна серверная
 `DMS_APPS_SCRIPT_URL`; без неё `/api/dms` безопасно отвечает

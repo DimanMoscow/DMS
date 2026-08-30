@@ -20,14 +20,16 @@ Last verified: 2026-08-30 (UTC).
   the repository verifier, the full local gate, the live read-only Apps Script gate, and
   the post-deployment smoke all passed.
 - Repository Apps Script source sets contain 15 files each and pass
-  `node apps-script/scripts/verify-snapshots.mjs`.
+  `npm run verify:apps-script`.
+- The repository release gate is `npm run check`; GitHub Actions runs it for pull
+  requests and pushes to `main` without deploying either runtime.
 
 ## Open risk and next step
 
 The day-confirmation zero-write risk is closed in production `v40`. MiniApp source now
 requires explicit server-only `DMS_APPS_SCRIPT_URL`; a production release still requires
-a separately approved Vercel deployment with that environment variable configured. The
-next repository hardening step is a minimal CI and repeatable release gate.
+a separately approved Vercel deployment with that environment variable configured and
+the full approved smoke gate.
 
 ## Known limitations
 
