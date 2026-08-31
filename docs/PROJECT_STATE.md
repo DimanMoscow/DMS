@@ -1,15 +1,17 @@
 # Current project state
 
-Last verified: 2026-08-30 (UTC).
+Last verified: 2026-08-31 (UTC).
 
 ## Confirmed state
 
-- The release source was merged into `main` at
-  `3fc83fb438d3cb1e01eb6eacc17656fa7d3260f1`; current `origin/main` remains the
+- MiniApp production was built from `main` commit
+  `da00ae4ac305a4ba32d97ec64884f261bf655225`; current `origin/main` remains the
   repository source of truth.
 - MiniApp production: release `0.2.1`; Vercel deployment
-  `dpl_9Vu1JfHte7C1Kc5j3MHVHxV5GECq` is `READY`, and `/api/health` reports
-  `dataMode: connected`.
+  `dpl_8NubMiAyXj56VYbuZ8KTophfFhTX` is `READY`, and `/api/health` reports HTTP
+  200 with `dataMode: connected`.
+- Vercel Production has the required server-only `DMS_APPS_SCRIPT_URL`; its value is
+  kept outside Git and was not changed during the release smoke.
 - Apps Script production deployment points to numbered version `v40`.
 - Numbered version `v39` is retained as a historical saved version and is not deployed.
 - `apps-script/versions/v40` is the sanitized 15-file snapshot matching deployed `v40`
@@ -23,13 +25,16 @@ Last verified: 2026-08-30 (UTC).
   `npm run verify:apps-script`.
 - The repository release gate is `npm run check`; GitHub Actions runs it for pull
   requests and pushes to `main` without deploying either runtime.
+- The post-deployment Telegram read-only smoke passed: bootstrap, client detail, report,
+  and system health loaded; the Apps Script health gate passed 15 of 15 checks. No
+  mutation action was called and no unexpected production-data change was observed.
 
 ## Open risk and next step
 
-The day-confirmation zero-write risk is closed in production `v40`. MiniApp source now
-requires explicit server-only `DMS_APPS_SCRIPT_URL`; a production release still requires
-a separately approved Vercel deployment with that environment variable configured and
-the full approved smoke gate.
+The day-confirmation zero-write risk is closed in production `v40`, and the explicit
+server-only MiniApp backend configuration is deployed. The next functional stage is an
+architecture-reviewed, read-only client profile and measurements flow with strict
+per-client data isolation.
 
 ## Known limitations
 
@@ -37,8 +42,8 @@ the full approved smoke gate.
   assumed to deploy anything.
 - `package.json` is `0.2.0`; the deployed release marker is maintained separately as
   `0.2.1` in `/api/health`.
-- Current MiniApp production `0.2.1` predates the environment-only source change; Git
-  changes do not affect it until an explicit Vercel deployment is approved.
+- Git changes do not affect MiniApp production until an explicit Vercel deployment is
+  approved and completed.
 - Apps Script snapshots are sanitized repository copies, not the live runtime. Their two
   production URLs are placeholders and must be supplied outside Git.
 - Exact unsanitized API exports are intentionally local-only. Their SHA-256 controls are
