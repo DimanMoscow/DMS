@@ -10,8 +10,11 @@ official Google Apps Script API `projects.getContent` method.
   production deployment.
 - `candidates/v40` is retained as the reviewed release candidate and must remain
   byte-identical to `versions/v40` until it is deliberately retired.
-- Each version contains all 15 Apps Script project files: one manifest and 14
-  server-side JavaScript files.
+- `candidates/v41` is an undeployed full-source candidate for the read-only client
+  portal. It adds one server file and changes only the MiniApp request router relative
+  to production `v40`.
+- Each numbered version contains all 15 production Apps Script project files. Candidate
+  `v41` contains 16 files because it adds the isolated client portal server module.
 
 ## Deliberate sanitization
 

@@ -223,14 +223,16 @@ for (const [candidate, expected] of Object.entries(verification.candidates ?? {}
   assert.ok(baseSources, `${candidate}: unknown base version ${expected.baseVersion}`);
 
   const candidateDirectory = path.join(appsScriptDirectory, "candidates", candidate);
-  const expectedFileNames = Object.keys(baseSources).sort();
   const actualFileNames = fs
     .readdirSync(candidateDirectory, { withFileTypes: true })
     .filter((entry) => entry.isFile())
     .map((entry) => entry.name)
     .sort();
-  assert.deepEqual(actualFileNames, expectedFileNames, `${candidate}: candidate file set differs`);
   assert.equal(actualFileNames.length, expected.fileCount, `${candidate}: file count differs`);
+  const missingBaseFiles = Object.keys(baseSources).filter(
+    (fileName) => !actualFileNames.includes(fileName),
+  );
+  assert.deepEqual(missingBaseFiles, [], `${candidate}: candidate removed base files`);
   assert.equal(
     sourceTreeSha256(candidateDirectory, actualFileNames),
     expected.sourceTreeSha256,
@@ -278,9 +280,10 @@ for (const [candidate, expected] of Object.entries(verification.candidates ?? {}
     );
   }
 
-  const candidateChangedFiles = actualFileNames.filter(
-    (fileName) => candidateSources[fileName] !== baseSources[fileName],
-  );
+  const candidateChangedFiles = Array.from(new Set([
+    ...Object.keys(baseSources),
+    ...actualFileNames,
+  ])).sort().filter((fileName) => candidateSources[fileName] !== baseSources[fileName]);
   assert.deepEqual(
     candidateChangedFiles,
     expected.expectedChangedFiles,

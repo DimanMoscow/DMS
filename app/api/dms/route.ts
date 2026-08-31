@@ -2,7 +2,21 @@ import { getDmsAppsScriptUrl } from "@/lib/dms-server-config";
 
 export const dynamic = "force-dynamic";
 
-const actions = new Set(["bootstrap", "client", "health", "set_queue_decision", "confirm_day"]);
+const actions = new Set([
+  "bootstrap",
+  "client",
+  "health",
+  "set_queue_decision",
+  "confirm_day",
+  "client_portal_bootstrap",
+]);
+
+function jsonNoStore(body: Record<string, unknown>, status: number) {
+  return Response.json(body, {
+    status,
+    headers: { "Cache-Control": "no-store" },
+  });
+}
 
 export async function POST(request: Request) {
   const startedAt = Date.now();
@@ -11,19 +25,22 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return Response.json({ ok: false, error: "invalid_json" }, { status: 400 });
+    return jsonNoStore({ ok: false, error: "invalid_json" }, 400);
   }
 
   if (!body || typeof body !== "object") {
-    return Response.json({ ok: false, error: "invalid_request" }, { status: 400 });
+    return jsonNoStore({ ok: false, error: "invalid_request" }, 400);
   }
   const input = body as Record<string, unknown>;
   const initData = typeof input.initData === "string" ? input.initData : "";
   const action = typeof input.action === "string" ? input.action : "bootstrap";
   const payload = input.payload && typeof input.payload === "object" ? input.payload : {};
 
-  if (!initData || initData.length > 8192 || !actions.has(action)) {
-    return Response.json({ ok: false, error: "invalid_request" }, { status: 400 });
+  const clientPortalPayloadInvalid = action === "client_portal_bootstrap" && (
+    "clientId" in input || "payload" in input
+  );
+  if (!initData || initData.length > 8192 || !actions.has(action) || clientPortalPayloadInvalid) {
+    return jsonNoStore({ ok: false, error: "invalid_request" }, 400);
   }
 
   const backendUrl = getDmsAppsScriptUrl();
@@ -34,7 +51,7 @@ export async function POST(request: Request) {
       action,
       requestId,
     }));
-    return Response.json({ ok: false, error: "backend_not_configured" }, { status: 503 });
+    return jsonNoStore({ ok: false, error: "backend_not_configured" }, 503);
   }
 
   console.log(JSON.stringify({
@@ -45,18 +62,26 @@ export async function POST(request: Request) {
   }));
 
   try {
+    const upstreamBody = action === "client_portal_bootstrap"
+      ? {
+          dmsMiniApp: "dms-fitness-miniapp",
+          version: 1,
+          initData,
+          action,
+        }
+      : {
+          dmsMiniApp: "dms-fitness-miniapp",
+          version: 1,
+          initData,
+          action,
+          payload,
+        };
     const upstream = await fetch(backendUrl, {
       method: "POST",
       redirect: "follow",
       cache: "no-store",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        dmsMiniApp: "dms-fitness-miniapp",
-        version: 1,
-        initData,
-        action,
-        payload,
-      }),
+      body: JSON.stringify(upstreamBody),
       signal: AbortSignal.timeout(20_000),
     });
     const text = await upstream.text();
@@ -72,7 +97,7 @@ export async function POST(request: Request) {
         upstreamStatus: upstream.status,
         durationMs: Date.now() - startedAt,
       }));
-      return Response.json({ ok: false, error: "invalid_upstream_response" }, { status: 502 });
+      return jsonNoStore({ ok: false, error: "invalid_upstream_response" }, 502);
     }
     const status = Number(result.status);
     const responseStatus = status >= 400 && status <= 599 ? status : upstream.ok ? 200 : 502;
@@ -87,10 +112,7 @@ export async function POST(request: Request) {
       error: typeof result.error === "string" ? result.error : "",
       durationMs: Date.now() - startedAt,
     }));
-    return Response.json(result, {
-      status: responseStatus,
-      headers: { "Cache-Control": "no-store" },
-    });
+    return jsonNoStore(result, responseStatus);
   } catch (error) {
     console.error(JSON.stringify({
       level: "error",
@@ -100,6 +122,6 @@ export async function POST(request: Request) {
       error: error instanceof Error ? error.name : "unknown",
       durationMs: Date.now() - startedAt,
     }));
-    return Response.json({ ok: false, error: "backend_unavailable" }, { status: 503 });
+    return jsonNoStore({ ok: false, error: "backend_unavailable" }, 503);
   }
 }

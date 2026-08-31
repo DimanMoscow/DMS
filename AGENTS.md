@@ -21,6 +21,8 @@
 - Branch from the latest `origin/main`; keep one scoped change per branch and use a PR.
 - Do not commit secrets, real operational URLs, `.env` files, Script Properties, or IDs
   that are not explicitly approved for source control.
+- Client APIs must resolve Telegram user → client only on the server. Never accept a
+  client-selected `clientId`, infer a link from names/usernames, or share admin responses.
 - Preserve unrelated user changes and stop on unexpected diffs.
 - Update `docs/PROJECT_STATE.md` whenever a verified production or release fact changes.
 
@@ -31,8 +33,10 @@
   `npm run verify:apps-script`.
 - Files under `apps-script/versions/**` are immutable production snapshots. Verify
   them with the snapshot verifier and recorded tree/SHA values; never normalize or
-  format them to satisfy cosmetic checks. Run `git diff --check` only on changed
-  files outside that directory.
+  format them to satisfy cosmetic checks. Full-source candidates inherit unchanged
+  snapshot bytes and are also covered by recorded tree/SHA and changed-file metadata.
+  Run `git diff --check` only outside `apps-script/versions/**` and
+  `apps-script/candidates/**`; inspect authored candidate files separately.
 - Isolated MiniApp change: run the relevant test and `npm run check:miniapp`.
 - Cross-boundary, authentication, queue, day-confirmation, release, or deployment change:
   run `npm run check` and the full authorized smoke gate.
