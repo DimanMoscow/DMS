@@ -247,6 +247,15 @@
         "ZZZZZZZRuntime.gs",
         "ZZZZZZZZZZMiniAppAdmin.gs"
       ]
+    },
+    "v41": {
+      "baseVersion": "v40",
+      "fileCount": 16,
+      "sourceTreeSha256": "c69777c90048c8b7b2b805e2a9c1c09d0de9a551fd10e74db4dcad2b1d710a26",
+      "expectedChangedFiles": [
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZZClientPortal.gs"
+      ]
     }
   }
 }

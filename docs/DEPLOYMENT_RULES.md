@@ -35,9 +35,10 @@ result before allowing any mutation. Production-data smoke actions must be indiv
 approved.
 
 GitHub Actions runs the same `npm run check` gate for pull requests and pushes to
-`main`. It also runs `git diff --check` on changed files outside
-`apps-script/versions/**`; immutable production snapshots are covered by the verifier
-and recorded hashes instead. CI is read-only and never deploys either runtime.
+`main`. It also runs `git diff --check` outside `apps-script/versions/**` and
+`apps-script/candidates/**`; exact snapshots and full-source candidates are covered by
+the verifier, recorded tree hashes, and expected changed-file sets instead. CI is
+read-only and never deploys either runtime.
 
 ## Configuration and secrets
 

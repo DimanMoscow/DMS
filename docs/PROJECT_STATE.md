@@ -28,13 +28,16 @@ Last verified: 2026-08-31 (UTC).
 - The post-deployment Telegram read-only smoke passed: bootstrap, client detail, report,
   and system health loaded; the Apps Script health gate passed 15 of 15 checks. No
   mutation action was called and no unexpected production-data change was observed.
+- `apps-script/candidates/v41` is an undeployed repository candidate for the read-only
+  client portal. It does not change Apps Script HEAD, numbered versions, deployment, or
+  production Sheets.
 
 ## Open risk and next step
 
 The day-confirmation zero-write risk is closed in production `v40`, and the explicit
-server-only MiniApp backend configuration is deployed. The next functional stage is an
-architecture-reviewed, read-only client profile and measurements flow with strict
-per-client data isolation.
+server-only MiniApp backend configuration is deployed. The client portal implementation
+is repository-only; its next gate is the separately approved production schema/bootstrap,
+Apps Script release, MiniApp deployment, and read-only isolation smoke.
 
 ## Known limitations
 
@@ -49,3 +52,5 @@ per-client data isolation.
 - Exact unsanitized API exports are intentionally local-only. Their SHA-256 controls are
   recorded in `apps-script/verification.json` and `apps-script/README.md`.
 - No `.clasp.json` or repository-to-Apps-Script write workflow is configured.
+- Production does not yet contain the client-access and measurement sheets required by
+  candidate `v41`; no real Telegram-to-client bindings are stored in Git.

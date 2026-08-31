@@ -30,7 +30,7 @@ jobs:
       - run: npm ci
       - run: npm run check
 
-      - name: Check changed non-snapshot files for whitespace errors
+      - name: Check changed non-Apps-Script-source files for whitespace errors
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         shell: bash
@@ -40,7 +40,9 @@ jobs:
           fi
           mapfile -d '' files < <(
             git diff --name-only -z "$BASE_SHA"...HEAD -- \
-              . ':(exclude)apps-script/versions/**'
+              . \
+              ':(exclude)apps-script/versions/**' \
+              ':(exclude)apps-script/candidates/**'
           )
           if ((${#files[@]})); then
             git diff --check "$BASE_SHA"...HEAD -- "${files[@]}"

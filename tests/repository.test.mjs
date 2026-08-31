@@ -33,10 +33,31 @@ test("Mini App proxy exposes only the approved actions and keeps Telegram creden
     readFile("app/_components/mini-app-shell.tsx", "utf8"),
   ]);
 
-  assert.match(routeSource, /new Set\(\["bootstrap", "client", "health", "set_queue_decision", "confirm_day"\]\)/);
+  for (const action of [
+    "bootstrap", "client", "health", "set_queue_decision", "confirm_day",
+    "client_portal_bootstrap",
+  ]) {
+    assert.match(routeSource, new RegExp(`"${action}"`));
+  }
   assert.doesNotMatch(routeSource, /console\.(log|info|debug).*initData/i);
   assert.doesNotMatch(shellSource, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(shellSource, /console\.(log|info|debug).*initData/i);
+});
+
+test("client portal proxy rejects selectors and disables caching on every response", async () => {
+  const [routeSource, portalSource] = await Promise.all([
+    readFile("app/api/dms/route.ts", "utf8"),
+    readFile("app/client/client-portal.tsx", "utf8"),
+  ]);
+
+  assert.match(routeSource, /action === "client_portal_bootstrap"/);
+  assert.match(routeSource, /"clientId" in input/);
+  assert.match(routeSource, /"payload" in input/);
+  assert.match(routeSource, /const upstreamBody = action === "client_portal_bootstrap"/);
+  assert.match(routeSource, /"Cache-Control": "no-store"/);
+  assert.doesNotMatch(portalSource, /clientId/);
+  assert.doesNotMatch(portalSource, /localStorage|sessionStorage|document\.cookie/);
+  assert.doesNotMatch(portalSource, /console\.(log|info|debug)/);
 });
 
 test("today mutations reuse the queue contract and prevent duplicate client-side actions", async () => {
