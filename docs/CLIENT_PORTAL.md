@@ -79,12 +79,19 @@ This plan is not executed by repository changes.
 6. Before release, prove uniqueness in both directions, verify every active client ID
    exists exactly once in `Клиенты`, and run fixture plus read-only isolation tests for
    two distinct accounts and one unlinked account.
+7. After each client has started the bot and the numeric Telegram ID is independently
+   confirmed, set that private chat's menu button to the production MiniApp `/client`
+   URL. Use Telegram's per-chat `setChatMenuButton` with `chat_id`; do not replace the
+   existing global/admin menu button, which must continue opening the admin root `/`.
+   Read back each per-chat button before considering the binding active.
 
 Writes requiring explicit production approval are creation of the two sheets, their
-headers/validation, every real binding row, and every real measurement row. Apps Script
-HEAD/version/deployment and the MiniApp deployment are separate approvals.
+headers/validation, every real binding row, every real measurement row, and each
+per-chat Telegram menu-button change. Apps Script HEAD/version/deployment and the
+MiniApp deployment are separate approvals.
 
 Rollback is fail-closed: disable all new bindings first, verify the client endpoint no
-longer returns profiles, then remove only the two newly created sheets after exporting
-them for recovery. Existing `Клиенты`, Calendar, Queue, Journal, Blocks, Payments, and
-Reports are never modified by this migration.
+longer returns profiles, reset each affected per-chat menu button to Telegram's default,
+then remove only the two newly created sheets after exporting them for recovery.
+Existing `Клиенты`, Calendar, Queue, Journal, Blocks, Payments, and Reports are never
+modified by this migration.
