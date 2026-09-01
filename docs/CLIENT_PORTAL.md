@@ -44,6 +44,11 @@ schema change.
 
 This plan is not executed by repository changes.
 
+The offline migration package is in `apps-script/migrations/client-portal-v1/`. Its
+`schema.json` is the exact column/type contract; `preflight.mjs` validates proposed
+rows without network access or writes and emits no identifiers. Real input stays
+outside Git.
+
 1. Confirm Apps Script production is still `v40`, export the workbook structure, and
    record row counts for existing sheets.
 2. Create `Доступ клиентов` with exactly these columns:
@@ -73,9 +78,10 @@ This plan is not executed by repository changes.
 
 4. Add data validation for statuses and numeric ranges. Do not modify `Клиенты`; the
    portal only reads its ID, name, active status, and training format.
-5. Insert each first binding only after independently confirming the Telegram numeric ID
-   and existing client ID. Do not copy names into the access table and do not infer a
-   match.
+5. Insert each first binding only after an authenticated enrollment ceremony proves
+   control of the exact Telegram numeric ID and the trainer selects the exact existing
+   `CL-*` record. Do not copy names/usernames into the access table or infer a match. If
+   no approved enrollment ceremony is available, no binding may be created.
 6. Before release, prove uniqueness in both directions, verify every active client ID
    exists exactly once in `Клиенты`, and run fixture plus read-only isolation tests for
    two distinct accounts and one unlinked account.

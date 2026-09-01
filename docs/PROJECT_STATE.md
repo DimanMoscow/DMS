@@ -31,6 +31,9 @@ Last verified: 2026-08-31 (UTC).
 - `apps-script/candidates/v41` is an undeployed repository candidate for the read-only
   client portal. It does not change Apps Script HEAD, numbered versions, deployment, or
   production Sheets.
+- `apps-script/migrations/client-portal-v1` contains an offline schema and zero-write
+  preflight for proposed bindings and measurements. It contains fixtures only; real
+  migration input remains outside Git.
 
 ## Open risk and next step
 
