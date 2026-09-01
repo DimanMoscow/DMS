@@ -21,6 +21,22 @@ The command reports only counts, row numbers, field names, and error codes. It n
 prints identifiers or client data. Exit code `0` means the proposed rows pass the
 schema, references, ranges, and uniqueness checks; it does not authorize writes.
 
+For the controlled two-client pilot, prepare a second local input shaped like
+`fixtures/pilot-valid.json`. It must include read-back headers and the current binding
+and measurement rows so collisions are checked against live state as well as within the
+proposal. Run:
+
+```bash
+npm run preflight:client-pilot -- /absolute/path/pilot-input.json
+```
+
+The pilot preflight requires exactly two distinct active proposals. Its output contains
+counts and a fixed execution order only—never identifiers. A valid plan stages both
+bindings as `disabled`, appends approved measurements, reads everything back and repeats
+the preflight, activates both rows, then runs A/B/unlinked isolation smoke. Rollback
+disables both bindings first, verifies `client_not_linked`, and removes only the exact
+rows named in the private input.
+
 ## Exact production sequence
 
 1. Read-only export the exact client IDs and prepare proposed rows outside Git.
@@ -30,8 +46,9 @@ schema, references, ranges, and uniqueness checks; it does not authorize writes.
    not accepted as evidence. If that ceremony is not available, do not create a binding.
 3. Run this preflight. A nonzero exit or any duplicate blocks the migration.
 4. Record workbook sheet names, headers, row counts, and a recovery export.
-5. With separate production approval, create the two sheets and validations, then insert
-   only the preflighted rows. Re-export and run the same logical checks on the result.
+5. With separate production approval, create any missing schema, then insert only the
+   preflighted rows. When the schema already exists, require an exact header match and do
+   not recreate it. Re-export and run the same logical checks on the result.
 6. Release Apps Script and MiniApp through their independent gates. Test two bound users,
    one unlinked user, selector rejection, allow-listed responses, and `no-store`.
 7. Only after a bound client has started the bot, set and read back that private chat's

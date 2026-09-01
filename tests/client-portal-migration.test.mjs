@@ -7,6 +7,9 @@ import {
   MEASUREMENT_HEADERS,
   preflightClientPortalMigration,
 } from "../apps-script/migrations/client-portal-v1/preflight.mjs";
+import {
+  preflightClientPortalPilot,
+} from "../apps-script/migrations/client-portal-v1/pilot-preflight.mjs";
 
 const readFixture = (name) => JSON.parse(fs.readFileSync(
   `apps-script/migrations/client-portal-v1/fixtures/${name}.json`,
@@ -62,4 +65,56 @@ test("unknown fields, missing clients, empty measurements and out-of-range metri
   assert.equal(codes.has("client_not_found"), true);
   assert.equal(codes.has("measurement_empty"), true);
   assert.equal(codes.has("metric_out_of_range"), true);
+});
+
+test("two-client pilot is staged, rechecked and reversible without exposing identifiers", () => {
+  const report = preflightClientPortalPilot(readFixture("pilot-valid"));
+  assert.equal(report.valid, true, JSON.stringify(report));
+  assert.deepEqual(report.summary, {
+    existingClients: 2,
+    currentBindings: 0,
+    currentMeasurements: 0,
+    proposedBindings: 2,
+    proposedMeasurements: 2,
+  });
+  assert.deepEqual(report.plan.stages.map((stage) => stage.name), [
+    "stage_bindings_disabled",
+    "append_measurements",
+    "read_back_and_recheck",
+    "activate_bindings",
+    "isolation_smoke",
+  ]);
+  assert.deepEqual(report.plan.rollback, {
+    disableBindings: 2,
+    removeBindings: 2,
+    removeMeasurements: 2,
+  });
+  assert.equal(JSON.stringify(report).includes("CL-FIXTURE"), false);
+  assert.equal(JSON.stringify(report).includes("100001"), false);
+});
+
+test("pilot rejects schema drift and collisions with current production rows", () => {
+  const input = readFixture("pilot-valid");
+  input.schema.bindingHeaders[0] = "Wrong Header";
+  input.currentBindings.push({
+    ...input.proposedBindings[0],
+    bindingId: "BND-EXISTING",
+  });
+  const report = preflightClientPortalPilot(input);
+  const codes = new Set(report.errors.map((item) => item.code));
+  assert.equal(report.valid, false);
+  assert.equal(codes.has("binding_schema_mismatch"), true);
+  assert.equal(codes.has("duplicate_telegram_user_id"), true);
+  assert.equal(codes.has("duplicate_bound_client_id"), true);
+});
+
+test("pilot requires exactly two proposed active bindings", () => {
+  const input = readFixture("pilot-valid");
+  input.proposedBindings.pop();
+  input.proposedBindings[0].status = "disabled";
+  const report = preflightClientPortalPilot(input);
+  const codes = new Set(report.errors.map((item) => item.code));
+  assert.equal(report.valid, false);
+  assert.equal(codes.has("pilot_requires_two_bindings"), true);
+  assert.equal(codes.has("pilot_binding_must_be_active"), true);
 });
