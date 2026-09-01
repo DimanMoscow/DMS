@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "sheets": {
+    "bindings": {
+      "name": "Доступ клиентов",
+      "columns": [
+        { "name": "Binding ID", "type": "text", "required": true, "format": "^BND-[A-Za-z0-9_-]+$", "unique": true },
+        { "name": "Telegram User ID", "type": "text", "required": true, "format": "^[0-9]{5,20}$", "unique": true },
+        { "name": "Client ID", "type": "text", "required": true, "format": "^CL-[A-Za-z0-9_-]+$", "unique": true, "references": "Клиенты.Client ID" },
+        { "name": "Status", "type": "enum", "required": true, "values": ["active", "disabled"] },
+        { "name": "Created At", "type": "utc_timestamp", "required": true },
+        { "name": "Updated At", "type": "utc_timestamp", "required": true }
+      ]
+    },
+    "measurements": {
+      "name": "Замеры",
+      "columns": [
+        { "name": "Measurement ID", "type": "text", "required": true, "format": "^MSR-[A-Za-z0-9_-]+$", "unique": true },
+        { "name": "Client ID", "type": "text", "required": true, "format": "^CL-[A-Za-z0-9_-]+$", "references": "Клиенты.Client ID" },
+        { "name": "Measured At", "type": "utc_timestamp", "required": true },
+        { "name": "Weight Kg", "type": "number", "required": false, "minimum": 20, "maximum": 400 },
+        { "name": "Chest Cm", "type": "number", "required": false, "minimum": 30, "maximum": 300 },
+        { "name": "Waist Cm", "type": "number", "required": false, "minimum": 30, "maximum": 300 },
+        { "name": "Hips Cm", "type": "number", "required": false, "minimum": 30, "maximum": 300 },
+        { "name": "Upper Arm Cm", "type": "number", "required": false, "minimum": 10, "maximum": 100 },
+        { "name": "Thigh Cm", "type": "number", "required": false, "minimum": 20, "maximum": 150 }
+      ],
+      "uniqueTogether": ["Client ID", "Measured At"]
+    }
+  }
+}

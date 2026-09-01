@@ -1,0 +1,40 @@
+{
+  "existingClients": [
+    { "clientId": "CL-FIXTURE-A" },
+    { "clientId": "CL-FIXTURE-B" }
+  ],
+  "bindings": [
+    {
+      "bindingId": "BND-FIXTURE-A",
+      "telegramUserId": "100001",
+      "clientId": "CL-FIXTURE-A",
+      "status": "active",
+      "createdAt": "2026-08-31T12:00:00.000Z",
+      "updatedAt": "2026-08-31T12:00:00.000Z"
+    },
+    {
+      "bindingId": "BND-FIXTURE-B",
+      "telegramUserId": "100002",
+      "clientId": "CL-FIXTURE-B",
+      "status": "active",
+      "createdAt": "2026-08-31T12:05:00.000Z",
+      "updatedAt": "2026-08-31T12:05:00.000Z"
+    }
+  ],
+  "measurements": [
+    {
+      "measurementId": "MSR-FIXTURE-A1",
+      "clientId": "CL-FIXTURE-A",
+      "measuredAt": "2026-08-20T09:00:00.000Z",
+      "weightKg": 80,
+      "waistCm": 88
+    },
+    {
+      "measurementId": "MSR-FIXTURE-B1",
+      "clientId": "CL-FIXTURE-B",
+      "measuredAt": "2026-08-25T09:00:00.000Z",
+      "weightKg": 65,
+      "waistCm": 70
+    }
+  ]
+}
