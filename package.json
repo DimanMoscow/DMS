@@ -13,6 +13,7 @@
     "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "verify:apps-script": "node apps-script/scripts/verify-snapshots.mjs",
+    "smoke:apps-script-runtime": "node apps-script/scripts/check-runtime-identity.mjs",
     "check:miniapp": "npm run lint && npm run test && npm run typecheck && npm run build",
     "check": "npm run check:miniapp && npm run verify:apps-script"
   },

@@ -13,8 +13,13 @@ official Google Apps Script API `projects.getContent` method.
 - `candidates/v41` is an undeployed full-source candidate for the read-only client
   portal. It adds one server file and changes only the MiniApp request router relative
   to production `v40`.
-- Each numbered version contains all 15 production Apps Script project files. Candidate
-  `v41` contains 16 files because it adds the isolated client portal server module.
+- `candidates/v43` is the same read-only client portal source plus a public,
+  non-sensitive runtime identity probe. The probe fingerprints the exact client router
+  and portal module bytes so the serving web-app runtime can be checked after a
+  deployment update.
+- Numbered versions through `v40` contain 15 Apps Script project files. Candidates
+  `v41` and `v43` contain 16 files because they add the isolated client portal server
+  module.
 
 ## Deliberate sanitization
 
@@ -63,6 +68,20 @@ Run the verification with:
 ```bash
 node apps-script/scripts/verify-snapshots.mjs
 ```
+
+After an Apps Script deployment update, request the active web-app URL with
+`?dms_runtime_identity=1&probe=<unique value>` and compare all returned marker fields
+with `candidates/v43/TelegramBot.gs`. A deployment is not accepted solely from its
+version metadata: the live marker must match and `clientPortalHandlerLoaded` must be
+`true` before any authenticated smoke.
+
+The repeatable live check is:
+
+```bash
+DMS_APPS_SCRIPT_URL=<active-web-app-url> npm run smoke:apps-script-runtime
+```
+
+The script never prints the configured URL.
 
 Importing or merging these files does not change the Apps Script project. Production is
 on numbered `v40`; any future HEAD, version, or deployment write remains a separately

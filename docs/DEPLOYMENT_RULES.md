@@ -25,14 +25,24 @@
 - Creating a numbered version does not publish it. Updating the production deployment is
   a separate explicitly approved operation.
 - Never update the production deployment during diagnosis, export, or snapshot work.
+- A deployment version label is not sufficient runtime evidence. For candidates that
+  expose the non-sensitive runtime identity probe, query the active `/exec` URL with a
+  unique `dms_runtime_identity=1` probe, verify the embedded router/module fingerprints,
+  and require `clientPortalHandlerLoaded: true` before authenticated smoke. If metadata
+  and the live marker disagree, stop the rollout and preserve the last known-good
+  deployment.
+
+  ```bash
+  DMS_APPS_SCRIPT_URL=<active-web-app-url> npm run smoke:apps-script-runtime
+  ```
 
 ## Production gate
 
 The order is: targeted tests → `npm run check` → read-only state verification → approved
-deployment → final smoke. `npm run check` runs MiniApp lint, tests, TypeScript, build,
-and the Apps Script snapshot verifier. For day-confirmation logic, validate the dry-run
-result before allowing any mutation. Production-data smoke actions must be individually
-approved.
+deployment → live runtime identity → final smoke. `npm run check` runs MiniApp lint,
+tests, TypeScript, build, and the Apps Script snapshot verifier. For day-confirmation
+logic, validate the dry-run result before allowing any mutation. Production-data smoke
+actions must be individually approved.
 
 GitHub Actions runs the same `npm run check` gate for pull requests and pushes to
 `main`. It also runs `git diff --check` outside `apps-script/versions/**` and
