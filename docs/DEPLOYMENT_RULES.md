@@ -16,7 +16,7 @@
   external state and must be checked before work.
 - `clasp push`, Apps Script API `updateContent`, editor saves to HEAD, numbered-version
   creation, and deployment updates are write operations.
-- Prepare and review changes in Git first. Verify the complete 15-file set with:
+- Prepare and review changes in Git first. Verify the complete numbered file set with:
 
   ```bash
   npm run verify:apps-script

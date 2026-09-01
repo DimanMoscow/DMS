@@ -27,11 +27,11 @@ selects or receives a `clientId`.
   read API.
 - Apps Script repository copies of `ZZZZZZZZZZMiniAppAdmin.gs`: MiniApp administrative
   mutations.
-- `apps-script/versions/v40`: sanitized snapshot matching the deployed numbered `v40`.
-- `apps-script/candidates/v40`: retained reviewed release candidate, byte-identical to
-  the `v40` snapshot; repository copies have no live runtime effect.
-- `apps-script/candidates/v41`: undeployed full-source candidate containing the isolated
-  client portal API and server-side access/measurement readers.
+- `apps-script/versions/v43`: sanitized snapshot matching the deployed numbered `v43`.
+- `apps-script/versions/v42`: historical source snapshot from the runtime/source
+  mismatch incident; it is not deployed.
+- `apps-script/candidates/v43`: retained reviewed source matching `versions/v43`; it
+  contains the isolated client portal and runtime identity probe.
 - `CalendarSync.gs`, `QueueProcessing.gs`, and `ZZZZZZZRuntime.gs`: shared calendar,
   queue, dry-run, reconciliation, and processing logic.
 - Telegram files: bot UI, commands, scheduling, client/block management, and alerts.
@@ -43,10 +43,11 @@ selects or receives a `clientId`.
 | Component | Production runtime | Repository role |
 | --- | --- | --- |
 | MiniApp | Vercel deployment | Canonical source in `app/`, `lib/`, `public/` |
-| Apps Script | Google Apps Script deployment on `v40` | Production-matching sanitized snapshot in `apps-script/versions/v40` |
+| Apps Script | Google Apps Script deployment on `v43` | Production-matching sanitized snapshot in `apps-script/versions/v43` |
 | Saved `v39` | Historical numbered version; not deployed | Reviewable snapshot beside `v38` |
 | Retained `v40` candidate | No runtime effect by itself | Reviewed source matching `versions/v40` byte-for-byte |
-| Client portal `v41` candidate | Not present in Apps Script HEAD or a deployment | Undeployed full-source candidate for review and future release |
+| Numbered `v42` | Historical deployment with a proven runtime/source mismatch; not deployed | Source snapshot matching `candidates/v41` |
+| Client portal `v43` | Active production runtime with live fingerprints | Snapshot and candidate match byte-for-byte after URL sanitization |
 | Sheets / Calendar | Live Google services | No production data is stored in Git |
 | Telegram | Telegram API calling Apps Script webhook | Bot behavior is implemented in Apps Script files |
 

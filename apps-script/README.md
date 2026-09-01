@@ -6,20 +6,24 @@ official Google Apps Script API `projects.getContent` method.
 - `versions/v38` is the previous production snapshot.
 - `versions/v39` is a historical saved numbered version that failed the zero-write
   safety gate and was never deployed.
-- `versions/v40` is the sanitized snapshot of the numbered version used by the current
-  production deployment.
+- `versions/v40` is the sanitized snapshot of the last production version before the
+  client portal rollout.
+- Numbered `v41` is a damaged historical release artifact. It was never deployed and
+  has no repository snapshot.
+- `versions/v42` preserves the sanitized numbered source whose deployment metadata was
+  correct but whose serving runtime reproducibly executed an older action router.
+- `versions/v43` is the current production snapshot. It contains the same client portal
+  code as `v42` plus a public runtime identity probe.
 - `candidates/v40` is retained as the reviewed release candidate and must remain
   byte-identical to `versions/v40` until it is deliberately retired.
-- `candidates/v41` is an undeployed full-source candidate for the read-only client
-  portal. It adds one server file and changes only the MiniApp request router relative
-  to production `v40`.
+- `candidates/v41` is retained as the reviewed source of numbered `v42`. It adds one
+  server file and changes only the MiniApp request router relative to `v40`.
 - `candidates/v43` is the same read-only client portal source plus a public,
   non-sensitive runtime identity probe. The probe fingerprints the exact client router
   and portal module bytes so the serving web-app runtime can be checked after a
   deployment update.
-- Numbered versions through `v40` contain 15 Apps Script project files. Candidates
-  `v41` and `v43` contain 16 files because they add the isolated client portal server
-  module.
+- Numbered versions through `v40` contain 15 Apps Script project files. Versions `v42`
+  and `v43` contain 16 files because they add the isolated client portal server module.
 
 ## Deliberate sanitization
 
@@ -56,12 +60,11 @@ not be committed because they contain the real deployment URL and project ID.
 | `v38` | `86445b8620f0ada671eaddb0fde8523bb9d36162599bb06819c22fa135e5ac3f` |
 | `v39` | `4e35dd105cb7aa6f140ce7cbee42ebfa9c59c3eff7f8b2adab41a5edabf15744` |
 
-`verification.json` records the original and sanitized SHA-256 values for the retained
-exact exports, the verified source-tree SHA-256 of `v40`, and the required identity
-between `versions/v40` and `candidates/v40`. The numbered `v40` source was compared with
-the candidate through the official API during its release and matched after exactly the
-two documented URL replacements above. When a retained local exact export is present,
-the verifier also repeats the per-file export comparison.
+`verification.json` records original and sanitized SHA-256 values for retained exact
+exports, source-tree hashes, changed-file sets, and required candidate/snapshot
+identities. The verifier proves `v42 == candidates/v41` and `v43 == candidates/v43`
+after exactly the two documented URL replacements above. When a retained local exact
+export is present, it also repeats the per-file export comparison.
 
 Run the verification with:
 
@@ -84,5 +87,5 @@ DMS_APPS_SCRIPT_URL=<active-web-app-url> npm run smoke:apps-script-runtime
 The script never prints the configured URL.
 
 Importing or merging these files does not change the Apps Script project. Production is
-on numbered `v40`; any future HEAD, version, or deployment write remains a separately
+on numbered `v43`; any future HEAD, version, or deployment write remains a separately
 approved operation.

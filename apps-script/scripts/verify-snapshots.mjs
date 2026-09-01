@@ -75,20 +75,39 @@ const actualSources = {};
 for (const version of versions) {
   const expected = verification.versions[version];
   assert.ok(expected, `${version}: verification metadata is missing`);
-  assert.equal(expected.fileCount, 15, `${version}: metadata must describe 15 files`);
+  assert.ok(
+    Number.isInteger(expected.fileCount) && expected.fileCount > 0,
+    `${version}: metadata file count is invalid`,
+  );
 
   const versionDirectory = path.join(appsScriptDirectory, "versions", version);
   const expectedFileNames = expected.files
     ? Object.keys(expected.files).sort()
-    : Object.keys(actualSources[expected.baseVersion] ?? {}).sort();
-  assert.equal(expectedFileNames.length, 15, `${version}: reference file set is missing`);
+    : expected.matchesCandidate
+      ? fs
+        .readdirSync(path.join(appsScriptDirectory, "candidates", expected.matchesCandidate), {
+          withFileTypes: true,
+        })
+        .filter((entry) => entry.isFile())
+        .map((entry) => entry.name)
+        .sort()
+      : Object.keys(actualSources[expected.baseVersion] ?? {}).sort();
+  assert.equal(
+    expectedFileNames.length,
+    expected.fileCount,
+    `${version}: reference file set is missing`,
+  );
   const actualFileNames = fs
     .readdirSync(versionDirectory, { withFileTypes: true })
     .filter((entry) => entry.isFile())
     .map((entry) => entry.name)
     .sort();
   assert.deepEqual(actualFileNames, expectedFileNames, `${version}: repository file set differs`);
-  assert.equal(actualFileNames.length, 15, `${version}: repository must contain 15 files`);
+  assert.equal(
+    actualFileNames.length,
+    expected.fileCount,
+    `${version}: repository file count differs`,
+  );
 
   actualSources[version] = {};
   const placeholderCounts = Object.fromEntries(
@@ -170,7 +189,11 @@ for (const version of versions) {
       `${version}: exact export SHA-256 differs`,
     );
     const payload = JSON.parse(exactExport.toString("utf8"));
-    assert.equal(payload.files.length, 15, `${version}: exact export must contain 15 files`);
+    assert.equal(
+      payload.files.length,
+      expected.fileCount,
+      `${version}: exact export file count differs`,
+    );
 
     const exactFileNames = payload.files.map(repositoryFileName).sort();
     assert.deepEqual(exactFileNames, expectedFileNames, `${version}: exact export file set differs`);
@@ -295,6 +318,8 @@ for (const [candidate, expected] of Object.entries(verification.candidates ?? {}
 }
 
 console.log(
-  `Apps Script snapshots verified: ${versions.join(", ")}; 15 files and two documented redactions per version.`,
+  `Apps Script snapshots verified: ${versions.map((version) =>
+    `${version} (${verification.versions[version].fileCount} files)`).join(", ")}; ` +
+    "two documented redactions per version.",
 );
 console.log(`v38 -> v39 changed files: ${changedFiles.join(", ")}`);

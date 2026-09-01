@@ -235,6 +235,37 @@
         "verifiedAt": "2026-08-30T21:39:54.777Z",
         "result": "Exact numbered v40 export matched the candidate after the two documented operational URL substitutions"
       }
+    },
+    "v42": {
+      "numberedVersion": 42,
+      "baseVersion": "v40",
+      "matchesCandidate": "v41",
+      "fileCount": 16,
+      "sourceTreeSha256": "c69777c90048c8b7b2b805e2a9c1c09d0de9a551fd10e74db4dcad2b1d710a26",
+      "expectedChangedFiles": [
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZZClientPortal.gs"
+      ],
+      "liveVerification": {
+        "method": "Apps Script Editor numbered source and deployment metadata",
+        "verifiedAt": "2026-09-01T20:06:06Z",
+        "result": "Numbered v42 source matched candidate v41 after the two documented URL substitutions, but the deployed runtime reproducibly returned unknown_action for the source-present client_portal_bootstrap branch"
+      }
+    },
+    "v43": {
+      "numberedVersion": 43,
+      "baseVersion": "v42",
+      "matchesCandidate": "v43",
+      "fileCount": 16,
+      "sourceTreeSha256": "7731467465e9a3b1563ce41be7c0fc295b2aff750be4d5c54a612d4d77d76874",
+      "expectedChangedFiles": [
+        "TelegramBot.gs"
+      ],
+      "liveVerification": {
+        "method": "Apps Script Editor version history plus live runtime identity probe",
+        "verifiedAt": "2026-09-01T21:05:09Z",
+        "result": "Production v43 returned the expected router and client-portal fingerprints with clientPortalHandlerLoaded=true; the client action reached authentication instead of unknown_action"
+      }
     }
   },
   "candidates": {
