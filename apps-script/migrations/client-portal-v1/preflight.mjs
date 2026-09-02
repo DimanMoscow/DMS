@@ -8,6 +8,7 @@ export const BINDING_HEADERS = [
 export const MEASUREMENT_HEADERS = [
   "Measurement ID", "Client ID", "Measured At", "Weight Kg", "Chest Cm",
   "Waist Cm", "Hips Cm", "Upper Arm Cm", "Thigh Cm",
+  "Corrects Measurement ID", "Created At", "Created By",
 ];
 
 const bindingKeys = [
@@ -22,7 +23,10 @@ const metricRanges = {
   upperArmCm: [10, 100],
   thighCm: [20, 150],
 };
-const measurementKeys = ["measurementId", "clientId", "measuredAt", ...Object.keys(metricRanges)];
+const measurementKeys = [
+  "measurementId", "clientId", "measuredAt", ...Object.keys(metricRanges),
+  "correctsMeasurementId", "createdAt", "createdBy",
+];
 const rootKeys = ["existingClients", "bindings", "measurements"];
 const idPatterns = {
   bindingId: /^BND-[A-Za-z0-9_-]+$/,
@@ -109,7 +113,7 @@ export function preflightClientPortalMigration(input) {
   });
 
   const measurementIds = new Set();
-  const clientDates = new Set();
+  const measurementRecords = [];
   measurements.forEach((measurement, index) => {
     const row = index + 2;
     if (!exactKeys(measurement, measurementKeys)) {
@@ -129,8 +133,16 @@ export function preflightClientPortalMigration(input) {
     }
     checkUnique(errors, measurementIds, measurement.measurementId,
       "duplicate_measurement_id", "measurements", row, "measurementId");
-    checkUnique(errors, clientDates, `${measurement.clientId}\u0000${measurement.measuredAt}`,
-      "duplicate_client_measurement_time", "measurements", row, "measuredAt");
+    const correctsMeasurementId = measurement.correctsMeasurementId ?? "";
+    if (correctsMeasurementId && !idPatterns.measurementId.test(correctsMeasurementId)) {
+      addError(errors, "invalid_correction_id", "measurements", row, "correctsMeasurementId");
+    }
+    if (!utcTimestamp(measurement.createdAt)) {
+      addError(errors, "invalid_timestamp", "measurements", row, "createdAt");
+    }
+    if (!idPatterns.telegramUserId.test(measurement.createdBy ?? "")) {
+      addError(errors, "invalid_actor_id", "measurements", row, "createdBy");
+    }
 
     let metricCount = 0;
     for (const [field, [minimum, maximum]] of Object.entries(metricRanges)) {
@@ -142,6 +154,26 @@ export function preflightClientPortalMigration(input) {
       }
     }
     if (!metricCount) addError(errors, "measurement_empty", "measurements", row, "metrics");
+    measurementRecords.push({ ...measurement, row, correctsMeasurementId });
+  });
+
+  const byMeasurementId = new Map(measurementRecords.map((item) => [item.measurementId, item]));
+  const correctedIds = new Set();
+  measurementRecords.forEach((item) => {
+    if (!item.correctsMeasurementId) return;
+    const target = byMeasurementId.get(item.correctsMeasurementId);
+    if (!target || target.clientId !== item.clientId || target.measuredAt !== item.measuredAt) {
+      addError(errors, "invalid_correction_target", "measurements", item.row, "correctsMeasurementId");
+    }
+    if (correctedIds.has(item.correctsMeasurementId)) {
+      addError(errors, "duplicate_correction", "measurements", item.row, "correctsMeasurementId");
+    }
+    correctedIds.add(item.correctsMeasurementId);
+  });
+  const activeClientDates = new Set();
+  measurementRecords.filter((item) => !correctedIds.has(item.measurementId)).forEach((item) => {
+    checkUnique(errors, activeClientDates, `${item.clientId}\u0000${item.measuredAt}`,
+      "duplicate_client_measurement_time", "measurements", item.row, "measuredAt");
   });
 
   const activeBindings = bindings.filter((binding) => binding?.status === "active").length;

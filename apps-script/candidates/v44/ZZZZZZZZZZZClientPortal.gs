@@ -24,10 +24,11 @@ const DMS_CLIENT_PORTAL = {
   MEASUREMENTS_SHEET: 'Замеры',
   MEASUREMENT_HEADERS: [
     'Measurement ID', 'Client ID', 'Measured At', 'Weight Kg', 'Chest Cm',
-    'Waist Cm', 'Hips Cm', 'Upper Arm Cm', 'Thigh Cm'
+    'Waist Cm', 'Hips Cm', 'Upper Arm Cm', 'Thigh Cm',
+    'Corrects Measurement ID', 'Created At', 'Created By'
   ],
   MEASUREMENT_FIRST_ROW: 2,
-  MEASUREMENT_COLUMNS: 9,
+  MEASUREMENT_COLUMNS: 12,
   METRICS: [
     {key: 'weightKg', column: 3, min: 20, max: 400},
     {key: 'chestCm', column: 4, min: 30, max: 300},
@@ -226,14 +227,37 @@ function getDmsClientPortalProfile_(sheet, clientId) {
 }
 
 function buildDmsClientPortalMeasurements_(clientId, rows) {
+  const parsed = parseDmsClientPortalMeasurements_(rows);
+  const corrected = {};
+  parsed.forEach(function(item) {
+    if (item.correctsId) corrected[item.correctsId] = true;
+  });
+  const result = parsed.filter(function(item) {
+    return item.clientId === clientId && !corrected[item.measurementId];
+  }).map(function(item) {
+    return {measuredAt: item.measuredAt.toISOString(), metrics: item.metrics};
+  });
+  result.sort(function(left, right) {
+    return right.measuredAt.localeCompare(left.measuredAt);
+  });
+  return result;
+}
+
+function parseDmsClientPortalMeasurements_(rows) {
   const seen = {};
-  const result = [];
-  rows.forEach(function(row) {
-    if (String(row[1] || '').trim() !== clientId) return;
+  const parsed = rows.map(function(row) {
     const measurementId = String(row[0] || '').trim();
+    const clientId = String(row[1] || '').trim();
     const measuredAt = row[2];
+    const correctsId = String(row[9] || '').trim();
+    const createdAt = row[10];
+    const createdBy = String(row[11] || '').trim();
     if (!/^MSR-[A-Za-z0-9_-]+$/.test(measurementId) || seen[measurementId] ||
-        !(measuredAt instanceof Date) || isNaN(measuredAt.getTime())) {
+        !/^CL-[A-Za-z0-9_-]+$/.test(clientId) ||
+        !(measuredAt instanceof Date) || isNaN(measuredAt.getTime()) ||
+        (correctsId && !/^MSR-[A-Za-z0-9_-]+$/.test(correctsId)) ||
+        !(createdAt instanceof Date) || isNaN(createdAt.getTime()) ||
+        !/^\d{5,20}$/.test(createdBy)) {
       throwDmsClientPortalError_('client_data_invalid', 409);
     }
     seen[measurementId] = true;
@@ -250,12 +274,214 @@ function buildDmsClientPortalMeasurements_(clientId, rows) {
     if (!Object.keys(metrics).length) {
       throwDmsClientPortalError_('client_data_invalid', 409);
     }
-    result.push({measuredAt: measuredAt.toISOString(), metrics: metrics});
+    return {
+      measurementId: measurementId,
+      clientId: clientId,
+      measuredAt: measuredAt,
+      metrics: metrics,
+      correctsId: correctsId,
+      createdAt: createdAt
+    };
   });
-  result.sort(function(left, right) {
+
+  const byId = {};
+  const corrected = {};
+  parsed.forEach(function(item) { byId[item.measurementId] = item; });
+  parsed.forEach(function(item) {
+    if (!item.correctsId) return;
+    const target = byId[item.correctsId];
+    if (!target || target.clientId !== item.clientId ||
+        target.measuredAt.toISOString() !== item.measuredAt.toISOString() ||
+        corrected[item.correctsId]) {
+      throwDmsClientPortalError_('client_data_invalid', 409);
+    }
+    corrected[item.correctsId] = true;
+    let cursor = target;
+    const chain = {};
+    while (cursor && cursor.correctsId) {
+      if (chain[cursor.measurementId] || cursor.correctsId === item.measurementId) {
+        throwDmsClientPortalError_('client_data_invalid', 409);
+      }
+      chain[cursor.measurementId] = true;
+      cursor = byId[cursor.correctsId];
+    }
+  });
+  return parsed;
+}
+
+function getDmsClientPortalAdminMeasurements_(clientId) {
+  const ss = SpreadsheetApp.getActive();
+  assertDmsClientPortalClient_(ss, clientId);
+  const sheet = getDmsClientPortalSheet_(
+    ss,
+    DMS_CLIENT_PORTAL.MEASUREMENTS_SHEET,
+    DMS_CLIENT_PORTAL.MEASUREMENT_HEADERS
+  );
+  const rows = getDmsClientPortalRows_(
+    sheet,
+    DMS_CLIENT_PORTAL.MEASUREMENT_FIRST_ROW,
+    DMS_CLIENT_PORTAL.MEASUREMENT_COLUMNS,
+    false
+  );
+  const parsed = parseDmsClientPortalMeasurements_(rows);
+  const corrected = {};
+  parsed.forEach(function(item) {
+    if (item.correctsId) corrected[item.correctsId] = true;
+  });
+  const active = parsed.filter(function(item) {
+    return item.clientId === clientId && !corrected[item.measurementId];
+  }).map(function(item) {
+    return {
+      measurementId: item.measurementId,
+      measuredAt: item.measuredAt.toISOString(),
+      metrics: item.metrics,
+      createdAt: item.createdAt.toISOString(),
+      corrected: Boolean(item.correctsId)
+    };
+  }).sort(function(left, right) {
     return right.measuredAt.localeCompare(left.measuredAt);
   });
+  return {active: active, auditCount: parsed.filter(function(item) {
+    return item.clientId === clientId;
+  }).length};
+}
+
+function createDmsClientPortalMeasurement_(payload, actorId) {
+  return writeDmsClientPortalMeasurement_(payload, actorId, false);
+}
+
+function correctDmsClientPortalMeasurement_(payload, actorId) {
+  return writeDmsClientPortalMeasurement_(payload, actorId, true);
+}
+
+function writeDmsClientPortalMeasurement_(payload, actorId, correction) {
+  const allowed = correction
+    ? {clientId: true, measurementId: true, measuredAt: true, metrics: true}
+    : {clientId: true, measuredAt: true, metrics: true};
+  if (!payload || typeof payload !== 'object' || Object.keys(payload).some(function(key) {
+    return !allowed[key];
+  }) || Object.keys(payload).length !== Object.keys(allowed).length) {
+    throwDmsClientPortalError_('measurement_invalid', 400);
+  }
+  const clientId = normalizeDmsClientPortalClientId_(payload.clientId);
+  const measuredAt = parseDmsClientPortalMeasurementDate_(payload.measuredAt);
+  const metrics = normalizeDmsClientPortalMetrics_(payload.metrics);
+  const adminId = String(actorId || '').trim();
+  if (!/^\d{5,20}$/.test(adminId)) {
+    throwDmsClientPortalError_('invalid_user', 401);
+  }
+  const correctsId = correction ? String(payload.measurementId || '').trim() : '';
+  if (correction && !/^MSR-[A-Za-z0-9_-]+$/.test(correctsId)) {
+    throwDmsClientPortalError_('measurement_invalid', 400);
+  }
+
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(10000)) throwDmsClientPortalError_('operation_busy', 409);
+  try {
+    const ss = SpreadsheetApp.getActive();
+    assertDmsClientPortalClient_(ss, clientId);
+    const sheet = getDmsClientPortalSheet_(
+      ss,
+      DMS_CLIENT_PORTAL.MEASUREMENTS_SHEET,
+      DMS_CLIENT_PORTAL.MEASUREMENT_HEADERS
+    );
+    const rows = getDmsClientPortalRows_(
+      sheet,
+      DMS_CLIENT_PORTAL.MEASUREMENT_FIRST_ROW,
+      DMS_CLIENT_PORTAL.MEASUREMENT_COLUMNS,
+      false
+    );
+    const parsed = parseDmsClientPortalMeasurements_(rows);
+    const corrected = {};
+    parsed.forEach(function(item) {
+      if (item.correctsId) corrected[item.correctsId] = true;
+    });
+    const timeZone = ss.getSpreadsheetTimeZone ?
+      (ss.getSpreadsheetTimeZone() || 'Europe/Moscow') : 'Europe/Moscow';
+    const dateKey = Utilities.formatDate(measuredAt, timeZone, 'yyyy-MM-dd');
+    const activeForDay = parsed.filter(function(item) {
+      return item.clientId === clientId && !corrected[item.measurementId] &&
+        Utilities.formatDate(item.measuredAt, timeZone, 'yyyy-MM-dd') === dateKey;
+    });
+    if (!correction && activeForDay.length) {
+      throwDmsClientPortalError_('measurement_duplicate', 409);
+    }
+    if (correction) {
+      const targets = parsed.filter(function(item) {
+        return item.measurementId === correctsId && item.clientId === clientId;
+      });
+      if (targets.length !== 1 || corrected[correctsId] ||
+          Utilities.formatDate(targets[0].measuredAt, timeZone, 'yyyy-MM-dd') !== dateKey) {
+        throwDmsClientPortalError_('measurement_correction_conflict', 409);
+      }
+    }
+
+    const now = new Date();
+    const measurementId = 'MSR-' + sha256DmsClientPortal_(
+      'measurement:' + generateDmsClientPortalSecret_() + ':' + clientId
+    ).substring(0, 20);
+    sheet.appendRow([
+      measurementId,
+      clientId,
+      measuredAt,
+      metricCellDmsClientPortal_(metrics, 'weightKg'),
+      metricCellDmsClientPortal_(metrics, 'chestCm'),
+      metricCellDmsClientPortal_(metrics, 'waistCm'),
+      metricCellDmsClientPortal_(metrics, 'hipsCm'),
+      metricCellDmsClientPortal_(metrics, 'upperArmCm'),
+      metricCellDmsClientPortal_(metrics, 'thighCm'),
+      correctsId,
+      now,
+      adminId
+    ]);
+    SpreadsheetApp.flush();
+    return {measurements: getDmsClientPortalAdminMeasurements_(clientId)};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function normalizeDmsClientPortalMetrics_(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throwDmsClientPortalError_('measurement_invalid', 400);
+  }
+  const allowed = {};
+  DMS_CLIENT_PORTAL.METRICS.forEach(function(metric) { allowed[metric.key] = metric; });
+  if (Object.keys(value).some(function(key) { return !allowed[key]; })) {
+    throwDmsClientPortalError_('measurement_invalid', 400);
+  }
+  const result = {};
+  Object.keys(value).forEach(function(key) {
+    if (value[key] === '' || value[key] === null || value[key] === undefined) return;
+    const number = Number(value[key]);
+    const metric = allowed[key];
+    if (!isFinite(number) || number < metric.min || number > metric.max ||
+        Math.abs(number * 10 - Math.round(number * 10)) > 1e-9) {
+      throwDmsClientPortalError_('measurement_invalid', 400);
+    }
+    result[key] = number;
+  });
+  if (!Object.keys(result).length) {
+    throwDmsClientPortalError_('measurement_invalid', 400);
+  }
   return result;
+}
+
+function parseDmsClientPortalMeasurementDate_(value) {
+  const raw = String(value || '');
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (!match) throwDmsClientPortalError_('measurement_invalid', 400);
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0, 0);
+  if (date.getFullYear() !== Number(match[1]) || date.getMonth() !== Number(match[2]) - 1 ||
+      date.getDate() !== Number(match[3]) ||
+      raw > Utilities.formatDate(new Date(), 'Europe/Moscow', 'yyyy-MM-dd')) {
+    throwDmsClientPortalError_('measurement_invalid', 400);
+  }
+  return date;
+}
+
+function metricCellDmsClientPortal_(metrics, key) {
+  return Object.prototype.hasOwnProperty.call(metrics, key) ? metrics[key] : '';
 }
 
 function getDmsClientPortalAdminState_(clientId) {

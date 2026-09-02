@@ -17,9 +17,9 @@ const DMS_TELEGRAM = {
 // bundle is actually serving the web-app URL after a deployment update.
 const DMS_RUNTIME_IDENTITY = {
   SERVICE: 'dms-fitness-apps-script',
-  RELEASE: 'client-portal-enrollment-r2',
-  ROUTER_SHA256: 'b3306d19d01d428507abe82f2a05130f4733362e73d0b960117ec38357fd2e8a',
-  CLIENT_PORTAL_SHA256: '81df63dbee791cde846fb742480fee5b406c00efb2b24216d05a86703dd81dcb'
+  RELEASE: 'client-portal-enrollment-measurements-r3',
+  ROUTER_SHA256: '7811b700010a44dddd4586eebc62afadf741040771ea7bfaac86d9e3b0246d32',
+  CLIENT_PORTAL_SHA256: 'f13492de6dc8ca653a7e0f911bef468d8f97c81b3420992e25869bd00799426f'
 };
 
 /**

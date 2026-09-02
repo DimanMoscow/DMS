@@ -44,6 +44,12 @@ function handleDmsMiniAppRequest_(body) {
     else if (action === 'revoke_client_portal_invite') {
       data = revokeDmsClientPortalInvite_(payload.clientId, payload.inviteId);
     }
+    else if (action === 'create_client_measurement') {
+      data = createDmsClientPortalMeasurement_(payload, String(auth.user.id));
+    }
+    else if (action === 'correct_client_measurement') {
+      data = correctDmsClientPortalMeasurement_(payload, String(auth.user.id));
+    }
     else if (action === 'set_queue_decision') data = setDmsMiniAppQueueDecision_(payload);
     else if (action === 'confirm_day') data = confirmDmsMiniAppDay_(payload);
     else return dmsMiniAppJsonResponse_({ok: false, error: 'unknown_action'}, 400);
@@ -304,7 +310,8 @@ function getDmsMiniAppClient_(clientId) {
       return {label: item.label};
     }),
     upcomingMore: upcoming.more,
-    clientPortal: getDmsClientPortalAdminState_(card.id)
+    clientPortal: getDmsClientPortalAdminState_(card.id),
+    measurements: getDmsClientPortalAdminMeasurements_(card.id)
   };
 }
 

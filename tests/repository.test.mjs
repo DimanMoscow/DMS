@@ -37,6 +37,7 @@ test("Mini App proxy exposes only the approved actions and keeps Telegram creden
     "bootstrap", "client", "health", "set_queue_decision", "confirm_day",
     "client_portal_bootstrap", "client_portal_enroll",
     "create_client_portal_invite", "revoke_client_portal_invite",
+    "create_client_measurement", "correct_client_measurement",
   ]) {
     assert.match(routeSource, new RegExp(`"${action}"`));
   }

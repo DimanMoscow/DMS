@@ -23,9 +23,13 @@
         { "name": "Waist Cm", "type": "number", "required": false, "minimum": 30, "maximum": 300 },
         { "name": "Hips Cm", "type": "number", "required": false, "minimum": 30, "maximum": 300 },
         { "name": "Upper Arm Cm", "type": "number", "required": false, "minimum": 10, "maximum": 100 },
-        { "name": "Thigh Cm", "type": "number", "required": false, "minimum": 20, "maximum": 150 }
+        { "name": "Thigh Cm", "type": "number", "required": false, "minimum": 20, "maximum": 150 },
+        { "name": "Corrects Measurement ID", "type": "text", "required": false, "format": "^MSR-[A-Za-z0-9_-]+$", "references": "Замеры.Measurement ID" },
+        { "name": "Created At", "type": "utc_timestamp", "required": true },
+        { "name": "Created By", "type": "text", "required": true, "format": "^[0-9]{5,20}$" }
       ],
-      "uniqueTogether": ["Client ID", "Measured At"]
+      "activeUniqueTogether": ["Client ID", "Measured At"],
+      "correctionPolicy": "append-only; one active successor per measurement"
     }
   }
 }

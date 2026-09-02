@@ -301,7 +301,7 @@
     "v44": {
       "baseVersion": "v43",
       "fileCount": 16,
-      "sourceTreeSha256": "d83f94bfab5780a7252b838434ac13be0d05a13c401ed7996f7c29f484f4ea46",
+      "sourceTreeSha256": "8aa9a84a48f78a942292257c401f28e125e2dbbd94490bfc55288b493e0a2a50",
       "expectedChangedFiles": [
         "TelegramBot.gs",
         "ZZZZZZZZMiniAppApi.gs",

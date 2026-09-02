@@ -21,6 +21,10 @@ The command reports only counts, row numbers, field names, and error codes. It n
 prints identifiers or client data. Exit code `0` means the proposed rows pass the
 schema, references, ranges, and uniqueness checks; it does not authorize writes.
 
+Measurement rows include `Corrects Measurement ID`, `Created At`, and `Created By`.
+Corrections are append-only: the target must belong to the same client and date and may
+have only one successor. The preflight enforces one active measurement per client/date.
+
 For the controlled two-client pilot, prepare a second local input shaped like
 `fixtures/pilot-valid.json`. It must include read-back headers and the current binding
 and measurement rows so collisions are checked against live state as well as within the
