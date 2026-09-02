@@ -2,7 +2,10 @@
 
 ## Access boundary
 
-- Entry point: `/client`; the administrative MiniApp remains separate at `/`.
+- Client entry point: `/client`. Telegram Main Mini App links land on `/`; the root
+  dispatcher selects the client enrollment UI only when signed `initData` contains a
+  non-empty `start_param`. Ordinary bot-menu launches without it remain on the
+  administrative MiniApp.
 - The browser sends signed Telegram `initData` and action
   `client_portal_bootstrap` with no payload.
 - Apps Script validates the Telegram signature and age, then resolves the exact numeric
@@ -59,6 +62,9 @@ The exact empty production schema and preflight are in
 `apps-script/migrations/client-portal-enrollment-v1/`. Raw tokens, signed initData, and
 Telegram IDs are not logged. The bot must report `has_main_web_app=true` before an
 invite can be created.
+
+The browser never trusts `tgWebAppStartParam` or another query-string selector for
+enrollment. Routing and consumption both derive the token only from signed `initData`.
 
 ## Production bootstrap plan
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getSignedStartParam } from "@/lib/telegram-init-data";
 import styles from "./client-portal.module.css";
 
 type TelegramWebApp = {
@@ -88,14 +89,6 @@ function errorMessage(code: string) {
   return messages[code] ?? "Не удалось загрузить кабинет. Попробуйте открыть его позже.";
 }
 
-function signedStartParam(initData: string) {
-  try {
-    return new URLSearchParams(initData).get("start_param")?.trim() ?? "";
-  } catch {
-    return "";
-  }
-}
-
 async function consumeEnrollment(initData: string) {
   const response = await fetch("/api/dms", {
     method: "POST",
@@ -150,7 +143,7 @@ export function ClientPortal() {
       const timeout = window.setTimeout(() => setState({ kind: "unauthorized" }), 0);
       return () => window.clearTimeout(timeout);
     }
-    const enrollment = signedStartParam(initData)
+    const enrollment = getSignedStartParam(initData)
       ? consumeEnrollment(initData)
       : Promise.resolve();
     enrollment.then(() => loadClientPortal(initData))

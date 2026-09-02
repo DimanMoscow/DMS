@@ -47,9 +47,11 @@ test("Mini App proxy exposes only the approved actions and keeps Telegram creden
 });
 
 test("client portal proxy rejects selectors and disables caching on every response", async () => {
-  const [routeSource, portalSource] = await Promise.all([
+  const [routeSource, portalSource, homeSource, entrySource] = await Promise.all([
     readFile("app/api/dms/route.ts", "utf8"),
     readFile("app/client/client-portal.tsx", "utf8"),
+    readFile("app/page.tsx", "utf8"),
+    readFile("app/_components/mini-app-entry.tsx", "utf8"),
   ]);
 
   assert.match(routeSource, /payloadlessClientActions\.has\(action\)/);
@@ -61,6 +63,10 @@ test("client portal proxy rejects selectors and disables caching on every respon
   assert.doesNotMatch(portalSource, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(portalSource, /console\.(log|info|debug)/);
   assert.match(portalSource, /action: "client_portal_enroll"/);
+  assert.match(homeSource, /<MiniAppEntry \/>/);
+  assert.match(entrySource, /getMiniAppEntryMode\(initData\)/);
+  assert.match(entrySource, /<ClientPortal \/>/);
+  assert.match(entrySource, /<MiniAppShell \/>/);
 });
 
 test("enrollment keeps tokens and Telegram identities out of application logs", async () => {
