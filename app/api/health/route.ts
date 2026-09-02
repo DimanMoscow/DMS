@@ -1,4 +1,9 @@
 import { isDmsBackendConfigured } from "@/lib/dms-server-config";
+import {
+  getMiniAppSourceRevision,
+  MINIAPP_RELEASE,
+  MINIAPP_RUNTIME_FINGERPRINT,
+} from "@/lib/release-identity";
 
 export const dynamic = "force-dynamic";
 
@@ -7,7 +12,9 @@ export async function GET() {
     {
       ok: true,
       service: "dms-fitness-miniapp",
-      release: "0.2.1",
+      release: MINIAPP_RELEASE,
+      runtimeFingerprint: MINIAPP_RUNTIME_FINGERPRINT,
+      sourceRevision: getMiniAppSourceRevision(),
       dataMode: isDmsBackendConfigured() ? "connected" : "not-configured",
       timestamp: new Date().toISOString(),
     },

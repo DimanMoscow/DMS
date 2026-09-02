@@ -34,7 +34,13 @@ declare global {
 }
 
 type View = "home" | "today" | "clients" | "report" | "more";
-type Health = { ok: boolean; release: string; dataMode: "connected" | "not-configured" };
+type Health = {
+  ok: boolean;
+  release: string;
+  runtimeFingerprint?: string;
+  sourceRevision?: string;
+  dataMode: "connected" | "not-configured";
+};
 type ClientSummary = {
   id: string; name: string; status: string; blockId: string; format: string;
   completed: number; remaining: number; blockPrice: number; paid: number; debt: number;
@@ -785,6 +791,10 @@ function SystemView({ service, health, onRefresh }: {
     </section>
     <section className="detail-card">
       <Detail label="Mini App" value={service?.release || "—"} />
+      <Detail label="Runtime" value={service?.runtimeFingerprint || "—"} />
+      <Detail label="Source" value={service?.sourceRevision === "unavailable"
+        ? "не указан"
+        : service?.sourceRevision?.slice(0, 12) || "—"} />
       <Detail label="Очередь" value={health ? `${health.queueWaiting} ожидает · ${health.queueErrors} ошибок` : "—"} />
       <Detail label="Исчерпанные блоки" value={health ? String(health.exhaustedOpenBlocks) : "—"} />
       <Detail label="Триггеры" value={health ? String(health.triggerCount) : "—"} />

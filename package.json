@@ -1,6 +1,6 @@
 {
   "name": "dms-fitness-miniapp",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "private": true,
   "engines": {
     "node": "24.x"
@@ -16,6 +16,7 @@
     "preflight:client-pilot": "node apps-script/migrations/client-portal-v1/pilot-preflight.mjs",
     "preflight:client-enrollment": "node apps-script/migrations/client-portal-enrollment-v1/preflight.mjs",
     "smoke:apps-script-runtime": "node apps-script/scripts/check-runtime-identity.mjs",
+    "smoke:miniapp-production": "node scripts/verify-production.mjs",
     "check:miniapp": "npm run lint && npm run test && npm run typecheck && npm run build",
     "check": "npm run check:miniapp && npm run verify:apps-script"
   },
