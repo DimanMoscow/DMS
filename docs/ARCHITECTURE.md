@@ -56,11 +56,12 @@ tokens exist only in the one-time admin response/link.
 | Component | Production runtime | Repository role |
 | --- | --- | --- |
 | MiniApp | Vercel deployment | Canonical source in `app/`, `lib/`, `public/` |
-| Apps Script | Google Apps Script deployment on `v43` | Production-matching sanitized snapshot in `apps-script/versions/v43` |
+| Apps Script | Google Apps Script deployment on `v44` | Production-matching sanitized snapshot in `apps-script/versions/v44` |
 | Saved `v39` | Historical numbered version; not deployed | Reviewable snapshot beside `v38` |
 | Retained `v40` candidate | No runtime effect by itself | Reviewed source matching `versions/v40` byte-for-byte |
 | Numbered `v42` | Historical deployment with a proven runtime/source mismatch; not deployed | Source snapshot matching `candidates/v41` |
-| Client portal `v43` | Active production runtime with live fingerprints | Snapshot and candidate match byte-for-byte after URL sanitization |
+| Client portal `v43` | Historical client-portal runtime; not deployed now | Snapshot and candidate match byte-for-byte after URL sanitization |
+| Enrollment and measurements `v44` | Active production runtime with live fingerprints | Snapshot and candidate match byte-for-byte after URL sanitization |
 | Sheets / Calendar | Live Google services | No production data is stored in Git |
 | Telegram | Telegram API calling Apps Script webhook | Bot behavior is implemented in Apps Script files |
 
