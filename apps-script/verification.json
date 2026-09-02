@@ -266,6 +266,23 @@
         "verifiedAt": "2026-09-01T21:05:09Z",
         "result": "Production v43 returned the expected router and client-portal fingerprints with clientPortalHandlerLoaded=true; the client action reached authentication instead of unknown_action"
       }
+    },
+    "v44": {
+      "numberedVersion": 44,
+      "baseVersion": "v43",
+      "matchesCandidate": "v44",
+      "fileCount": 16,
+      "sourceTreeSha256": "8aa9a84a48f78a942292257c401f28e125e2dbbd94490bfc55288b493e0a2a50",
+      "expectedChangedFiles": [
+        "TelegramBot.gs",
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZZClientPortal.gs"
+      ],
+      "liveVerification": {
+        "method": "Apps Script Editor byte comparison, numbered deployment metadata, and read-only gate",
+        "verifiedAt": "2026-09-02T05:16:00Z",
+        "result": "Production v44 was created from the exact sanitized candidate with only the two documented operational URL substitutions; the pre-deploy read-only gate passed 15/15 with reconciliation at zero"
+      }
     }
   },
   "candidates": {
