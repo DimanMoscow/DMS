@@ -138,6 +138,11 @@ client. The UI requires a preview before save; the server independently validate
 date, at least one metric, one decimal place, and the documented ranges. A client/date
 may have only one active measurement.
 
+The preview uses the Moscow calendar date, accepts either decimal separator, displays
+normalized numeric values, and rejects impossible/future dates, excessive precision,
+out-of-range metrics, and correction attempts that do not change any value. These are
+trainer UX checks only; Apps Script remains the authoritative validation boundary.
+
 Correction never overwrites a row. It appends a new measurement with
 `Corrects Measurement ID`; the old row remains in the audit chain and the client API
 returns only the active leaf. A second correction of the same row, cross-client target,

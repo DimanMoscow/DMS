@@ -2,6 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
+import {
+  measurementFields,
+  moscowDateKey,
+  sameMeasurementMetrics,
+  validateMeasurementDraft,
+  type MeasurementMetricInputs,
+  type MeasurementMetrics,
+} from "@/lib/measurement-draft";
+
 type TelegramUser = { first_name?: string };
 type TelegramBackButton = {
   show: () => void;
@@ -55,11 +64,10 @@ type ClientDetail = ClientSummary & {
   };
   measurements: AdminMeasurements;
 };
-type MeasurementMetricKey = "weightKg" | "chestCm" | "waistCm" | "hipsCm" | "upperArmCm" | "thighCm";
 type AdminMeasurement = {
   measurementId: string;
   measuredAt: string;
-  metrics: Partial<Record<MeasurementMetricKey, number>>;
+  metrics: MeasurementMetrics;
   createdAt: string;
   corrected: boolean;
 };
@@ -655,17 +663,6 @@ function LoadedClientCard({ detail, initData, onBack }: {
   </Page>;
 }
 
-const measurementFields: {
-  key: MeasurementMetricKey; label: string; unit: string; min: number; max: number;
-}[] = [
-  { key: "weightKg", label: "Вес", unit: "кг", min: 20, max: 400 },
-  { key: "chestCm", label: "Грудь", unit: "см", min: 30, max: 300 },
-  { key: "waistCm", label: "Талия", unit: "см", min: 30, max: 300 },
-  { key: "hipsCm", label: "Бёдра", unit: "см", min: 30, max: 300 },
-  { key: "upperArmCm", label: "Плечо", unit: "см", min: 10, max: 100 },
-  { key: "thighCm", label: "Бедро", unit: "см", min: 20, max: 150 },
-];
-
 function MeasurementAdmin({ clientId, initData, value, onChange }: {
   clientId: string; initData: string; value: AdminMeasurements;
   onChange: (value: AdminMeasurements) => void;
@@ -673,40 +670,39 @@ function MeasurementAdmin({ clientId, initData, value, onChange }: {
   const [editing, setEditing] = useState<AdminMeasurement | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [date, setDate] = useState("");
-  const [metrics, setMetrics] = useState<Record<MeasurementMetricKey, string>>({
+  const [metrics, setMetrics] = useState<MeasurementMetricInputs>({
     weightKg: "", chestCm: "", waistCm: "", hipsCm: "", upperArmCm: "", thighCm: "",
   });
-  const [preview, setPreview] = useState(false);
+  const [preview, setPreview] = useState<MeasurementMetrics | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
   const openForm = (measurement: AdminMeasurement | null) => {
     setEditing(measurement);
-    setDate(measurement?.measuredAt.slice(0, 10) || new Date().toISOString().slice(0, 10));
+    setDate(measurement?.measuredAt.slice(0, 10) || moscowDateKey());
     setMetrics(Object.fromEntries(measurementFields.map((field) => [
       field.key,
       measurement?.metrics[field.key]?.toString() || "",
-    ])) as Record<MeasurementMetricKey, string>);
-    setPreview(false);
+    ])) as MeasurementMetricInputs);
+    setPreview(null);
     setError("");
     setNotice("");
     setFormOpen(true);
   };
 
-  const normalizedMetrics = () => Object.fromEntries(measurementFields.flatMap((field) => {
-    const raw = metrics[field.key].trim();
-    return raw ? [[field.key, Number(raw)]] : [];
-  }));
-
   const showPreview = () => {
-    const next = normalizedMetrics();
-    if (!date || !Object.keys(next).length || Object.values(next).some((item) => !Number.isFinite(item))) {
-      setError("Укажите дату и хотя бы один корректный показатель.");
+    const result = validateMeasurementDraft(date, metrics);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    if (editing && sameMeasurementMetrics(result.metrics, editing.metrics)) {
+      setError("Измените хотя бы один показатель перед исправлением.");
       return;
     }
     setError("");
-    setPreview(true);
+    setPreview(result.metrics);
   };
 
   const save = async () => {
@@ -719,11 +715,11 @@ function MeasurementAdmin({ clientId, initData, value, onChange }: {
         clientId,
         ...(editing ? { measurementId: editing.measurementId } : {}),
         measuredAt: date,
-        metrics: normalizedMetrics(),
+        metrics: preview,
       });
       onChange(result.measurements);
       setFormOpen(false);
-      setPreview(false);
+      setPreview(null);
       setNotice(editing ? "Исправление сохранено новой записью." : "Замер сохранён.");
     } catch (reason) {
       setError(readableError(reason));
@@ -745,22 +741,22 @@ function MeasurementAdmin({ clientId, initData, value, onChange }: {
     </article>)}
     {!value.active.length && !formOpen && <Empty text="Замеров пока нет." />}
     {formOpen && <div className="measurement-form">
-      <label>Дата<input type="date" value={date} max={new Date().toISOString().slice(0, 10)}
-        disabled={Boolean(editing)} onChange={(event) => { setDate(event.target.value); setPreview(false); }} /></label>
+      <label>Дата<input type="date" value={date} max={moscowDateKey()}
+        disabled={Boolean(editing)} onChange={(event) => { setDate(event.target.value); setPreview(null); }} /></label>
       <div className="measurement-fields">{measurementFields.map((field) => <label key={field.key}>{field.label}, {field.unit}
         <input type="number" inputMode="decimal" min={field.min} max={field.max} step="0.1"
           value={metrics[field.key]} onChange={(event) => {
             setMetrics((current) => ({ ...current, [field.key]: event.target.value }));
-            setPreview(false);
+            setPreview(null);
           }} /></label>)}</div>
       {preview && <div className="measurement-preview"><strong>Проверьте перед сохранением</strong>
         <span>{new Date(`${date}T12:00:00`).toLocaleDateString("ru-RU")}</span>
-        <p>{measurementFields.flatMap((field) => metrics[field.key]
-          ? [`${field.label}: ${metrics[field.key]} ${field.unit}`] : []).join(" · ")}</p>
+        <p>{measurementFields.flatMap((field) => preview[field.key] === undefined
+          ? [] : [`${field.label}: ${preview[field.key]} ${field.unit}`]).join(" · ")}</p>
         {editing && <small>Исходная запись останется в истории аудита.</small>}</div>}
       {error && <p className="action-hint error-copy">{error}</p>}
       <div className="measurement-actions"><button className="secondary-button" type="button" disabled={busy}
-        onClick={() => { setFormOpen(false); setPreview(false); }}>Отмена</button>
+        onClick={() => { setFormOpen(false); setPreview(null); }}>Отмена</button>
         {preview
           ? <button className="primary-button" type="button" disabled={busy} onClick={save}>Сохранить</button>
           : <button className="primary-button" type="button" onClick={showPreview}>Предпросмотр</button>}</div>
