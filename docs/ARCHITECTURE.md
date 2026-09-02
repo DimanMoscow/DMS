@@ -11,14 +11,17 @@
    workflows. Apple Calendar receives Google Calendar changes through external sync.
 
 The administrative MiniApp remains at `/`. The read-only client portal is a separate
-screen at `/client`; it uses the same server proxy but only the dedicated
+screen at `/client`; signed `start_param` launches on the configured Main Mini App root
+are dispatched to the same client UI before any admin bootstrap. It uses the same
+server proxy but only the dedicated
 `client_portal_bootstrap` action. Apps Script resolves the signed Telegram user to one
 client record before reading that client's profile and measurements. The browser never
 selects or receives a `clientId`.
 
 Enrollment uses a separate admin action and a payloadless client action. The admin
 selects an exact existing client, Apps Script stores only a one-time invitation hash,
-and Telegram delivers the opaque token as signed `start_param`. Consumption is
+and Telegram delivers the opaque token as signed `start_param`. Ordinary bot-menu
+launches have no `start_param` and stay administrative. Consumption is
 serialized by a document lock and creates the one-to-one binding without client-side
 `clientId` input. Invitation state lives in `Приглашения Client Portal`; plaintext
 tokens exist only in the one-time admin response/link.
