@@ -26,13 +26,17 @@
       "measurementId": "MSR-FIXTURE-A1",
       "clientId": "CL-FIXTURE-A",
       "measuredAt": "2026-08-20T09:00:00.000Z",
-      "weightKg": 80
+      "weightKg": 80,
+      "createdAt": "2026-08-20T09:05:00.000Z",
+      "createdBy": "999999"
     },
     {
       "measurementId": "MSR-FIXTURE-A2",
       "clientId": "CL-FIXTURE-A",
       "measuredAt": "2026-08-20T09:00:00.000Z",
-      "weightKg": 79
+      "weightKg": 79,
+      "createdAt": "2026-08-20T09:06:00.000Z",
+      "createdBy": "999999"
     }
   ]
 }

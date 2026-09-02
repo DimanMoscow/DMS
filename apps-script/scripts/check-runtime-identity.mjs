@@ -40,7 +40,7 @@ assert.deepEqual(Object.keys(identity).sort(), [
 ]);
 assert.equal(identity.ok, true);
 assert.equal(identity.service, "dms-fitness-apps-script");
-assert.equal(identity.release, "client-portal-enrollment-r2");
+assert.equal(identity.release, "client-portal-enrollment-measurements-r3");
 assert.equal(identity.routerSha256, sha256("ZZZZZZZZMiniAppApi.gs"));
 assert.equal(
   identity.clientPortalSha256,
@@ -48,4 +48,4 @@ assert.equal(
 );
 assert.equal(identity.clientPortalHandlerLoaded, true);
 
-console.log("Apps Script runtime identity verified: client-portal-enrollment-r2");
+console.log("Apps Script runtime identity verified: client-portal-enrollment-measurements-r3");

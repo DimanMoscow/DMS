@@ -53,11 +53,22 @@ type ClientDetail = ClientSummary & {
     status: "linked" | "invited" | "unlinked";
     activeInvite: { inviteId: string; expiresAt: string } | null;
   };
+  measurements: AdminMeasurements;
 };
+type MeasurementMetricKey = "weightKg" | "chestCm" | "waistCm" | "hipsCm" | "upperArmCm" | "thighCm";
+type AdminMeasurement = {
+  measurementId: string;
+  measuredAt: string;
+  metrics: Partial<Record<MeasurementMetricKey, number>>;
+  createdAt: string;
+  corrected: boolean;
+};
+type AdminMeasurements = { active: AdminMeasurement[]; auditCount: number };
 type ClientPortalAdminResponse = {
   clientPortal: ClientDetail["clientPortal"];
   inviteUrl?: string;
 };
+type MeasurementAdminResponse = { measurements: AdminMeasurements };
 type SystemHealth = {
   ok: boolean; checkedAt: string; durationMs: number; passed: number; total: number;
   failures: { name: string; details: string }[]; queueWaiting: number; queueErrors: number;
@@ -131,6 +142,9 @@ function readableError(error: unknown) {
     enrollment_invite_invalid: "Приглашение уже использовано, отозвано или недействительно.",
     enrollment_link_not_configured: "Telegram Mini App не настроен как основное приложение бота.",
     client_link_conflict: "Обнаружен конфликт привязки. Данные не изменены.",
+    measurement_invalid: "Проверьте дату и значения замера.",
+    measurement_duplicate: "На эту дату уже есть активный замер. Используйте исправление.",
+    measurement_correction_conflict: "Замер уже исправлен или изменился. Обновите карточку.",
   };
   return messages[code] || "Не удалось выполнить запрос. Повторите попытку.";
 }
@@ -547,6 +561,7 @@ function LoadedClientCard({ detail, initData, onBack }: {
   const [portalBusy, setPortalBusy] = useState(false);
   const [portalNotice, setPortalNotice] = useState("");
   const [portalError, setPortalError] = useState("");
+  const [measurements, setMeasurements] = useState(detail.measurements);
 
   const createInvite = async () => {
     if (portalBusy) return;
@@ -635,7 +650,122 @@ function LoadedClientCard({ detail, initData, onBack }: {
       {portalNotice && <p className="action-hint">{portalNotice}</p>}
       {portalError && <p className="action-hint error-copy">{portalError}</p>}
     </section>
+    <MeasurementAdmin clientId={detail.id} initData={initData} value={measurements}
+      onChange={setMeasurements} />
   </Page>;
+}
+
+const measurementFields: {
+  key: MeasurementMetricKey; label: string; unit: string; min: number; max: number;
+}[] = [
+  { key: "weightKg", label: "Вес", unit: "кг", min: 20, max: 400 },
+  { key: "chestCm", label: "Грудь", unit: "см", min: 30, max: 300 },
+  { key: "waistCm", label: "Талия", unit: "см", min: 30, max: 300 },
+  { key: "hipsCm", label: "Бёдра", unit: "см", min: 30, max: 300 },
+  { key: "upperArmCm", label: "Плечо", unit: "см", min: 10, max: 100 },
+  { key: "thighCm", label: "Бедро", unit: "см", min: 20, max: 150 },
+];
+
+function MeasurementAdmin({ clientId, initData, value, onChange }: {
+  clientId: string; initData: string; value: AdminMeasurements;
+  onChange: (value: AdminMeasurements) => void;
+}) {
+  const [editing, setEditing] = useState<AdminMeasurement | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [date, setDate] = useState("");
+  const [metrics, setMetrics] = useState<Record<MeasurementMetricKey, string>>({
+    weightKg: "", chestCm: "", waistCm: "", hipsCm: "", upperArmCm: "", thighCm: "",
+  });
+  const [preview, setPreview] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const openForm = (measurement: AdminMeasurement | null) => {
+    setEditing(measurement);
+    setDate(measurement?.measuredAt.slice(0, 10) || new Date().toISOString().slice(0, 10));
+    setMetrics(Object.fromEntries(measurementFields.map((field) => [
+      field.key,
+      measurement?.metrics[field.key]?.toString() || "",
+    ])) as Record<MeasurementMetricKey, string>);
+    setPreview(false);
+    setError("");
+    setNotice("");
+    setFormOpen(true);
+  };
+
+  const normalizedMetrics = () => Object.fromEntries(measurementFields.flatMap((field) => {
+    const raw = metrics[field.key].trim();
+    return raw ? [[field.key, Number(raw)]] : [];
+  }));
+
+  const showPreview = () => {
+    const next = normalizedMetrics();
+    if (!date || !Object.keys(next).length || Object.values(next).some((item) => !Number.isFinite(item))) {
+      setError("Укажите дату и хотя бы один корректный показатель.");
+      return;
+    }
+    setError("");
+    setPreview(true);
+  };
+
+  const save = async () => {
+    if (busy || !preview) return;
+    setBusy(true);
+    setError("");
+    try {
+      const action = editing ? "correct_client_measurement" : "create_client_measurement";
+      const result = await requestDms<MeasurementAdminResponse>(initData, action, {
+        clientId,
+        ...(editing ? { measurementId: editing.measurementId } : {}),
+        measuredAt: date,
+        metrics: normalizedMetrics(),
+      });
+      onChange(result.measurements);
+      setFormOpen(false);
+      setPreview(false);
+      setNotice(editing ? "Исправление сохранено новой записью." : "Замер сохранён.");
+    } catch (reason) {
+      setError(readableError(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return <section className="content-section measurement-admin">
+    <div className="measurement-admin-heading"><div><h2>Замеры</h2>
+      <p className="history-text">Активных: {value.active.length} · записей аудита: {value.auditCount}</p></div>
+      {!formOpen && <button className="secondary-button" type="button" onClick={() => openForm(null)}>Добавить</button>}</div>
+    {notice && <p className="action-hint">{notice}</p>}
+    {value.active.map((measurement) => <article className="measurement-admin-row" key={measurement.measurementId}>
+      <div><strong>{new Date(measurement.measuredAt).toLocaleDateString("ru-RU")}</strong>
+        <span>{measurementFields.flatMap((field) => measurement.metrics[field.key] === undefined
+          ? [] : [`${field.label}: ${measurement.metrics[field.key]} ${field.unit}`]).join(" · ")}</span></div>
+      <button className="secondary-button" type="button" onClick={() => openForm(measurement)}>Исправить</button>
+    </article>)}
+    {!value.active.length && !formOpen && <Empty text="Замеров пока нет." />}
+    {formOpen && <div className="measurement-form">
+      <label>Дата<input type="date" value={date} max={new Date().toISOString().slice(0, 10)}
+        disabled={Boolean(editing)} onChange={(event) => { setDate(event.target.value); setPreview(false); }} /></label>
+      <div className="measurement-fields">{measurementFields.map((field) => <label key={field.key}>{field.label}, {field.unit}
+        <input type="number" inputMode="decimal" min={field.min} max={field.max} step="0.1"
+          value={metrics[field.key]} onChange={(event) => {
+            setMetrics((current) => ({ ...current, [field.key]: event.target.value }));
+            setPreview(false);
+          }} /></label>)}</div>
+      {preview && <div className="measurement-preview"><strong>Проверьте перед сохранением</strong>
+        <span>{new Date(`${date}T12:00:00`).toLocaleDateString("ru-RU")}</span>
+        <p>{measurementFields.flatMap((field) => metrics[field.key]
+          ? [`${field.label}: ${metrics[field.key]} ${field.unit}`] : []).join(" · ")}</p>
+        {editing && <small>Исходная запись останется в истории аудита.</small>}</div>}
+      {error && <p className="action-hint error-copy">{error}</p>}
+      <div className="measurement-actions"><button className="secondary-button" type="button" disabled={busy}
+        onClick={() => { setFormOpen(false); setPreview(false); }}>Отмена</button>
+        {preview
+          ? <button className="primary-button" type="button" disabled={busy} onClick={save}>Сохранить</button>
+          : <button className="primary-button" type="button" onClick={showPreview}>Предпросмотр</button>}</div>
+    </div>}
+  </section>;
 }
 
 function ReportView({ report }: { report: Bootstrap["report"] }) {

@@ -499,6 +499,26 @@ h1 {
 .invite-copy input { min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--metal); background: var(--surface-raised); font: inherit; font-size: 11px; }
 .invite-copy button { padding: 0 12px; }
 .error-copy { color: #e3a1a1; }
+.measurement-admin { padding: 16px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); }
+.measurement-admin-heading { display: flex; gap: 14px; align-items: center; justify-content: space-between; }
+.measurement-admin-heading h2 { margin-bottom: 4px; }
+.measurement-admin-heading button { min-height: 38px; padding: 0 13px; }
+.measurement-admin-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.measurement-admin-row div { display: grid; gap: 5px; min-width: 0; }
+.measurement-admin-row strong { font-size: 13px; }
+.measurement-admin-row span { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.measurement-admin-row button { min-height: 36px; padding: 0 10px; }
+.measurement-form { display: grid; gap: 14px; margin-top: 16px; }
+.measurement-form label { display: grid; gap: 6px; color: var(--muted); font-size: 10px; }
+.measurement-form input { width: 100%; padding: 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface-raised); font: inherit; }
+.measurement-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.measurement-preview { display: grid; gap: 7px; padding: 13px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface-raised); }
+.measurement-preview strong { font-size: 12px; }
+.measurement-preview span,
+.measurement-preview p,
+.measurement-preview small { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.measurement-actions { display: grid; grid-template-columns: .8fr 1.2fr; gap: 8px; }
+.measurement-actions button { min-height: 44px; margin: 0; }
 
 .system-hero {
   display: flex;

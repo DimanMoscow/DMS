@@ -15,6 +15,7 @@ const accessHeaders = [
 const measurementHeaders = [
   "Measurement ID", "Client ID", "Measured At", "Weight Kg", "Chest Cm",
   "Waist Cm", "Hips Cm", "Upper Arm Cm", "Thigh Cm",
+  "Corrects Measurement ID", "Created At", "Created By",
 ];
 const inviteHeaders = [
   "Invite ID", "Token SHA-256", "Client ID", "Status", "Expires At",
@@ -89,9 +90,9 @@ function fixtures(accessRows = [
     "Клиенты": new FakeSheet([empty, empty, empty, empty, clientRow("CL-A", "Клиент A"), clientRow("CL-B", "Клиент B")]),
     "Замеры": new FakeSheet([
       measurementHeaders,
-      ["MSR-A1", "CL-A", new Date("2026-08-20T09:00:00.000Z"), 80, 102, 88, 98, 35, 58],
-      ["MSR-A2", "CL-A", new Date("2026-08-27T09:00:00.000Z"), 79, 101, 86, 97, 35, 58],
-      ["MSR-B1", "CL-B", new Date("2026-08-25T09:00:00.000Z"), 65, 91, 70, 94, 29, 52],
+      ["MSR-A1", "CL-A", new Date("2026-08-20T12:00:00.000Z"), 80, 102, 88, 98, 35, 58, "", new Date("2026-08-20T12:30:00.000Z"), "999999"],
+      ["MSR-A2", "CL-A", new Date("2026-08-27T12:00:00.000Z"), 79, 101, 86, 97, 35, 58, "", new Date("2026-08-27T12:30:00.000Z"), "999999"],
+      ["MSR-B1", "CL-B", new Date("2026-08-25T12:00:00.000Z"), 65, 91, 70, 94, 29, 52, "", new Date("2026-08-25T12:30:00.000Z"), "999999"],
     ]),
     "Приглашения Client Portal": new FakeSheet([inviteHeaders]),
   };
@@ -122,7 +123,10 @@ function createContext({
     },
     SpreadsheetApp: {
       getActive() {
-        return { getSheetByName: (name) => sheets[name] ?? null };
+        return {
+          getSheetByName: (name) => sheets[name] ?? null,
+          getSpreadsheetTimeZone: () => "Europe/Moscow",
+        };
       },
       flush() {},
     },
@@ -171,6 +175,9 @@ function createContext({
       },
       getUuid() {
         return crypto.randomUUID();
+      },
+      formatDate(value) {
+        return value.toISOString().slice(0, 10);
       },
     },
     telegramApi_(method) {
@@ -436,4 +443,91 @@ test("client cannot create invites and lock serializes race attempts", () => {
   assert.equal(first.ok, true);
   assert.equal(second.error, "enrollment_invite_invalid");
   assert.equal(sheets["Доступ клиентов"].rows.length, 2);
+});
+
+test("admin measurement create validates allow-list and rejects duplicate dates", () => {
+  const sheets = fixtures([]);
+  sheets["Замеры"] = new FakeSheet([measurementHeaders]);
+  const context = createContext({ sheets });
+  const created = actionRequest(context, "999999", "create_client_measurement", {
+    clientId: "CL-A",
+    measuredAt: "2026-09-01",
+    metrics: { weightKg: 78.5, waistCm: 85 },
+  });
+  assert.equal(created.ok, true, JSON.stringify(created));
+  assert.equal(created.data.measurements.active.length, 1);
+  assert.equal(created.data.measurements.auditCount, 1);
+  assert.equal(sheets["Замеры"].rows[1][1], "CL-A");
+  assert.equal(sheets["Замеры"].rows[1][3], 78.5);
+  assert.equal(sheets["Замеры"].rows[1][9], "");
+  assert.equal(sheets["Замеры"].rows[1][11], "999999");
+
+  const duplicate = actionRequest(context, "999999", "create_client_measurement", {
+    clientId: "CL-A",
+    measuredAt: "2026-09-01",
+    metrics: { weightKg: 78 },
+  });
+  assert.equal(duplicate.error, "measurement_duplicate");
+  assert.equal(sheets["Замеры"].rows.length, 2);
+
+  const forbidden = actionRequest(context, "999999", "create_client_measurement", {
+    clientId: "CL-A",
+    measuredAt: "2026-09-02",
+    metrics: { bloodPressure: 120 },
+  });
+  assert.equal(forbidden.error, "measurement_invalid");
+});
+
+test("correction appends audit history and client sees only the corrected value", () => {
+  const sheets = fixtures([["BND-A", "100001", "CL-A", "active", "", ""]]);
+  sheets["Замеры"] = new FakeSheet([measurementHeaders]);
+  const context = createContext({ sheets });
+  const created = actionRequest(context, "999999", "create_client_measurement", {
+    clientId: "CL-A",
+    measuredAt: "2026-09-01",
+    metrics: { weightKg: 78.5, waistCm: 85 },
+  });
+  const originalId = created.data.measurements.active[0].measurementId;
+  const corrected = actionRequest(context, "999999", "correct_client_measurement", {
+    clientId: "CL-A",
+    measurementId: originalId,
+    measuredAt: "2026-09-01",
+    metrics: { weightKg: 78.1, waistCm: 84.5 },
+  });
+  assert.equal(corrected.ok, true, JSON.stringify(corrected));
+  assert.equal(corrected.data.measurements.active.length, 1);
+  assert.equal(corrected.data.measurements.auditCount, 2);
+  assert.equal(corrected.data.measurements.active[0].corrected, true);
+  assert.equal(sheets["Замеры"].rows[2][9], originalId);
+
+  const client = request(context, "100001");
+  assert.equal(client.ok, true, JSON.stringify(client));
+  assert.equal(client.data.measurements.length, 1);
+  assert.equal(client.data.latestMeasurement.metrics.weightKg, 78.1);
+  assert.equal(JSON.stringify(client).includes(originalId), false);
+
+  const secondCorrection = actionRequest(context, "999999", "correct_client_measurement", {
+    clientId: "CL-A",
+    measurementId: originalId,
+    measuredAt: "2026-09-01",
+    metrics: { weightKg: 77.9 },
+  });
+  assert.equal(secondCorrection.error, "measurement_correction_conflict");
+  assert.equal(sheets["Замеры"].rows.length, 3);
+});
+
+test("measurement writes remain admin-only and reject invalid ranges or future dates", () => {
+  const sheets = fixtures([]);
+  sheets["Замеры"] = new FakeSheet([measurementHeaders]);
+  const context = createContext({ sheets });
+  assert.equal(actionRequest(context, "100001", "create_client_measurement", {
+    clientId: "CL-A", measuredAt: "2026-09-01", metrics: { weightKg: 80 },
+  }).error, "access_denied");
+  assert.equal(actionRequest(context, "999999", "create_client_measurement", {
+    clientId: "CL-A", measuredAt: "2026-09-01", metrics: { weightKg: 999 },
+  }).error, "measurement_invalid");
+  assert.equal(actionRequest(context, "999999", "create_client_measurement", {
+    clientId: "CL-A", measuredAt: "2099-01-01", metrics: { weightKg: 80 },
+  }).error, "measurement_invalid");
+  assert.equal(sheets["Замеры"].rows.length, 1);
 });

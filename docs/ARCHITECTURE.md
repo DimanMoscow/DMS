@@ -30,6 +30,9 @@ tokens exist only in the one-time admin response/link.
 - `app/api/dms/route.ts`: server-only action allow-list and Apps Script proxy.
 - `app/client/`: read-only client presentation with no administrative navigation or
   write controls.
+- The administrative client card owns invite creation/revocation and trainer-entered
+  measurement writes. Measurement corrections are append-only audit records; the
+  client portal still receives only the current allow-listed values.
 - Apps Script repository copies of `ZZZZZZZZMiniAppApi.gs`: MiniApp authentication and
   read API.
 - Apps Script repository copies of `ZZZZZZZZZZMiniAppAdmin.gs`: MiniApp administrative

@@ -12,6 +12,8 @@ const actions = new Set([
   "client_portal_enroll",
   "create_client_portal_invite",
   "revoke_client_portal_invite",
+  "create_client_measurement",
+  "correct_client_measurement",
 ]);
 
 const payloadlessClientActions = new Set([

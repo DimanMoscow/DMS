@@ -93,8 +93,11 @@ outside Git.
    | Chest Cm | Optional numeric value |
    | Waist Cm | Optional numeric value |
    | Hips Cm | Optional numeric value |
-   | Upper Arm Cm | Optional numeric value |
-   | Thigh Cm | Optional numeric value |
+| Upper Arm Cm | Optional numeric value |
+| Thigh Cm | Optional numeric value |
+| Corrects Measurement ID | Optional prior `MSR-*`; corrections append instead of overwrite |
+| Created At | UTC audit timestamp |
+| Created By | Authenticated admin Telegram ID, never returned to clients or logs |
 
 4. Add data validation for statuses and numeric ranges. Do not modify `Клиенты`; the
    portal only reads its ID, name, active status, and training format.
@@ -121,3 +124,16 @@ longer returns profiles, reset each affected per-chat menu button to Telegram's 
 then remove only the two newly created sheets after exporting them for recovery.
 Existing `Клиенты`, Calendar, Queue, Journal, Blocks, Payments, and Reports are never
 modified by this migration.
+
+## Trainer measurement workflow
+
+The authenticated admin client card can add an allow-listed measurement for an exact
+client. The UI requires a preview before save; the server independently validates the
+date, at least one metric, one decimal place, and the documented ranges. A client/date
+may have only one active measurement.
+
+Correction never overwrites a row. It appends a new measurement with
+`Corrects Measurement ID`; the old row remains in the audit chain and the client API
+returns only the active leaf. A second correction of the same row, cross-client target,
+unknown fields, invalid ranges, or a future date fail closed. Measurement IDs, audit
+actor, and correction links remain admin-only.
