@@ -4,10 +4,13 @@ Last verified: 2026-09-02 (UTC).
 
 ## Confirmed state
 
-- Current `origin/main` is the repository source of truth.
+- Current `origin/main` at `b54c32b15a2f53180a1c63d369e829235d1256af` is the
+  repository source of truth.
 - MiniApp production release is `0.2.1`; Vercel deployment
-  `dpl_GHqWQ9F6s1H1jawKbvxopskcXSUE` is healthy and `/api/health` reports HTTP 200
-  with `dataMode: connected`.
+  `dpl_6KAzsKKu1xFHr1JSiaZdCd2JnqJq`, built from the Git-tracked MiniApp files at
+  that commit, is `READY`. Its immutable URL and production alias both return HTTP
+  200 from `/api/health` with `dataMode: connected`; `/` and `/client` also return
+  HTTP 200.
 - Vercel Production has the required server-only `DMS_APPS_SCRIPT_URL`; its value stays
   outside Git.
 - Apps Script production uses the existing web-app deployment on numbered version
@@ -28,23 +31,27 @@ Last verified: 2026-09-02 (UTC).
   only: zero client bindings, zero measurements, and zero enrollment invitations.
 - The Apps Script runtime includes hashed, expiring, single-use enrollment under a
   document lock and append-only trainer measurements with correction history. The
-  corresponding MiniApp UI is merged in `main` but still requires a new Vercel
-  production deployment.
+  corresponding trainer and client MiniApp UI is active in Vercel Production.
 - The production client action is recognized: an invalid signed-data fixture returns
   `invalid_init_data`, not `unknown_action`, and the response is `Cache-Control:
   no-store`.
+- Authenticated Telegram smoke confirms that a signed `start_param` routes the root
+  MiniApp into enrollment and an unknown invitation returns
+  `enrollment_invite_invalid`. Runtime logs contain only the allow-listed action,
+  request ID, status, error class, and duration; the token, signed `initData`, Telegram
+  identity, and PII are absent.
 - The Apps Script admin authentication/bootstrap self-test is green. The complete
   read-only gate passes 15 of 15 checks; Calendar ↔ Queue ↔ Journal reconciliation has
-  zero issues across 78 queue rows, 97 journal rows, and 87 calendar events.
+  zero issues across 79 queue rows, 97 journal rows, and 88 calendar events.
 - Local `npm run check` and CI cover MiniApp lint, tests, TypeScript, build, Apps Script
   snapshot integrity, client isolation, and runtime identity code.
 
 ## Open risk and next step
 
-The next release step is a Vercel production deployment of current `main`, followed
-by admin, invalid-invite, unlinked-client, and cache-policy smoke. The two-client pilot
-remains blocked until that smoke is green; no real invite, binding, or measurement has
-been written.
+The signed `start_param` release gate is complete. The next controlled step is the
+two-client pilot preflight and creation of exactly one pending invitation for each
+approved pilot client. No binding or measurement may be created without the client's
+own authenticated Telegram action or an explicit trainer write respectively.
 
 ## Known limitations
 
