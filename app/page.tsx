@@ -1,5 +1,5 @@
-import { MiniAppShell } from "./_components/mini-app-shell";
+import { MiniAppEntry } from "./_components/mini-app-entry";
 
 export default function HomePage() {
-  return <MiniAppShell />;
+  return <MiniAppEntry />;
 }
