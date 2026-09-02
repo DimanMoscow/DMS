@@ -49,6 +49,14 @@ type ClientDetail = ClientSummary & {
   conditions: string; blockStatus: string; blockTotal: number; blockStart: string;
   trainingDates: string[]; undatedTrainings: number; undatedCharged: number;
   upcoming: { label: string }[]; upcomingMore: number;
+  clientPortal: {
+    status: "linked" | "invited" | "unlinked";
+    activeInvite: { inviteId: string; expiresAt: string } | null;
+  };
+};
+type ClientPortalAdminResponse = {
+  clientPortal: ClientDetail["clientPortal"];
+  inviteUrl?: string;
 };
 type SystemHealth = {
   ok: boolean; checkedAt: string; durationMs: number; passed: number; total: number;
@@ -118,6 +126,11 @@ function readableError(error: unknown) {
     day_not_ready: "Не все события дня готовы к обработке. Проверьте решения и блоки.",
     invalid_decision: "Такое решение для события недоступно.",
     mini_app_api_failed: "Не удалось записать действие. Состояние учёта перечитано.",
+    client_already_linked: "Клиент уже привязан к Client Portal.",
+    enrollment_invite_active: "У клиента уже есть активное приглашение.",
+    enrollment_invite_invalid: "Приглашение уже использовано, отозвано или недействительно.",
+    enrollment_link_not_configured: "Telegram Mini App не настроен как основное приложение бота.",
+    client_link_conflict: "Обнаружен конфликт привязки. Данные не изменены.",
   };
   return messages[code] || "Не удалось выполнить запрос. Повторите попытку.";
 }
@@ -334,7 +347,7 @@ export function MiniAppShell() {
         })} />}
       {view === "clients" && data && (
         clientDetail || clientLoading
-          ? <ClientCard detail={clientDetail} loading={clientLoading} onBack={closeClient} />
+          ? <ClientCard detail={clientDetail} loading={clientLoading} initData={initData} onBack={closeClient} />
           : <ClientsView clients={clients} query={clientQuery} onQuery={setClientQuery} onOpen={openClient} />
       )}
       {view === "report" && data && <ReportView report={data.report} />}
@@ -519,10 +532,74 @@ function ClientsView(props: {
   </Page>;
 }
 
-function ClientCard({ detail, loading, onBack }: {
-  detail: ClientDetail | null; loading: boolean; onBack: () => void;
+function ClientCard({ detail, loading, initData, onBack }: {
+  detail: ClientDetail | null; loading: boolean; initData: string; onBack: () => void;
 }) {
   if (loading || !detail) return <Page title="Карточка клиента" subtitle=""><div className="state-card"><span className="spinner" />Загружаю карточку…</div></Page>;
+  return <LoadedClientCard detail={detail} initData={initData} onBack={onBack} />;
+}
+
+function LoadedClientCard({ detail, initData, onBack }: {
+  detail: ClientDetail; initData: string; onBack: () => void;
+}) {
+  const [portal, setPortal] = useState(detail.clientPortal);
+  const [inviteUrl, setInviteUrl] = useState("");
+  const [portalBusy, setPortalBusy] = useState(false);
+  const [portalNotice, setPortalNotice] = useState("");
+  const [portalError, setPortalError] = useState("");
+
+  const createInvite = async () => {
+    if (portalBusy) return;
+    setPortalBusy(true);
+    setPortalError("");
+    setPortalNotice("");
+    try {
+      const result = await requestDms<ClientPortalAdminResponse>(
+        initData,
+        "create_client_portal_invite",
+        { clientId: detail.id },
+      );
+      setPortal(result.clientPortal);
+      setInviteUrl(result.inviteUrl || "");
+      setPortalNotice("Приглашение создано. Ссылка показывается только сейчас.");
+    } catch (error) {
+      setPortalError(readableError(error));
+    } finally {
+      setPortalBusy(false);
+    }
+  };
+
+  const revokeInvite = async () => {
+    if (portalBusy || !portal.activeInvite) return;
+    setPortalBusy(true);
+    setPortalError("");
+    setPortalNotice("");
+    try {
+      const result = await requestDms<ClientPortalAdminResponse>(
+        initData,
+        "revoke_client_portal_invite",
+        { clientId: detail.id, inviteId: portal.activeInvite.inviteId },
+      );
+      setPortal(result.clientPortal);
+      setInviteUrl("");
+      setPortalNotice("Неиспользованное приглашение отозвано.");
+    } catch (error) {
+      setPortalError(readableError(error));
+    } finally {
+      setPortalBusy(false);
+    }
+  };
+
+  const copyInvite = async () => {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setPortalNotice("Ссылка скопирована.");
+    } catch {
+      setPortalError("Не удалось скопировать ссылку. Выделите её вручную.");
+    }
+  };
+
   return <Page title={detail.name} subtitle={detail.id} back={onBack}>
     <section className="metric-grid metric-grid-three">
       <div className="metric-card"><strong>{detail.completed}</strong><span>проведено</span></div>
@@ -542,6 +619,22 @@ function ClientCard({ detail, loading, onBack }: {
       ? <p className="history-text">{detail.trainingDates.join(" · ")}</p>
       : <Empty text="Дат пока нет." />}</section>
     {detail.conditions && <section className="content-section"><h2>Условия и заметки</h2><p className="history-text">{detail.conditions}</p></section>}
+    <section className="content-section portal-admin-card">
+      <h2>Client Portal</h2>
+      <p className="history-text">{portal.status === "linked"
+        ? "Telegram-профиль клиента привязан."
+        : portal.status === "invited"
+          ? `Приглашение активно до ${new Date(portal.activeInvite?.expiresAt || "").toLocaleString("ru-RU")}.`
+          : "Привязки и активного приглашения нет."}</p>
+      {inviteUrl && <div className="invite-copy"><input value={inviteUrl} readOnly aria-label="Одноразовая ссылка" />
+        <button className="secondary-button" type="button" onClick={copyInvite}>Копировать</button></div>}
+      {portal.status === "unlinked" && <button className="primary-button" type="button" disabled={portalBusy}
+        onClick={createInvite}>Создать приглашение в Client Portal</button>}
+      {portal.status === "invited" && <button className="secondary-button portal-revoke" type="button"
+        disabled={portalBusy} onClick={revokeInvite}>Отозвать приглашение</button>}
+      {portalNotice && <p className="action-hint">{portalNotice}</p>}
+      {portalError && <p className="action-hint error-copy">{portalError}</p>}
+    </section>
   </Page>;
 }
 
