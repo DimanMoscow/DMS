@@ -40,6 +40,26 @@ Allowed metric keys are `weightKg`, `chestCm`, `waistCm`, `hipsCm`, `upperArmCm`
 `thighCm`. Blank metrics are omitted. Expanding the set requires a reviewed code and
 schema change.
 
+## One-time enrollment
+
+The trainer creates an invite from the authenticated admin client card. The server
+validates the exact existing `clientId`, refuses an already-linked client, generates a
+43-character base64url secret, stores only its SHA-256 hash, and returns a Telegram Main
+Mini App link once. The public link contains neither a client ID nor a name. Invites
+expire after 48 hours and have `pending`, `used`, `revoked`, or `expired` status.
+
+Telegram passes the opaque value in signed `start_param`. The client calls
+`client_portal_enroll` with only signed `initData`; top-level selectors and payloads are
+rejected. Apps Script revalidates signature and age, resolves the token hash, and under
+a document lock rechecks the invite plus both one-to-one constraints. It then appends
+one active binding and marks the invite used. A failed second write removes the newly
+appended binding before returning an error. Replays and ambiguous rows fail closed.
+
+The exact empty production schema and preflight are in
+`apps-script/migrations/client-portal-enrollment-v1/`. Raw tokens, signed initData, and
+Telegram IDs are not logged. The bot must report `has_main_web_app=true` before an
+invite can be created.
+
 ## Production bootstrap plan
 
 This plan is not executed by repository changes.
@@ -49,7 +69,7 @@ The offline migration package is in `apps-script/migrations/client-portal-v1/`. 
 rows without network access or writes and emits no identifiers. Real input stays
 outside Git.
 
-1. Confirm Apps Script production is still `v40`, export the workbook structure, and
+1. Confirm the current Apps Script production version, export the workbook structure, and
    record row counts for existing sheets.
 2. Create `Доступ клиентов` with exactly these columns:
 

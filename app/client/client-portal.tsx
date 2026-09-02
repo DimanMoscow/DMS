@@ -29,6 +29,7 @@ type ClientPortalData = {
   measurements: Measurement[];
 };
 type ApiResponse = { ok: boolean; error?: string; data?: ClientPortalData };
+type EnrollmentResponse = { ok: boolean; error?: string; data?: { enrolled: boolean } };
 type ViewState =
   | { kind: "loading" }
   | { kind: "unauthorized" }
@@ -80,8 +81,33 @@ function errorMessage(code: string) {
     backend_not_configured: "Сервер кабинета пока не настроен.",
     backend_unavailable: "Сервер временно не отвечает. Попробуйте открыть кабинет позже.",
     request_timeout: "Сервер отвечает слишком долго. Попробуйте открыть кабинет позже.",
+    enrollment_invite_invalid: "Приглашение недействительно или уже использовано. Запросите новое у тренера.",
+    enrollment_invite_expired: "Срок действия приглашения истёк. Запросите новое у тренера.",
+    client_link_conflict: "Этот Telegram-аккаунт или профиль уже привязан. Обратитесь к тренеру.",
   };
   return messages[code] ?? "Не удалось загрузить кабинет. Попробуйте открыть его позже.";
+}
+
+function signedStartParam(initData: string) {
+  try {
+    return new URLSearchParams(initData).get("start_param")?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+async function consumeEnrollment(initData: string) {
+  const response = await fetch("/api/dms", {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ initData, action: "client_portal_enroll" }),
+    signal: AbortSignal.timeout(25_000),
+  });
+  const result = (await response.json()) as EnrollmentResponse;
+  if (!response.ok || !result.ok || !result.data?.enrolled) {
+    throw new Error(result.error || "request_failed");
+  }
 }
 
 async function loadClientPortal(initData: string) {
@@ -124,7 +150,10 @@ export function ClientPortal() {
       const timeout = window.setTimeout(() => setState({ kind: "unauthorized" }), 0);
       return () => window.clearTimeout(timeout);
     }
-    loadClientPortal(initData)
+    const enrollment = signedStartParam(initData)
+      ? consumeEnrollment(initData)
+      : Promise.resolve();
+    enrollment.then(() => loadClientPortal(initData))
       .then(setState)
       .catch((error) => {
         const code = error instanceof Error ? error.message : "request_failed";

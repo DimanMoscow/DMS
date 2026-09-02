@@ -16,6 +16,13 @@ screen at `/client`; it uses the same server proxy but only the dedicated
 client record before reading that client's profile and measurements. The browser never
 selects or receives a `clientId`.
 
+Enrollment uses a separate admin action and a payloadless client action. The admin
+selects an exact existing client, Apps Script stores only a one-time invitation hash,
+and Telegram delivers the opaque token as signed `start_param`. Consumption is
+serialized by a document lock and creates the one-to-one binding without client-side
+`clientId` input. Invitation state lives in `Приглашения Client Portal`; plaintext
+tokens exist only in the one-time admin response/link.
+
 ## Responsibility boundaries
 
 - `app/_components/mini-app-shell.tsx`: MiniApp presentation, navigation, request state,

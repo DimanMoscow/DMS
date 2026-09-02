@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "sheet": {
+    "name": "Приглашения Client Portal",
+    "columns": [
+      { "name": "Invite ID", "type": "text", "required": true, "unique": true, "pattern": "^INV-[A-Za-z0-9_-]+$" },
+      { "name": "Token SHA-256", "type": "text", "required": true, "unique": true, "pattern": "^[a-f0-9]{64}$" },
+      { "name": "Client ID", "type": "text", "required": true, "pattern": "^CL-[A-Za-z0-9_-]+$" },
+      { "name": "Status", "type": "enum", "required": true, "values": ["pending", "used", "revoked", "expired"] },
+      { "name": "Expires At", "type": "datetime", "required": true },
+      { "name": "Created At", "type": "datetime", "required": true },
+      { "name": "Used At", "type": "datetime", "required": false },
+      { "name": "Revoked At", "type": "datetime", "required": false },
+      { "name": "Updated At", "type": "datetime", "required": true },
+      { "name": "Used Binding ID", "type": "text", "required": false, "pattern": "^BND-[A-Za-z0-9_-]+$" }
+    ],
+    "frozenRows": 1,
+    "validationRows": 1000
+  },
+  "invariants": [
+    "plaintext enrollment tokens are never stored",
+    "at most one unexpired pending invite per client",
+    "used invites reference exactly one binding",
+    "revoked and expired invites cannot be consumed"
+  ]
+}

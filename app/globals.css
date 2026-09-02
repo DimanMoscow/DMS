@@ -491,6 +491,14 @@ h1 {
 .timeline-item { margin: 0 0 8px; padding: 12px 14px; border-left: 2px solid var(--line-strong); color: var(--metal); background: var(--surface); font-size: 12px; line-height: 1.5; }
 .history-text { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.75; }
 .empty { padding: 18px; border: 1px dashed var(--line-strong); border-radius: 13px; color: var(--muted); text-align: center; font-size: 12px; line-height: 1.5; }
+.portal-admin-card { padding: 16px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); }
+.portal-admin-card .primary-button,
+.portal-revoke { min-height: 45px; margin-top: 14px; }
+.portal-revoke { width: 100%; }
+.invite-copy { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 14px; }
+.invite-copy input { min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--metal); background: var(--surface-raised); font: inherit; font-size: 11px; }
+.invite-copy button { padding: 0 12px; }
+.error-copy { color: #e3a1a1; }
 
 .system-hero {
   display: flex;

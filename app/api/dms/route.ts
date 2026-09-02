@@ -9,6 +9,14 @@ const actions = new Set([
   "set_queue_decision",
   "confirm_day",
   "client_portal_bootstrap",
+  "client_portal_enroll",
+  "create_client_portal_invite",
+  "revoke_client_portal_invite",
+]);
+
+const payloadlessClientActions = new Set([
+  "client_portal_bootstrap",
+  "client_portal_enroll",
 ]);
 
 function jsonNoStore(body: Record<string, unknown>, status: number) {
@@ -36,7 +44,7 @@ export async function POST(request: Request) {
   const action = typeof input.action === "string" ? input.action : "bootstrap";
   const payload = input.payload && typeof input.payload === "object" ? input.payload : {};
 
-  const clientPortalPayloadInvalid = action === "client_portal_bootstrap" && (
+  const clientPortalPayloadInvalid = payloadlessClientActions.has(action) && (
     "clientId" in input || "payload" in input
   );
   if (!initData || initData.length > 8192 || !actions.has(action) || clientPortalPayloadInvalid) {
@@ -62,7 +70,7 @@ export async function POST(request: Request) {
   }));
 
   try {
-    const upstreamBody = action === "client_portal_bootstrap"
+    const upstreamBody = payloadlessClientActions.has(action)
       ? {
           dmsMiniApp: "dms-fitness-miniapp",
           version: 1,

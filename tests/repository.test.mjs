@@ -35,7 +35,8 @@ test("Mini App proxy exposes only the approved actions and keeps Telegram creden
 
   for (const action of [
     "bootstrap", "client", "health", "set_queue_decision", "confirm_day",
-    "client_portal_bootstrap",
+    "client_portal_bootstrap", "client_portal_enroll",
+    "create_client_portal_invite", "revoke_client_portal_invite",
   ]) {
     assert.match(routeSource, new RegExp(`"${action}"`));
   }
@@ -50,14 +51,28 @@ test("client portal proxy rejects selectors and disables caching on every respon
     readFile("app/client/client-portal.tsx", "utf8"),
   ]);
 
-  assert.match(routeSource, /action === "client_portal_bootstrap"/);
+  assert.match(routeSource, /payloadlessClientActions\.has\(action\)/);
   assert.match(routeSource, /"clientId" in input/);
   assert.match(routeSource, /"payload" in input/);
-  assert.match(routeSource, /const upstreamBody = action === "client_portal_bootstrap"/);
+  assert.match(routeSource, /const upstreamBody = payloadlessClientActions\.has\(action\)/);
   assert.match(routeSource, /"Cache-Control": "no-store"/);
   assert.doesNotMatch(portalSource, /clientId/);
   assert.doesNotMatch(portalSource, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(portalSource, /console\.(log|info|debug)/);
+  assert.match(portalSource, /action: "client_portal_enroll"/);
+});
+
+test("enrollment keeps tokens and Telegram identities out of application logs", async () => {
+  const [routeSource, portalSource, appsScriptSource] = await Promise.all([
+    readFile("app/api/dms/route.ts", "utf8"),
+    readFile("app/client/client-portal.tsx", "utf8"),
+    readFile("apps-script/candidates/v44/ZZZZZZZZZZZClientPortal.gs", "utf8"),
+  ]);
+  assert.doesNotMatch(routeSource, /console\.(log|error)\([^)]*(initData|payload|clientId|telegramUserId)/i);
+  assert.doesNotMatch(portalSource, /console\./);
+  assert.doesNotMatch(appsScriptSource, /console\.(log|error)\([^)]*(token|telegramUserId|initData)/i);
+  assert.match(appsScriptSource, /sha256DmsClientPortal_\(token\)/);
+  assert.doesNotMatch(appsScriptSource, /appendRow\(\[\s*token\s*,/);
 });
 
 test("today mutations reuse the queue contract and prevent duplicate client-side actions", async () => {

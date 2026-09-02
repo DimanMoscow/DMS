@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 import {
@@ -117,4 +118,21 @@ test("pilot requires exactly two proposed active bindings", () => {
   assert.equal(report.valid, false);
   assert.equal(codes.has("pilot_requires_two_bindings"), true);
   assert.equal(codes.has("pilot_binding_must_be_active"), true);
+});
+
+test("enrollment schema stores only hashes and starts empty", () => {
+  const schema = JSON.parse(fs.readFileSync(
+    "apps-script/migrations/client-portal-enrollment-v1/schema.json",
+    "utf8",
+  ));
+  assert.equal(schema.sheet.name, "Приглашения Client Portal");
+  assert.equal(schema.sheet.columns.length, 10);
+  assert.equal(schema.sheet.columns.some((column) => /plaintext|raw token/i.test(column.name)), false);
+  assert.deepEqual(schema.sheet.columns[3].values, ["pending", "used", "revoked", "expired"]);
+
+  const result = spawnSync(process.execPath, [
+    "apps-script/migrations/client-portal-enrollment-v1/preflight.mjs",
+  ], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).rowsToWrite, 0);
 });
