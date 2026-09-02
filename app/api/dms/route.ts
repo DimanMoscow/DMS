@@ -1,4 +1,6 @@
 import { getDmsAppsScriptUrl } from "@/lib/dms-server-config";
+import { MINIAPP_RELEASE, MINIAPP_RUNTIME_FINGERPRINT } from "@/lib/release-identity";
+import { getSafeRequestId } from "@/lib/request-id";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +32,7 @@ function jsonNoStore(body: Record<string, unknown>, status: number) {
 
 export async function POST(request: Request) {
   const startedAt = Date.now();
-  const requestId = request.headers.get("x-vercel-id") || "";
+  const requestId = getSafeRequestId(request);
   let body: unknown;
   try {
     body = await request.json();
@@ -60,6 +62,8 @@ export async function POST(request: Request) {
       message: "dms_backend_not_configured",
       action,
       requestId,
+      release: MINIAPP_RELEASE,
+      runtimeFingerprint: MINIAPP_RUNTIME_FINGERPRINT,
     }));
     return jsonNoStore({ ok: false, error: "backend_not_configured" }, 503);
   }
@@ -69,6 +73,8 @@ export async function POST(request: Request) {
     message: "dms_request_started",
     action,
     requestId,
+    release: MINIAPP_RELEASE,
+    runtimeFingerprint: MINIAPP_RUNTIME_FINGERPRINT,
   }));
 
   try {
@@ -104,6 +110,8 @@ export async function POST(request: Request) {
         message: "dms_upstream_invalid_response",
         action,
         requestId,
+        release: MINIAPP_RELEASE,
+        runtimeFingerprint: MINIAPP_RUNTIME_FINGERPRINT,
         upstreamStatus: upstream.status,
         durationMs: Date.now() - startedAt,
       }));
@@ -117,6 +125,8 @@ export async function POST(request: Request) {
       message: responseStatus >= 400 ? "dms_request_failed" : "dms_request_completed",
       action,
       requestId,
+      release: MINIAPP_RELEASE,
+      runtimeFingerprint: MINIAPP_RUNTIME_FINGERPRINT,
       upstreamStatus: upstream.status,
       responseStatus,
       error: typeof result.error === "string" ? result.error : "",
@@ -129,6 +139,8 @@ export async function POST(request: Request) {
       message: "dms_backend_unavailable",
       action,
       requestId,
+      release: MINIAPP_RELEASE,
+      runtimeFingerprint: MINIAPP_RUNTIME_FINGERPRINT,
       error: error instanceof Error ? error.name : "unknown",
       durationMs: Date.now() - startedAt,
     }));

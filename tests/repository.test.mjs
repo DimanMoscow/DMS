@@ -25,6 +25,8 @@ test("health endpoint never exposes backend URL", async () => {
   assert.match(configSource, /process\.env\.DMS_APPS_SCRIPT_URL/);
   assert.match(proxySource, /backend_not_configured/);
   assert.match(healthSource, /dataMode/);
+  assert.match(healthSource, /runtimeFingerprint/);
+  assert.match(healthSource, /sourceRevision/);
 });
 
 test("Mini App proxy exposes only the approved actions and keeps Telegram credentials ephemeral", async () => {

@@ -9,6 +9,15 @@
    operations requiring explicit approval. The project is not currently Git-linked.
 5. After an approved production change, verify deployment state, `/api/health`, Telegram
    launch, authorized reads, and only the specifically approved mutations.
+6. Require `/api/health` to match the repository release and runtime fingerprint. When
+   Vercel provides `VERCEL_GIT_COMMIT_SHA`, require the exact source revision too:
+
+   ```bash
+   DMS_EXPECTED_SOURCE=<main-sha> npm run smoke:miniapp-production -- https://production.example
+   ```
+
+   A missing source revision is reported as `unavailable`; never claim commit identity
+   from the release label alone.
 
 ## Apps Script
 
