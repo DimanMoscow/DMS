@@ -4,8 +4,8 @@ import fs from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 
-const apiSource = fs.readFileSync("apps-script/candidates/v44/ZZZZZZZZMiniAppApi.gs", "utf8");
-const portalSource = fs.readFileSync("apps-script/candidates/v44/ZZZZZZZZZZZClientPortal.gs", "utf8");
+const apiSource = fs.readFileSync("apps-script/candidates/v45/ZZZZZZZZMiniAppApi.gs", "utf8");
+const portalSource = fs.readFileSync("apps-script/candidates/v45/ZZZZZZZZZZZClientPortal.gs", "utf8");
 const token = "fixture-token-not-a-production-secret";
 const nowSeconds = Math.floor(Date.now() / 1000);
 
@@ -332,6 +332,38 @@ test("client identity cannot enter the existing admin API", () => {
   const adminResult = JSON.parse(adminResponse.text);
   assert.equal(adminResult.ok, true, JSON.stringify(adminResult));
   assert.equal(adminResult.data.adminOnly, true);
+});
+
+test("ordinary entry resolves admin, linked client and unlinked roles on the server", () => {
+  const context = createContext({
+    adminIds: "999999",
+    adminBootstrap: () => { throw new Error("entry resolution must not read admin bootstrap"); },
+  });
+  const admin = actionRequest(context, "999999", "resolve_miniapp_entry");
+  const linked = actionRequest(context, "100001", "resolve_miniapp_entry");
+  const unlinked = actionRequest(context, "100003", "resolve_miniapp_entry");
+
+  assert.deepEqual(JSON.parse(JSON.stringify(admin.data)), { role: "admin" });
+  assert.deepEqual(JSON.parse(JSON.stringify(linked.data)), { role: "client" });
+  assert.deepEqual(JSON.parse(JSON.stringify(unlinked.data)), { role: "unlinked" });
+  assert.doesNotMatch(JSON.stringify([admin, linked, unlinked]), /100001|100003|CL-A|BND-A/);
+});
+
+test("entry resolution rejects selectors and ambiguous bindings", () => {
+  const ambiguous = createContext({ sheets: fixtures([
+    ["BND-A", "100001", "CL-A", "active", "", ""],
+    ["BND-X", "100001", "CL-B", "active", "", ""],
+  ]) });
+  assert.equal(
+    actionRequest(ambiguous, "100001", "resolve_miniapp_entry").error,
+    "client_link_invalid",
+  );
+
+  const context = createContext();
+  assert.equal(
+    actionRequest(context, "100001", "resolve_miniapp_entry", { clientId: "CL-B" }).error,
+    "invalid_request",
+  );
 });
 
 test("client response uses an explicit allow-list and omits internal and financial fields", () => {

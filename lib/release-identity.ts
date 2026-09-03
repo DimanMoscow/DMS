@@ -1,7 +1,7 @@
-export const MINIAPP_RELEASE = "0.2.2";
+export const MINIAPP_RELEASE = "0.2.3";
 
 export const MINIAPP_RUNTIME_FINGERPRINT =
-  "miniapp-r3-start-param-measurement-guard";
+  "miniapp-r4-server-role-routing";
 
 const SOURCE_REVISION_PATTERN = /^[0-9a-f]{40}$/i;
 

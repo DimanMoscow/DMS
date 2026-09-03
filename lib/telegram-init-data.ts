@@ -1,4 +1,4 @@
-export type MiniAppEntryMode = "admin" | "client-enrollment";
+export type MiniAppEntryMode = "role-resolution" | "client-enrollment";
 
 export function getSignedStartParam(initData: string) {
   try {
@@ -9,5 +9,5 @@ export function getSignedStartParam(initData: string) {
 }
 
 export function getMiniAppEntryMode(initData: string): MiniAppEntryMode {
-  return getSignedStartParam(initData) ? "client-enrollment" : "admin";
+  return getSignedStartParam(initData) ? "client-enrollment" : "role-resolution";
 }

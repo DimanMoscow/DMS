@@ -6,7 +6,9 @@
 2. Run targeted tests while editing; run `npm run check` before a release candidate.
 3. Review the complete PR diff and merge only with explicit approval.
 4. Treat Vercel preview, production deployment, promotion, and rollback as separate
-   operations requiring explicit approval. The project is not currently Git-linked.
+   operations requiring explicit approval. The existing project is Git-linked to
+   `DimanMoscow/DMS`; production follows `main` without changing domains or environment
+   variables.
 5. After an approved production change, verify deployment state, `/api/health`, Telegram
    launch, authorized reads, and only the specifically approved mutations.
 6. Require `/api/health` to match the repository release and runtime fingerprint. When

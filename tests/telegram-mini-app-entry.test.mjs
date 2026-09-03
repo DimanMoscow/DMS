@@ -19,7 +19,7 @@ test("Main Mini App routes signed start_param launches to enrollment", () => {
   assert.equal(getMiniAppEntryMode(initData), "client-enrollment");
 });
 
-test("ordinary bot menu launches stay on the admin Mini App", () => {
+test("ordinary bot menu launches require server role resolution", () => {
   const initData = new URLSearchParams({
     auth_date: "1788378504",
     query_id: "test",
@@ -27,5 +27,5 @@ test("ordinary bot menu launches stay on the admin Mini App", () => {
   }).toString();
 
   assert.equal(getSignedStartParam(initData), "");
-  assert.equal(getMiniAppEntryMode(initData), "admin");
+  assert.equal(getMiniAppEntryMode(initData), "role-resolution");
 });
