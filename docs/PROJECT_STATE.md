@@ -4,20 +4,21 @@ Last verified: 2026-09-03 (UTC).
 
 ## Confirmed state
 
-- Current `origin/main` at `610f9a38200518414cab3acaec662e43ebee7fd5` is the
-  repository source of truth.
-- MiniApp production is release `0.2.2`; Vercel deployment
-  `dpl_64WeerPa7NmtczDHcsLd4G5faGYK`, built from Git-linked `main` at
-  `610f9a38200518414cab3acaec662e43ebee7fd5`, is `READY`. Its immutable URL and production alias both return HTTP
+- The role-routing implementation on `main` is commit
+  `417d774d74b9884c32ac29ffc2f9c7b181036b42`; the repository remains the source of
+  truth.
+- MiniApp production is release `0.2.3`; Vercel deployment
+  `dpl_63g36CTHJoS5Dmhb9KCzucaPFnYx`, built from Git-linked `main` at
+  `417d774d74b9884c32ac29ffc2f9c7b181036b42`, is `READY`. Its immutable URL and production alias return HTTP
   200 from `/api/health` with `dataMode: connected`; `/` and `/client` also return
   HTTP 200.
 - Vercel Production has the required server-only `DMS_APPS_SCRIPT_URL`; its value stays
   outside Git.
 - Apps Script production uses the existing web-app deployment on numbered version
-  `v44`. Its three changed files were copied byte-for-byte from
-  `apps-script/candidates/v44` with only the two documented operational URL
-  substitutions. The numbered deployment was created only after the complete
-  read-only gate passed 15/15 with reconciliation at zero.
+  `v45`. Its three changed files are the exact reviewed `v44 -> v45` targeted diff:
+  runtime identity, the payloadless request branch, and the isolated role resolver.
+  The API self-test compiled and executed successfully; the post-deploy read-only gate
+  passed 15/15 with reconciliation at zero.
 - Numbered `v42` is retained as a historical incident artifact and is not deployed. Its
   stored source contained `client_portal_bootstrap`, but the serving runtime
   reproducibly returned `unknown_action`. Republishing the same router/client module in
@@ -26,6 +27,8 @@ Last verified: 2026-09-03 (UTC).
 - `apps-script/versions/v42`, `apps-script/versions/v43`, and
   `apps-script/versions/v44` preserve the sanitized 16-file numbered sources. The
   snapshot verifier checks their exact trees and reviewed-candidate identities.
+  Production `v45` is represented by its complete reviewed source in
+  `apps-script/candidates/v45` plus the numbered deployment and gate evidence.
 - Production sheets `Доступ клиентов`, `Замеры`, and
   `Приглашения Client Portal` exist with the approved schemas. The first approved pilot
   client has exactly one active binding and a used invitation; its replay was rejected.
@@ -45,7 +48,7 @@ Last verified: 2026-09-03 (UTC).
   identity, and PII are absent.
 - The Apps Script admin authentication/bootstrap self-test is green. The complete
   read-only gate passes 15 of 15 checks; Calendar ↔ Queue ↔ Journal reconciliation has
-  zero issues across 79 queue rows, 97 journal rows, and 88 calendar events.
+  zero issues across 84 queue rows, 107 journal rows, and 94 calendar events.
 - Local `npm run check` and CI cover MiniApp lint, tests, TypeScript, build, Apps Script
   snapshot integrity, client isolation, and runtime identity code.
 
@@ -55,22 +58,18 @@ The existing Vercel project is now Git-linked to `DimanMoscow/DMS`; the producti
 branch is `main`. This gives the project a durable deployment path without changing
 its project, domains, or production environment variables.
 
-The first pilot enrollment proved atomic consume, read-only client bootstrap, and replay
-rejection. It also exposed one routing gap: an ordinary Main Mini App launch without a
-signed `start_param` still opened the admin shell first, so a linked client received
-`access_denied` instead of returning directly to the client portal.
-
-Candidate `v45` plus MiniApp release `0.2.3` fix the mechanism with the payloadless
+The `v45` / `0.2.3` rollout fixes ordinary-launch routing with the payloadless
 `resolve_miniapp_entry` action. Apps Script validates signed Telegram `initData` and
 returns only `admin`, `client`, or `unlinked`; the browser never selects a client or
-uses names, usernames, query parameters, or Telegram IDs. The candidate is covered by
-the complete local gate but is not production until the Apps Script and Vercel rollout
-and authenticated re-entry smoke succeed.
+uses names, usernames, query parameters, or Telegram IDs. Automated gates, production
+deployment identity, and server-side read-only gates are green. Final pilot acceptance
+still requires the first linked client to reopen the Main Mini App normally and the
+second client to consume the existing pending invitation from their own Telegram.
 
 ## Known limitations
 
-- Linked-client ordinary re-entry still fails on production `0.2.2` until the reviewed
-  `v45` / `0.2.3` rollout completes.
+- Linked-client ordinary re-entry requires one live confirmation by the already linked
+  pilot client; the server-routing release itself is deployed.
 - Apps Script snapshots are sanitized repository copies, not live runtime. Operational
   URLs and Script Properties remain outside Git.
 - Exact unsanitized exports are intentionally local-only. No `.clasp.json` or
