@@ -57,13 +57,13 @@ tokens exist only in the one-time admin response/link.
 | Component | Production runtime | Repository role |
 | --- | --- | --- |
 | MiniApp | Vercel deployment | Canonical source in `app/`, `lib/`, `public/` |
-| Apps Script | Google Apps Script deployment on `v44` | Production-matching sanitized snapshot in `apps-script/versions/v44` |
+| Apps Script | Google Apps Script deployment on `v45` | Complete reviewed source in `apps-script/candidates/v45` |
 | Saved `v39` | Historical numbered version; not deployed | Reviewable snapshot beside `v38` |
 | Retained `v40` candidate | No runtime effect by itself | Reviewed source matching `versions/v40` byte-for-byte |
 | Numbered `v42` | Historical deployment with a proven runtime/source mismatch; not deployed | Source snapshot matching `candidates/v41` |
 | Client portal `v43` | Historical client-portal runtime; not deployed now | Snapshot and candidate match byte-for-byte after URL sanitization |
-| Enrollment and measurements `v44` | Active production runtime with live fingerprints | Snapshot and candidate match byte-for-byte after URL sanitization |
-| Role routing `v45` | Reviewed candidate; not production until rollout | Full-source candidate changes only the runtime marker, MiniApp router, and client portal role resolver |
+| Enrollment and measurements `v44` | Previous production runtime | Snapshot and candidate match byte-for-byte after URL sanitization |
+| Role routing `v45` | Active production runtime | Candidate contains the reviewed runtime marker, MiniApp router, and client portal role resolver diff |
 | Sheets / Calendar | Live Google services | No production data is stored in Git |
 | Telegram | Telegram API calling Apps Script webhook | Bot behavior is implemented in Apps Script files |
 
