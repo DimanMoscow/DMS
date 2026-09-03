@@ -1,10 +1,10 @@
 # Current project state
 
-Last verified: 2026-09-02 (UTC).
+Last verified: 2026-09-03 (UTC).
 
 ## Confirmed state
 
-- Current `origin/main` at `4cacea917b1b4b2fca35d1cc500433c89e4ec9b1` is the
+- Current `origin/main` at `cef433e251b336ac754601e2c5b18e4c192053a4` is the
   repository source of truth.
 - MiniApp production remains release `0.2.1`; Vercel deployment
   `dpl_6KAzsKKu1xFHr1JSiaZdCd2JnqJq`, built from the Git-tracked MiniApp files at
@@ -53,6 +53,10 @@ Last verified: 2026-09-02 (UTC).
 
 ## Open risk and next step
 
+The existing Vercel project is now Git-linked to `DimanMoscow/DMS`; the production
+branch is `main`. This gives the project a durable deployment path without changing
+its project, domains, or production environment variables.
+
 The signed `start_param` release gate and two-client pilot preflight are complete. Both
 approved invitations are pending but their one-time plaintext URLs are no longer
 recoverable. The next production-data step is controlled revoke-and-replace; only then
@@ -68,7 +72,8 @@ deployment path succeeds and the new fail-closed production verifier passes.
 
 ## Known limitations
 
-- The Vercel project is not Git-linked; a GitHub merge does not deploy production.
+- The first post-link `main` event still needs to deploy and pass the production
+  release/source verifier before `0.2.2` can be claimed live.
 - Repository package and health identity are aligned at `0.2.2`; production remains on
   `0.2.1` until the pending MiniApp deployment is completed.
 - Apps Script snapshots are sanitized repository copies, not live runtime. Operational
