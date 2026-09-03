@@ -11,7 +11,7 @@ test("health exposes a stable release fingerprint and optional source revision",
 
   assert.match(health, /MINIAPP_RUNTIME_FINGERPRINT/);
   assert.match(health, /getMiniAppSourceRevision/);
-  assert.match(identity, /miniapp-r3-start-param-measurement-guard/);
+  assert.match(identity, /miniapp-r4-server-role-routing/);
   assert.match(identity, new RegExp(`MINIAPP_RELEASE = "${packageJson.version}"`));
   assert.match(identity, /\^\[0-9a-f\]\{40\}\$/);
   assert.doesNotMatch(identity, /DMS_APPS_SCRIPT_URL/);

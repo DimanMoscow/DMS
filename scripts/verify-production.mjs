@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 const baseUrl = process.argv[2]?.replace(/\/$/, "");
-const expectedRelease = process.env.DMS_EXPECTED_RELEASE || "0.2.2";
+const expectedRelease = process.env.DMS_EXPECTED_RELEASE || "0.2.3";
 const expectedFingerprint = process.env.DMS_EXPECTED_FINGERPRINT ||
-  "miniapp-r3-start-param-measurement-guard";
+  "miniapp-r4-server-role-routing";
 const expectedSource = process.env.DMS_EXPECTED_SOURCE?.toLowerCase() || "";
 
 if (!baseUrl || !/^https:\/\//.test(baseUrl)) {

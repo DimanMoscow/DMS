@@ -37,6 +37,7 @@ test("Mini App proxy exposes only the approved actions and keeps Telegram creden
 
   for (const action of [
     "bootstrap", "client", "health", "set_queue_decision", "confirm_day",
+    "resolve_miniapp_entry",
     "client_portal_bootstrap", "client_portal_enroll",
     "create_client_portal_invite", "revoke_client_portal_invite",
     "create_client_measurement", "correct_client_measurement",
@@ -67,6 +68,9 @@ test("client portal proxy rejects selectors and disables caching on every respon
   assert.match(portalSource, /action: "client_portal_enroll"/);
   assert.match(homeSource, /<MiniAppEntry \/>/);
   assert.match(entrySource, /getMiniAppEntryMode\(initData\)/);
+  assert.match(entrySource, /action: "resolve_miniapp_entry"/);
+  assert.match(entrySource, /role === "admin"/);
+  assert.match(entrySource, /role === "client" \|\| role === "unlinked"/);
   assert.match(entrySource, /<ClientPortal \/>/);
   assert.match(entrySource, /<MiniAppShell \/>/);
 });
@@ -75,7 +79,7 @@ test("enrollment keeps tokens and Telegram identities out of application logs", 
   const [routeSource, portalSource, appsScriptSource] = await Promise.all([
     readFile("app/api/dms/route.ts", "utf8"),
     readFile("app/client/client-portal.tsx", "utf8"),
-    readFile("apps-script/candidates/v44/ZZZZZZZZZZZClientPortal.gs", "utf8"),
+    readFile("apps-script/candidates/v45/ZZZZZZZZZZZClientPortal.gs", "utf8"),
   ]);
   assert.doesNotMatch(routeSource, /console\.(log|error)\([^)]*(initData|payload|clientId|telegramUserId)/i);
   assert.doesNotMatch(portalSource, /console\./);

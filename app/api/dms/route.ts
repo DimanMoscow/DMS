@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 const actions = new Set([
   "bootstrap",
+  "resolve_miniapp_entry",
   "client",
   "health",
   "set_queue_decision",
@@ -19,6 +20,7 @@ const actions = new Set([
 ]);
 
 const payloadlessClientActions = new Set([
+  "resolve_miniapp_entry",
   "client_portal_bootstrap",
   "client_portal_enroll",
 ]);

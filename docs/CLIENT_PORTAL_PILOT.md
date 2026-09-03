@@ -35,8 +35,11 @@ the token.
    `Telegram A -> Client A`.
 2. Read back A: invitation `used`, exactly one active binding, and the client response
    contains only A's profile and allow-listed measurements.
-3. Repeat separately for Client B and require only `Telegram B -> Client B`.
-4. Launch `/client` from an unrelated account with no binding and require
+3. Have A reopen the Main Mini App without the invitation. Server role resolution must
+   return the client portal directly; the browser must not probe or expose the admin UI.
+4. Repeat separately for Client B and require only `Telegram B -> Client B`, including
+   ordinary re-entry without the invitation.
+5. Launch `/client` from an unrelated account with no binding and require
    `client_not_linked` with no client data.
 
 The gate fails if A receives any B field, B receives any A field, a client selector is

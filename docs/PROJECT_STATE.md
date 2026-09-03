@@ -4,11 +4,11 @@ Last verified: 2026-09-03 (UTC).
 
 ## Confirmed state
 
-- Current `origin/main` at `cef433e251b336ac754601e2c5b18e4c192053a4` is the
+- Current `origin/main` at `610f9a38200518414cab3acaec662e43ebee7fd5` is the
   repository source of truth.
-- MiniApp production remains release `0.2.1`; Vercel deployment
-  `dpl_6KAzsKKu1xFHr1JSiaZdCd2JnqJq`, built from the Git-tracked MiniApp files at
-  `b54c32b15a2f53180a1c63d369e829235d1256af`, is `READY`. Its immutable URL and production alias both return HTTP
+- MiniApp production is release `0.2.2`; Vercel deployment
+  `dpl_64WeerPa7NmtczDHcsLd4G5faGYK`, built from Git-linked `main` at
+  `610f9a38200518414cab3acaec662e43ebee7fd5`, is `READY`. Its immutable URL and production alias both return HTTP
   200 from `/api/health` with `dataMode: connected`; `/` and `/client` also return
   HTTP 200.
 - Vercel Production has the required server-only `DMS_APPS_SCRIPT_URL`; its value stays
@@ -27,13 +27,11 @@ Last verified: 2026-09-03 (UTC).
   `apps-script/versions/v44` preserve the sanitized 16-file numbered sources. The
   snapshot verifier checks their exact trees and reviewed-candidate identities.
 - Production sheets `Доступ клиентов`, `Замеры`, and
-  `Приглашения Client Portal` exist with the approved schemas. There are zero client
-  bindings, zero measurements, and exactly two pending enrollment invitations for the
-  two privately approved pilot clients. Their identifiers stay outside Git. The opaque
-  URLs were intentionally absent from Git and logs, and the ephemeral trainer browser
-  session that held them is no longer available. The hashes cannot reconstruct them;
-  these pending invitations must be revoked and replaced under a new explicit write
-  authorization before client delivery.
+  `Приглашения Client Portal` exist with the approved schemas. The first approved pilot
+  client has exactly one active binding and a used invitation; its replay was rejected.
+  The second approved pilot client has no binding and one pending invitation. There are
+  zero measurements. Client identifiers, Telegram identities, and invitation secrets
+  stay outside Git and logs.
 - The Apps Script runtime includes hashed, expiring, single-use enrollment under a
   document lock and append-only trainer measurements with correction history. The
   corresponding trainer and client MiniApp UI is active in Vercel Production.
@@ -57,28 +55,25 @@ The existing Vercel project is now Git-linked to `DimanMoscow/DMS`; the producti
 branch is `main`. This gives the project a durable deployment path without changing
 its project, domains, or production environment variables.
 
-The signed `start_param` release gate and two-client pilot preflight are complete. Both
-approved invitations are pending but their one-time plaintext URLs are no longer
-recoverable. The next production-data step is controlled revoke-and-replace; only then
-can the A/B/unlinked ceremony in `docs/CLIENT_PORTAL_PILOT.md` begin. No binding or
-measurement may be created without the client's own authenticated Telegram action or an
-explicit trainer write respectively.
+The first pilot enrollment proved atomic consume, read-only client bootstrap, and replay
+rejection. It also exposed one routing gap: an ordinary Main Mini App launch without a
+signed `start_param` still opened the admin shell first, so a linked client received
+`access_denied` instead of returning directly to the client portal.
 
-MiniApp `main` now contains trainer measurement preview hardening plus release/runtime
-fingerprints at release `0.2.2`, but that code is not yet in Vercel Production. The
-connected deployment tool rejected its write request and the local official CLI has no
-authenticated session. Do not claim `0.2.2` is live until an official authenticated
-deployment path succeeds and the new fail-closed production verifier passes.
+Candidate `v45` plus MiniApp release `0.2.3` fix the mechanism with the payloadless
+`resolve_miniapp_entry` action. Apps Script validates signed Telegram `initData` and
+returns only `admin`, `client`, or `unlinked`; the browser never selects a client or
+uses names, usernames, query parameters, or Telegram IDs. The candidate is covered by
+the complete local gate but is not production until the Apps Script and Vercel rollout
+and authenticated re-entry smoke succeed.
 
 ## Known limitations
 
-- The first post-link `main` event still needs to deploy and pass the production
-  release/source verifier before `0.2.2` can be claimed live.
-- Repository package and health identity are aligned at `0.2.2`; production remains on
-  `0.2.1` until the pending MiniApp deployment is completed.
+- Linked-client ordinary re-entry still fails on production `0.2.2` until the reviewed
+  `v45` / `0.2.3` rollout completes.
 - Apps Script snapshots are sanitized repository copies, not live runtime. Operational
   URLs and Script Properties remain outside Git.
 - Exact unsanitized exports are intentionally local-only. No `.clasp.json` or
   repository-to-Apps-Script write workflow is configured.
-- Real Telegram bindings and measurements are intentionally absent until a separately
-  approved pilot write.
+- The second pilot binding still requires that client's own authenticated Telegram
+  action. Real measurements require an explicit trainer action.

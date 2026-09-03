@@ -10,18 +10,19 @@
 5. Apps Script also drives the Telegram bot, notifications, menus, and administrative
    workflows. Apple Calendar receives Google Calendar changes through external sync.
 
-The administrative MiniApp remains at `/`. The read-only client portal is a separate
-screen at `/client`; signed `start_param` launches on the configured Main Mini App root
-are dispatched to the same client UI before any admin bootstrap. It uses the same
-server proxy but only the dedicated
-`client_portal_bootstrap` action. Apps Script resolves the signed Telegram user to one
-client record before reading that client's profile and measurements. The browser never
-selects or receives a `clientId`.
+The Main Mini App remains at `/`, and the read-only client portal also has a direct
+screen at `/client`. A signed `start_param` on the root is dispatched to enrollment
+before role resolution. An ordinary root launch calls the payloadless
+`resolve_miniapp_entry` action: Apps Script validates signed Telegram `initData` and
+returns only `admin`, `client`, or `unlinked`. Admin opens the administrative shell;
+linked and unlinked non-admin identities open the client portal, where the dedicated
+`client_portal_bootstrap` action either returns the allow-listed profile or
+`client_not_linked`. The browser never selects or receives a `clientId` or Telegram ID.
 
 Enrollment uses a separate admin action and a payloadless client action. The admin
 selects an exact existing client, Apps Script stores only a one-time invitation hash,
 and Telegram delivers the opaque token as signed `start_param`. Ordinary bot-menu
-launches have no `start_param` and stay administrative. Consumption is
+launches have no `start_param` and are routed by the server-resolved role. Consumption is
 serialized by a document lock and creates the one-to-one binding without client-side
 `clientId` input. Invitation state lives in `Приглашения Client Portal`; plaintext
 tokens exist only in the one-time admin response/link.
@@ -62,6 +63,7 @@ tokens exist only in the one-time admin response/link.
 | Numbered `v42` | Historical deployment with a proven runtime/source mismatch; not deployed | Source snapshot matching `candidates/v41` |
 | Client portal `v43` | Historical client-portal runtime; not deployed now | Snapshot and candidate match byte-for-byte after URL sanitization |
 | Enrollment and measurements `v44` | Active production runtime with live fingerprints | Snapshot and candidate match byte-for-byte after URL sanitization |
+| Role routing `v45` | Reviewed candidate; not production until rollout | Full-source candidate changes only the runtime marker, MiniApp router, and client portal role resolver |
 | Sheets / Calendar | Live Google services | No production data is stored in Git |
 | Telegram | Telegram API calling Apps Script webhook | Bot behavior is implemented in Apps Script files |
 
