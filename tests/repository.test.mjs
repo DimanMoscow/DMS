@@ -89,7 +89,7 @@ test("enrollment keeps tokens and Telegram identities out of application logs", 
   const [routeSource, portalSource, appsScriptSource] = await Promise.all([
     readFile("app/api/dms/route.ts", "utf8"),
     readFile("app/client/client-portal.tsx", "utf8"),
-    readFile("apps-script/candidates/v45/ZZZZZZZZZZZClientPortal.gs", "utf8"),
+    readFile("apps-script/candidates/v46/ZZZZZZZZZZZClientPortal.gs", "utf8"),
   ]);
   assert.doesNotMatch(routeSource, /console\.(log|error)\([^)]*(initData|payload|clientId|telegramUserId)/i);
   assert.doesNotMatch(portalSource, /console\./);
