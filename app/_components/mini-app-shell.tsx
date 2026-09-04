@@ -159,6 +159,7 @@ function readableError(error: unknown) {
     measurement_invalid: "Проверьте дату и значения замера.",
     measurement_duplicate: "На эту дату уже есть активный замер. Используйте исправление.",
     measurement_correction_conflict: "Замер уже исправлен или изменился. Обновите карточку.",
+    measurement_noop: "Измените хотя бы один показатель перед исправлением.",
   };
   return messages[code] || "Не удалось выполнить запрос. Повторите попытку.";
 }

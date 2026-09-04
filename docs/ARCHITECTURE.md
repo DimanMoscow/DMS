@@ -64,6 +64,7 @@ tokens exist only in the one-time admin response/link.
 | Client portal `v43` | Historical client-portal runtime; not deployed now | Snapshot and candidate match byte-for-byte after URL sanitization |
 | Enrollment and measurements `v44` | Previous production runtime | Snapshot and candidate match byte-for-byte after URL sanitization |
 | Role routing `v45` | Active production runtime | Candidate contains the reviewed runtime marker, MiniApp router, and client portal role resolver diff |
+| Measurement guard `v46` | Reviewed candidate; not deployed | Adds server-side rejection of no-op corrections without changing the schema or existing data |
 | Sheets / Calendar | Live Google services | No production data is stored in Git |
 | Telegram | Telegram API calling Apps Script webhook | Bot behavior is implemented in Apps Script files |
 

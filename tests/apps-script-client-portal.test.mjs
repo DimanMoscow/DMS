@@ -4,8 +4,8 @@ import fs from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 
-const apiSource = fs.readFileSync("apps-script/candidates/v45/ZZZZZZZZMiniAppApi.gs", "utf8");
-const portalSource = fs.readFileSync("apps-script/candidates/v45/ZZZZZZZZZZZClientPortal.gs", "utf8");
+const apiSource = fs.readFileSync("apps-script/candidates/v46/ZZZZZZZZMiniAppApi.gs", "utf8");
+const portalSource = fs.readFileSync("apps-script/candidates/v46/ZZZZZZZZZZZClientPortal.gs", "utf8");
 const token = "fixture-token-not-a-production-secret";
 const nowSeconds = Math.floor(Date.now() / 1000);
 
@@ -156,7 +156,9 @@ function createContext({
       return "";
     },
     getDmsMiniAppFailure_(error) {
-      return { code: error?.message || "mini_app_api_failed", status: 500 };
+      return error?.dmsCode
+        ? { code: error.dmsCode, status: error.dmsStatus || 500 }
+        : { code: error?.message || "mini_app_api_failed", status: 500 };
     },
     Utilities: {
       DigestAlgorithm: { SHA_256: "sha256" },
@@ -546,6 +548,29 @@ test("correction appends audit history and client sees only the corrected value"
   });
   assert.equal(secondCorrection.error, "measurement_correction_conflict");
   assert.equal(sheets["Замеры"].rows.length, 3);
+});
+
+test("server rejects a no-op correction without appending audit history", () => {
+  const sheets = fixtures([]);
+  sheets["Замеры"] = new FakeSheet([measurementHeaders]);
+  const context = createContext({ sheets });
+  const created = actionRequest(context, "999999", "create_client_measurement", {
+    clientId: "CL-A",
+    measuredAt: "2026-09-01",
+    metrics: { weightKg: 78.5, waistCm: 85 },
+  });
+  const originalId = created.data.measurements.active[0].measurementId;
+
+  const noOp = actionRequest(context, "999999", "correct_client_measurement", {
+    clientId: "CL-A",
+    measurementId: originalId,
+    measuredAt: "2026-09-01",
+    metrics: { weightKg: 78.5, waistCm: 85 },
+  });
+
+  assert.equal(noOp.error, "measurement_noop");
+  assert.equal(noOp.status, 409);
+  assert.equal(sheets["Замеры"].rows.length, 2);
 });
 
 test("measurement writes remain admin-only and reject invalid ranges or future dates", () => {

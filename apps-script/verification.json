@@ -334,6 +334,16 @@
         "ZZZZZZZZMiniAppApi.gs",
         "ZZZZZZZZZZZClientPortal.gs"
       ]
+    },
+    "v46": {
+      "baseVersion": "v44",
+      "fileCount": 16,
+      "sourceTreeSha256": "901fb2ffae8f37ab6a0538ec7787ef6cb6ce5c2666506c7941b1abd1206456e5",
+      "expectedChangedFiles": [
+        "TelegramBot.gs",
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZZClientPortal.gs"
+      ]
     }
   }
 }

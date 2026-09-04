@@ -28,6 +28,9 @@ official Google Apps Script API `projects.getContent` method.
   measurements to `v43`. It remains the reviewed source for numbered `v44`.
 - `candidates/v45` adds the payloadless MiniApp entry resolver to `v44`. It remains the
   reviewed source for numbered `v45`.
+- `candidates/v46` keeps the `v45` routing behavior and adds a server-side no-op
+  correction guard for append-only measurements. It has no runtime effect until a
+  separately verified numbered deployment.
 - Numbered versions through `v40` contain 15 Apps Script project files. Versions `v42`
   through `v45` contain 16 files because they include the isolated client portal
   server module.
