@@ -11,7 +11,7 @@ test("health exposes a stable release fingerprint and optional source revision",
 
   assert.match(health, /MINIAPP_RUNTIME_FINGERPRINT/);
   assert.match(health, /getMiniAppSourceRevision/);
-  assert.match(identity, /miniapp-r7-api-no-store/);
+  assert.match(identity, /miniapp-r8-apps-script-runtime-probe/);
   assert.match(identity, new RegExp(`MINIAPP_RELEASE = "${packageJson.version}"`));
   assert.match(identity, /\^\[0-9a-f\]\{40\}\$/);
   assert.doesNotMatch(identity, /DMS_APPS_SCRIPT_URL/);
@@ -35,4 +35,20 @@ test("production verifier fails closed on release, fingerprint and source mismat
   assert.match(source, /api\/dms error response is cacheable/);
   assert.match(source, /api\/dms method response is cacheable/);
   assert.match(source, /method_not_allowed/);
+  assert.match(source, /api\/apps-script-runtime/);
+  assert.match(source, /Apps Script runtime identity mismatch/);
+});
+
+test("Apps Script runtime proxy is allow-listed, fail-closed and non-cacheable", async () => {
+  const [route, identity] = await Promise.all([
+    readFile("app/api/apps-script-runtime/route.ts", "utf8"),
+    readFile("lib/apps-script-runtime-identity.ts", "utf8"),
+  ]);
+
+  assert.match(route, /Cache-Control.*no-store/);
+  assert.match(route, /runtime_identity_mismatch/);
+  assert.match(route, /clientPortalHandlerLoaded === true/);
+  assert.doesNotMatch(route, /error\.message/);
+  assert.doesNotMatch(identity, /DMS_APPS_SCRIPT_URL/);
+  assert.match(identity, /calendar-onboarding-r8-production-guards/);
 });

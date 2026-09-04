@@ -1,7 +1,7 @@
-export const MINIAPP_RELEASE = "0.2.6";
+export const MINIAPP_RELEASE = "0.2.7";
 
 export const MINIAPP_RUNTIME_FINGERPRINT =
-  "miniapp-r7-api-no-store";
+  "miniapp-r8-apps-script-runtime-probe";
 
 const SOURCE_REVISION_PATTERN = /^[0-9a-f]{40}$/i;
 

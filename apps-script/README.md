@@ -16,6 +16,9 @@ official Google Apps Script API `projects.getContent` method.
   portal plus a public runtime identity probe.
 - `versions/v44` is the previous production snapshot. It adds one-time, hashed client
   enrollment and append-only trainer measurement writes.
+- `versions/v49` is the current production snapshot. It closes the Calendar one-off
+  accounting parser gap and prevents new-client row templates from duplicating the
+  canonical Debt spill formula.
 - `candidates/v40` is retained as the reviewed release candidate and must remain
   byte-identical to `versions/v40` until it is deliberately retired.
 - `candidates/v41` is retained as the reviewed source of numbered `v42`. It adds one
@@ -32,7 +35,7 @@ official Google Apps Script API `projects.getContent` method.
   correction guard for append-only measurements. It has no runtime effect until a
   separately verified numbered deployment.
 - Numbered versions through `v40` contain 15 Apps Script project files. Versions `v42`
-  through `v45` contain 16 files because they include the isolated client portal
+  through `v49` contain 16 files because they include the isolated client portal
   server module.
 
 ## Deliberate sanitization
@@ -72,8 +75,8 @@ not be committed because they contain the real deployment URL and project ID.
 
 `verification.json` records original and sanitized SHA-256 values for retained exact
 exports, source-tree hashes, changed-file sets, and required candidate/snapshot
-identities. The verifier proves `v42 == candidates/v41`, `v43 == candidates/v43`,
-and `v44 == candidates/v44`
+identities. The verifier proves recorded numbered snapshots against their declared
+candidates, including `v49 == candidates/v49`,
 after exactly the two documented URL replacements above. When a retained local exact
 export is present, it also repeats the per-file export comparison.
 
@@ -98,5 +101,5 @@ DMS_APPS_SCRIPT_URL=<active-web-app-url> npm run smoke:apps-script-runtime
 The script never prints the configured URL.
 
 Importing or merging these files does not change the Apps Script project. Production is
-on numbered `v45`, whose reviewed source remains in `candidates/v45`; any future HEAD,
+on numbered `v49`, whose reviewed source remains in `candidates/v49`; any future HEAD,
 version, or deployment write remains a separately approved operation.

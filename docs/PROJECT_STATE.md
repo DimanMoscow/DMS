@@ -4,19 +4,22 @@ Last verified: 2026-09-04 (UTC).
 
 ## Confirmed production
 
-- `main` contains the merged client-progress/enrollment UX and Calendar-driven
-  onboarding. MiniApp release `0.2.6` closes the remaining cache-control gap for
-  rejected API methods.
+- `main` contains the client-progress/enrollment UX, Calendar-driven onboarding,
+  and the production Apps Script runtime verifier. MiniApp release `0.2.7` can
+  verify the active Apps Script source through its server-only configured URL.
 - MiniApp production follows Git-linked `main`. The release gate requires `/`,
-  `/client`, and `/api/health` to return HTTP 200; health must report release `0.2.6`,
-  fingerprint `miniapp-r7-api-no-store`, the exact serving source SHA, and
+  `/client`, `/api/health`, and `/api/apps-script-runtime` to return HTTP 200;
+  health must report release `0.2.7`, fingerprint
+  `miniapp-r8-apps-script-runtime-probe`, the exact serving source SHA, and
   `dataMode: connected`.
-- Apps Script production uses the existing deployment on numbered version `v48`.
+- Apps Script production uses the existing deployment on numbered version `v49`.
   Its runtime implements signed server-authoritative `admin` / `client` / `unlinked`
   entry resolution, hashed single-use enrollment, one-to-one bindings, and append-only
   trainer measurements. `v46` added server-side no-op measurement correction rejection;
   `v47` added Calendar onboarding, debt-formula integrity, and redacted API errors;
-  `v48` makes matching repeated new-client resolution idempotent.
+  `v48` makes matching repeated new-client resolution idempotent; `v49` accepts
+  the canonical one-off conditions written by onboarding, validates Queue sources,
+  and prevents new clients from duplicating the Debt spill formula.
 - The two-client controlled pilot is complete. Production contains exactly two active
   bindings for the two approved clients, with two distinct Telegram identities. The
   invitation audit has five rows: three `revoked`, two `used`, and zero `pending`.
@@ -26,15 +29,14 @@ Last verified: 2026-09-04 (UTC).
   already confirmed after the role-routing rollout. Automated gates cover A/B data
   isolation, unlinked denial, selector rejection, client/admin separation, replay,
   expired/revoked states, and the document-lock race contract.
-- Post-pilot read-only reconciliation reports zero Calendar ↔ Queue ↔ Journal issues
-  across 85 queue rows, 108 journal rows, and 95 Calendar events in the bounded live
-  check. Enrollment did not write to those three systems.
+- Post-onboarding read-only reconciliation reports zero Calendar ↔ Queue ↔ Journal
+  issues across 85 queue rows, 109 journal rows, and 95 Calendar events.
 - The Debt `ARRAYFORMULA` is restored at the sole canonical `Клиенты!J5` anchor. The
   conflicting formula in the spill range was removed without changing payment or block
   amounts, and the new live guard passes.
-- Existing unknown queue item `Q-0085` is no longer a system error. It is the sole
-  `Требует регистрации` item; it has no client/block assignment, no Journal row, and no
-  financial write. Final resolution awaits an explicit administrator business answer.
+- The approved unknown-client queue case was resolved from an explicit administrator
+  preview as a new one-off client. It produced exactly one payment and one Journal row,
+  preserved the approved Calendar alias, and created no block or future Hybrid product.
 - Production logs use bounded request IDs and allow-listed action/status/error fields.
   They contain no raw `initData`, invitation tokens, Telegram identities, client IDs,
   or PII.
@@ -48,27 +50,25 @@ Last verified: 2026-09-04 (UTC).
   native share sheet without persistence, explains revoke-and-recreate, and requires a
   second confirmation before revoke. No token is written to browser storage.
 - The production verifier now checks release, runtime fingerprint, source SHA,
-  connectivity, three public routes, health `no-store`, and fail-closed `/api/dms`
-  responses for invalid payloads and unsupported HTTP methods. Every API response in
-  those paths must carry `Cache-Control: no-store`.
-- The full repository gate passes 58 tests plus lint, TypeScript, production build, and
+  connectivity, public routes, health `no-store`, the allow-listed Apps Script runtime
+  identity, and fail-closed `/api/dms` responses. Every API response in those paths must
+  carry `Cache-Control: no-store`.
+- The full repository gate passes 60 tests plus lint, TypeScript, production build, and
   Apps Script candidate/snapshot integrity.
 
 ## Calendar onboarding release
 
-`apps-script/versions/v46`, `v47`, and `v48` are immutable sanitized snapshots of the
-numbered releases. Production `v48` has passed the 16-check read-only gate with zero
-reconciliation issues. Queue validation accepts `Требует регистрации`; the read-only
-sync preview identified only `Q-0085`, and applying that exact write removed the legacy
-queue error without touching Journal, Calendar, clients, blocks, payments, bindings, or
-measurements.
+`apps-script/versions/v46` through `v49` are immutable sanitized snapshots of the
+numbered releases. Production `v49` passed the 17-check read-only gate with zero
+reconciliation issues. Queue validation accepts both `Требует регистрации` and
+`MiniApp` as the resolution source; the Debt guard requires `Клиенты!J5` to remain the
+only formula anchor in its spill range.
 
 ## Remaining risks and next step
 
 - Real measurements still require an explicit authenticated trainer action. No real
   measurement values have been entered.
-- Resolve `Q-0085` only after the administrator chooses New client, Link, or Ignore and,
-  for a new client, confirms product and payment terms. No client is inferred from the
-  Calendar title.
-- Verify the Calendar onboarding wizard in the authenticated admin MiniApp without
-  confirming a mutation, then resolve `Q-0085` only from the approved preview.
+- A later confirmed Calendar entry may start Hybrid onboarding, but no Hybrid block
+  exists until that separate entry and its terms are explicitly confirmed.
+- Continue with read-only invitation history and audit/health UX without introducing
+  client-side writes.
