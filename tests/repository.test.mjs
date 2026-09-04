@@ -123,3 +123,13 @@ test("Mini App supports Telegram back navigation and bounded requests", async ()
   assert.match(shellSource, /controller\.abort\(\), 25_000/);
   assert.match(shellSource, /request_timeout/);
 });
+
+test("admin diagnostics combine MiniApp, Apps Script, queue and read-only gate state", async () => {
+  const shellSource = await readFile("app/_components/mini-app-shell.tsx", "utf8");
+
+  assert.match(shellSource, /api\/apps-script-runtime/);
+  assert.match(shellSource, /queueRegistrations/);
+  assert.match(shellSource, /checkedAt/);
+  assert.match(shellSource, /Apps Script/);
+  assert.match(shellSource, /Без изменения данных/);
+});

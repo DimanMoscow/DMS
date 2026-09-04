@@ -1,7 +1,14 @@
 node_modules/
+.npm-cache/
 .next/
 *.tsbuildinfo
 .vercel/
+.local-checkpoints/
+.clasp.json
+.clasprc.json
+apps-script/.local-exports/
+apps-script/.local-release/
+client_secret*.json
 .env*
 !.env.example
 npm-debug.log*

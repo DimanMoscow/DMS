@@ -1,6 +1,6 @@
 # Current project state
 
-Last verified: 2026-09-04 (UTC).
+Last verified: 2026-09-05 (Europe/Moscow).
 
 ## Confirmed production
 
@@ -53,8 +53,20 @@ Last verified: 2026-09-04 (UTC).
   connectivity, public routes, health `no-store`, the allow-listed Apps Script runtime
   identity, and fail-closed `/api/dms` responses. Every API response in those paths must
   carry `Cache-Control: no-store`.
-- The full repository gate passes 60 tests plus lint, TypeScript, production build, and
+- The full repository gate passes 64 tests plus lint, TypeScript, production build, and
   Apps Script candidate/snapshot integrity.
+- GitHub and Vercel release behavior is explicit: pull requests receive Preview
+  deployments and an approved merge to `main` automatically deploys Production. The
+  repository exposes `release:check`, `release:verify`, and an ignored, non-sensitive
+  local release-checkpoint command. Migration packages now carry machine-checked
+  preflight, post-check, rollback, and approval metadata.
+- Vercel Preview is isolated from production data: the audited PR Preview reports
+  `dataMode: not-configured`, and its Apps Script runtime endpoint fails closed because
+  the production backend environment is absent.
+- The existing authenticated admin diagnostics view now combines MiniApp identity,
+  Apps Script runtime identity, queue waiting/error/registration counts, the read-only
+  live gate result, trigger count, and last-check time. It exposes no identifiers or
+  client, medical, or financial records.
 
 ## Calendar onboarding release
 
@@ -70,5 +82,7 @@ only formula anchor in its spill range.
   measurement values have been entered.
 - A later confirmed Calendar entry may start Hybrid onboarding, but no Hybrid block
   exists until that separate entry and its terms are explicitly confirmed.
-- Continue with read-only invitation history and audit/health UX without introducing
-  client-side writes.
+- Telegram confirmation callbacks are not yet bound to a per-flow nonce/message. A
+  focused security-hardening stage should prevent an old confirmation button from acting
+  on newer cached state and add durable idempotency keys for payment/calendar mutations.
+- Continue with read-only invitation history without introducing client-side writes.

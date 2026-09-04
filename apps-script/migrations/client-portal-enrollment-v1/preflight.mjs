@@ -3,9 +3,9 @@ import fs from "node:fs";
 
 const schema = JSON.parse(fs.readFileSync(new URL("./schema.json", import.meta.url), "utf8"));
 const inputPath = process.argv[2];
-const input = inputPath
-  ? JSON.parse(fs.readFileSync(inputPath, "utf8"))
-  : { existingSheets: [], rows: [] };
+assert.ok(inputPath && process.argv.length === 3,
+  "Usage: node preflight.mjs <private-input.json>");
+const input = JSON.parse(fs.readFileSync(inputPath, "utf8"));
 
 assert.deepEqual(Object.keys(input).sort(), ["existingSheets", "rows"]);
 assert.ok(Array.isArray(input.existingSheets));

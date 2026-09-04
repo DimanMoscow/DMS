@@ -4,13 +4,15 @@ import fs from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 
-const candidateDirectory = "apps-script/candidates/v46";
-const telegramSource = fs.readFileSync(`${candidateDirectory}/TelegramBot.gs`, "utf8");
+const candidateDirectory = "apps-script/candidates/v49";
+const readSource = (fileName) =>
+  fs.readFileSync(`${candidateDirectory}/${fileName}`, "utf8").replace(/\r\n/g, "\n");
+const telegramSource = readSource("TelegramBot.gs");
 
 function sha256(fileName) {
   return crypto
     .createHash("sha256")
-    .update(fs.readFileSync(`${candidateDirectory}/${fileName}`))
+    .update(readSource(fileName))
     .digest("hex");
 }
 
@@ -54,10 +56,17 @@ test("runtime identity fingerprints the exact client router sources", () => {
   ]);
   assert.equal(identity.ok, true);
   assert.equal(identity.service, "dms-fitness-apps-script");
-  assert.equal(identity.release, "client-portal-measurement-guard-r5");
+  assert.equal(identity.release, "calendar-onboarding-r8-production-guards");
   assert.equal(identity.routerSha256, sha256("ZZZZZZZZMiniAppApi.gs"));
   assert.equal(identity.clientPortalSha256, sha256("ZZZZZZZZZZZClientPortal.gs"));
   assert.equal(identity.clientPortalHandlerLoaded, true);
+});
+
+test("server verifier pins the active v49 runtime identity", () => {
+  const source = fs.readFileSync("lib/apps-script-runtime-identity.ts", "utf8");
+  assert.match(source, /calendar-onboarding-r8-production-guards/);
+  assert.match(source, new RegExp(sha256("ZZZZZZZZMiniAppApi.gs")));
+  assert.match(source, new RegExp(sha256("ZZZZZZZZZZZClientPortal.gs")));
 });
 
 test("runtime identity fails its load marker when the portal module is absent", () => {

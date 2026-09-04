@@ -41,6 +41,11 @@ type Health = {
   sourceRevision?: string;
   dataMode: "connected" | "not-configured";
 };
+type AppsScriptRuntimeHealth = {
+  ok: boolean;
+  release?: string;
+  clientPortalHandlerLoaded?: boolean;
+};
 type ClientSummary = {
   id: string; name: string; status: string; blockId: string; format: string;
   completed: number; remaining: number; blockPrice: number; paid: number; debt: number;
@@ -213,6 +218,7 @@ export function MiniAppShell() {
   const [clientDetail, setClientDetail] = useState<ClientDetail | null>(null);
   const [clientLoading, setClientLoading] = useState(false);
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
+  const [appsScriptRuntime, setAppsScriptRuntime] = useState<AppsScriptRuntimeHealth | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [busyKey, setBusyKey] = useState("");
   const [notice, setNotice] = useState("");
@@ -330,9 +336,18 @@ export function MiniAppShell() {
   const loadSystemHealth = useCallback(() => {
     if (!initData) return;
     setSystemHealth(null);
+    setAppsScriptRuntime(null);
     setError("");
-    requestDms<SystemHealth>(initData, "health")
-      .then((next) => { setSystemHealth(next); setError(""); })
+    Promise.all([
+      requestDms<SystemHealth>(initData, "health"),
+      fetch("/api/apps-script-runtime", { cache: "no-store" })
+        .then((response) => response.json() as Promise<AppsScriptRuntimeHealth>),
+    ])
+      .then(([next, runtime]) => {
+        setSystemHealth(next);
+        setAppsScriptRuntime(runtime.ok ? runtime : null);
+        setError("");
+      })
       .catch((reason) => setError(readableError(reason)));
   }, [initData]);
 
@@ -407,6 +422,7 @@ export function MiniAppShell() {
       )}
       {view === "report" && data && <ReportView report={data.report} />}
       {view === "more" && <SystemView service={serviceHealth} health={systemHealth}
+        appsScriptRuntime={appsScriptRuntime}
         onRefresh={() => { loadSystemHealth(); loadBootstrap(initData, false); }} />}
 
       <nav className="bottom-nav" aria-label="Навигация">
@@ -1005,8 +1021,11 @@ function ReportView({ report }: { report: Bootstrap["report"] }) {
   </Page>;
 }
 
-function SystemView({ service, health, onRefresh }: {
-  service: Health | null; health: SystemHealth | null; onRefresh: () => void;
+function SystemView({ service, health, appsScriptRuntime, onRefresh }: {
+  service: Health | null;
+  health: SystemHealth | null;
+  appsScriptRuntime: AppsScriptRuntimeHealth | null;
+  onRefresh: () => void;
 }) {
   return <Page title="Состояние системы" subtitle="Диагностика">
     <section className="system-hero">
@@ -1021,9 +1040,14 @@ function SystemView({ service, health, onRefresh }: {
       <Detail label="Source" value={service?.sourceRevision === "unavailable"
         ? "не указан"
         : service?.sourceRevision?.slice(0, 12) || "—"} />
+      <Detail label="Apps Script" value={appsScriptRuntime?.release || "—"} />
       <Detail label="Очередь" value={health ? `${health.queueWaiting} ожидает · ${health.queueErrors} ошибок` : "—"} />
+      <Detail label="Регистрация" value={health ? String(health.queueRegistrations) : "—"} />
       <Detail label="Исчерпанные блоки" value={health ? String(health.exhaustedOpenBlocks) : "—"} />
       <Detail label="Триггеры" value={health ? String(health.triggerCount) : "—"} />
+      <Detail label="Проверено" value={health?.checkedAt
+        ? new Date(health.checkedAt).toLocaleString("ru-RU")
+        : "—"} />
     </section>
     {health?.failures.map((failure) => <aside className="state-card state-error" key={failure.name}>
       <strong>{failure.name}</strong><span>{failure.details}</span>
