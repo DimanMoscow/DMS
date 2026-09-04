@@ -19,6 +19,9 @@
 ## Working rules
 
 - Branch from the latest `origin/main`; keep one scoped change per branch and use a PR.
+- Treat a merge to `main` as a Vercel production operation: the Git integration deploys
+  `main` automatically. Merge approval therefore covers that automatic deployment;
+  never start a second manual deployment for the same commit.
 - Do not commit secrets, real operational URLs, `.env` files, Script Properties, or IDs
   that are not explicitly approved for source control.
 - Client APIs must resolve Telegram user → client only on the server. Never accept a
@@ -40,6 +43,9 @@
   then the web only when needed. Prefer official sources.
 - Stop research once the cause is proved and move to implementation.
 - Record major checkpoints in Git and current docs instead of relying on chat history.
+- After a major milestone is merged and production is verified, start the next major
+  stage in a fresh Codex task when the current task has accumulated substantial context.
+  Recover from Git, these instructions, current docs, and live state.
 
 ## Checks
 
@@ -62,8 +68,8 @@ calendar state, change authentication, or alter a production release.
 
 ## Requires separate approval
 
-- Merge to `main`.
-- Any Vercel deployment, promotion, rollback, or production configuration change.
+- Merge to `main` (and therefore its automatic Vercel production deployment).
+- Any manual Vercel deployment, promotion, rollback, or production configuration change.
 - `clasp push`, Apps Script `updateContent`, HEAD changes, numbered-version creation,
   or deployment changes.
 - Writes to production Sheets, Calendar, Telegram, Script Properties, or client data.

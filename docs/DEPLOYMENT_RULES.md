@@ -3,19 +3,19 @@
 ## MiniApp
 
 1. Start from current `origin/main` and work in a scoped branch.
-2. Run targeted tests while editing; run `npm run check` before a release candidate.
+2. Run targeted tests while editing; run `npm run release:check` before a release candidate.
 3. Review the complete PR diff and merge only with explicit approval.
-4. Treat Vercel preview, production deployment, promotion, and rollback as separate
-   operations requiring explicit approval. The existing project is Git-linked to
-   `DimanMoscow/DMS`; production follows `main` without changing domains or environment
-   variables.
+4. The existing Vercel project is Git-linked to `DimanMoscow/DMS`. Pull requests create
+   Preview deployments and merging `main` automatically creates a Production deployment.
+   Approval to merge therefore includes that automatic deployment. Manual deployment,
+   promotion, rollback, domain, and environment changes remain separate operations.
 5. After an approved production change, verify deployment state, `/api/health`, Telegram
    launch, authorized reads, and only the specifically approved mutations.
 6. Require `/api/health` to match the repository release and runtime fingerprint. When
    Vercel provides `VERCEL_GIT_COMMIT_SHA`, require the exact source revision too:
 
    ```bash
-   DMS_EXPECTED_SOURCE=<main-sha> npm run smoke:miniapp-production -- https://production.example
+   DMS_EXPECTED_SOURCE=<main-sha> npm run release:verify -- https://production.example
    ```
 
    A missing source revision is reported as `unavailable`; never claim commit identity
@@ -63,11 +63,23 @@
 
 ## Production gate
 
-The order is: targeted tests → `npm run check` → read-only state verification → approved
-deployment → live runtime identity → final smoke. `npm run check` runs MiniApp lint,
+The order is: targeted tests → `npm run release:check` → PR Preview → approved merge →
+automatic Production deployment → `npm run release:verify` → optional local checkpoint.
+`npm run release:check` runs MiniApp lint,
 tests, TypeScript, build, and the Apps Script snapshot verifier. For day-confirmation
 logic, validate the dry-run result before allowing any mutation. Production-data smoke
 actions must be individually approved.
+
+After a successful verification, a non-sensitive local rollback record can be captured:
+
+```bash
+DMS_EXPECTED_SOURCE=<main-sha> npm run release:verify -- https://production.example
+DMS_VERCEL_DEPLOYMENT_ID=<deployment-id> DMS_APPS_SCRIPT_VERSION=v49 \
+  npm run release:checkpoint -- https://production.example
+```
+
+Checkpoint files are written under ignored `.local-checkpoints/` by default and contain
+only release identities and rollback references, never URLs, credentials, or row data.
 
 GitHub Actions runs the same `npm run check` gate for pull requests and pushes to
 `main`. It also runs `git diff --check` outside `apps-script/versions/**` and

@@ -130,8 +130,14 @@ test("enrollment schema stores only hashes and starts empty", () => {
   assert.equal(schema.sheet.columns.some((column) => /plaintext|raw token/i.test(column.name)), false);
   assert.deepEqual(schema.sheet.columns[3].values, ["pending", "used", "revoked", "expired"]);
 
+  const missingInput = spawnSync(process.execPath, [
+    "apps-script/migrations/client-portal-enrollment-v1/preflight.mjs",
+  ], { encoding: "utf8" });
+  assert.notEqual(missingInput.status, 0);
+
   const result = spawnSync(process.execPath, [
     "apps-script/migrations/client-portal-enrollment-v1/preflight.mjs",
+    "apps-script/migrations/client-portal-enrollment-v1/fixtures/empty.json",
   ], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(JSON.parse(result.stdout).rowsToWrite, 0);

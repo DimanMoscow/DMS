@@ -1,0 +1,10 @@
+{
+  "id": "client-portal-enrollment-v1",
+  "schemaVersion": 1,
+  "appliesTo": ["Приглашения Client Portal"],
+  "destructive": false,
+  "productionWritesRequireApproval": true,
+  "preflight": ["require target sheet to be absent", "require an empty rollout", "capture existing sheet names"],
+  "postCheck": ["read back exact headers", "require zero rows before first use", "verify status validations"],
+  "rollback": ["delete only the newly created empty sheet before use", "after use revoke invites and disable bindings first"]
+}

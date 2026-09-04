@@ -1,0 +1,10 @@
+{
+  "id": "client-portal-v1",
+  "schemaVersion": 1,
+  "appliesTo": ["Доступ клиентов", "Замеры"],
+  "destructive": false,
+  "productionWritesRequireApproval": true,
+  "preflight": ["validate private input", "reject duplicates and invalid references", "capture counts and headers"],
+  "postCheck": ["read back headers and rows", "repeat validation", "run admin/client isolation smoke"],
+  "rollback": ["disable new bindings", "verify client_not_linked", "remove only explicitly identified new rows"]
+}

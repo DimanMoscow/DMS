@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const candidateDirectory = path.resolve(scriptDirectory, "..", "candidates", "v45");
+const candidateDirectory = path.resolve(scriptDirectory, "..", "candidates", "v49");
 const runtimeUrl = String(process.env.DMS_APPS_SCRIPT_URL || "").trim();
 
 assert.ok(runtimeUrl, "DMS_APPS_SCRIPT_URL is required");
@@ -13,7 +13,7 @@ assert.ok(runtimeUrl, "DMS_APPS_SCRIPT_URL is required");
 function sha256(fileName) {
   return crypto
     .createHash("sha256")
-    .update(fs.readFileSync(path.join(candidateDirectory, fileName)))
+    .update(fs.readFileSync(path.join(candidateDirectory, fileName), "utf8").replace(/\r\n/g, "\n"))
     .digest("hex");
 }
 
@@ -40,7 +40,7 @@ assert.deepEqual(Object.keys(identity).sort(), [
 ]);
 assert.equal(identity.ok, true);
 assert.equal(identity.service, "dms-fitness-apps-script");
-assert.equal(identity.release, "client-portal-role-routing-r4");
+assert.equal(identity.release, "calendar-onboarding-r8-production-guards");
 assert.equal(identity.routerSha256, sha256("ZZZZZZZZMiniAppApi.gs"));
 assert.equal(
   identity.clientPortalSha256,
@@ -48,4 +48,4 @@ assert.equal(
 );
 assert.equal(identity.clientPortalHandlerLoaded, true);
 
-console.log("Apps Script runtime identity verified: client-portal-role-routing-r4");
+console.log("Apps Script runtime identity verified: calendar-onboarding-r8-production-guards");
