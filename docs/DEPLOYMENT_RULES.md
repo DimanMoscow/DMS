@@ -43,6 +43,11 @@
   and the live marker disagree, stop the rollout and preserve the last known-good
   deployment.
 
+- The Git-linked MiniApp exposes `/api/apps-script-runtime` as a fail-closed,
+  allow-listed server-side verifier. It must return HTTP 200 with `no-store`, the
+  expected release fingerprints, and `clientPortalHandlerLoaded: true`; it never
+  exposes the configured backend URL.
+
   ```bash
   DMS_APPS_SCRIPT_URL=<active-web-app-url> npm run smoke:apps-script-runtime
   ```

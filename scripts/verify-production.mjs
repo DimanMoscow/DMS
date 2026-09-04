@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 const baseUrl = process.argv[2]?.replace(/\/$/, "");
-const expectedRelease = process.env.DMS_EXPECTED_RELEASE || "0.2.6";
+const expectedRelease = process.env.DMS_EXPECTED_RELEASE || "0.2.7";
 const expectedFingerprint = process.env.DMS_EXPECTED_FINGERPRINT ||
-  "miniapp-r7-api-no-store";
+  "miniapp-r8-apps-script-runtime-probe";
 const expectedSource = process.env.DMS_EXPECTED_SOURCE?.toLowerCase() || "";
 
 if (!baseUrl || !/^https:\/\//.test(baseUrl)) {
@@ -22,10 +22,11 @@ async function fetchChecked(path) {
   return response;
 }
 
-const [root, client, healthResponse] = await Promise.all([
+const [root, client, healthResponse, appsScriptRuntimeResponse] = await Promise.all([
   fetchChecked("/"),
   fetchChecked("/client"),
   fetchChecked("/api/health"),
+  fetchChecked("/api/apps-script-runtime"),
 ]);
 
 const apiProbe = await fetch(`${baseUrl}/api/dms`, {
@@ -59,6 +60,7 @@ if (!/no-store/i.test(methodProbe.headers.get("cache-control") || "")) {
 }
 
 const health = await healthResponse.json();
+const appsScriptRuntime = await appsScriptRuntimeResponse.json();
 const cacheControl = healthResponse.headers.get("cache-control") || "";
 if (!/no-store/i.test(cacheControl)) throw new Error("/api/health is cacheable");
 if (health.ok !== true) throw new Error("health.ok is not true");
@@ -72,14 +74,31 @@ if (health.runtimeFingerprint !== expectedFingerprint) {
 if (expectedSource && health.sourceRevision !== expectedSource) {
   throw new Error(`source mismatch: expected ${expectedSource}, got ${health.sourceRevision}`);
 }
+if (!/no-store/i.test(appsScriptRuntimeResponse.headers.get("cache-control") || "")) {
+  throw new Error("/api/apps-script-runtime is cacheable");
+}
+if (appsScriptRuntime.ok !== true ||
+    appsScriptRuntime.service !== "dms-fitness-apps-script" ||
+    appsScriptRuntime.clientPortalHandlerLoaded !== true) {
+  throw new Error("Apps Script runtime identity mismatch");
+}
 
 console.log(JSON.stringify({
   ok: true,
-  routes: { root: root.status, client: client.status, health: healthResponse.status },
+  routes: {
+    root: root.status,
+    client: client.status,
+    health: healthResponse.status,
+    appsScriptRuntime: appsScriptRuntimeResponse.status,
+  },
   release: health.release,
   runtimeFingerprint: health.runtimeFingerprint,
   sourceRevision: health.sourceRevision,
   dataMode: health.dataMode,
+  appsScriptRuntime: {
+    release: appsScriptRuntime.release,
+    clientPortalHandlerLoaded: appsScriptRuntime.clientPortalHandlerLoaded,
+  },
   apiProbe: { status: apiProbe.status, error: apiProbeBody.error, cacheControl: "no-store" },
   methodProbe: {
     status: methodProbe.status,

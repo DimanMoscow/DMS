@@ -336,6 +336,23 @@
         "verifiedAt": "2026-09-04T20:25:25Z",
         "result": "Production deployment reports v48; matching repeated new-client resolution is a no-op, the live gate passed 16/16, and reconciliation remained zero"
       }
+    },
+    "v49": {
+      "numberedVersion": 49,
+      "baseVersion": "v48",
+      "matchesCandidate": "v49",
+      "fileCount": 16,
+      "sourceTreeSha256": "cc6facc82befa45d3e69f7d496b779788454e48a011a1212a870120f37538561",
+      "expectedChangedFiles": [
+        "TelegramBot.gs",
+        "ZZZZZZZRuntime.gs",
+        "Код.gs"
+      ],
+      "liveVerification": {
+        "method": "Apps Script Editor numbered source, production deployment metadata, 17-check live gate, and reconciliation",
+        "verifiedAt": "2026-09-04T22:29:08Z",
+        "result": "Production deployment reports v49; the queue-source and debt-formula guards passed, the live gate passed 17/17, and reconciliation remained zero after Q-0085"
+      }
     }
   },
   "candidates": {
@@ -418,6 +435,16 @@
       "expectedChangedFiles": [
         "TelegramBot.gs",
         "ZZZZZZZZZZMiniAppAdmin.gs"
+      ]
+    },
+    "v49": {
+      "baseVersion": "v48",
+      "fileCount": 16,
+      "sourceTreeSha256": "cc6facc82befa45d3e69f7d496b779788454e48a011a1212a870120f37538561",
+      "expectedChangedFiles": [
+        "TelegramBot.gs",
+        "ZZZZZZZRuntime.gs",
+        "Код.gs"
       ]
     }
   }

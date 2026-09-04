@@ -3,12 +3,13 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import vm from "node:vm";
 
-const candidate = "apps-script/candidates/v48";
+const candidate = "apps-script/candidates/v49";
 
 async function loadCalendarContext() {
-  const [calendarSource, adminSource] = await Promise.all([
+  const [calendarSource, adminSource, coreSource] = await Promise.all([
     readFile(`${candidate}/CalendarSync.gs`, "utf8"),
     readFile(`${candidate}/ZZZZZZZZZZMiniAppAdmin.gs`, "utf8"),
+    readFile(`${candidate}/Код.gs`, "utf8"),
   ]);
   const context = vm.createContext({
     console,
@@ -21,6 +22,7 @@ async function loadCalendarContext() {
   });
   new vm.Script(calendarSource, { filename: "CalendarSync.gs" }).runInContext(context);
   new vm.Script(adminSource, { filename: "ZZZZZZZZZZMiniAppAdmin.gs" }).runInContext(context);
+  new vm.Script(coreSource, { filename: "Код.gs" }).runInContext(context);
   return context;
 }
 
@@ -100,6 +102,12 @@ test("new-client preview uses approved one-off and block standards", async () =>
   assert.equal(block10.usesStandardPrice, true);
 });
 
+test("one-off conditions written by onboarding are accepted by queue accounting", async () => {
+  const context = await loadCalendarContext();
+  assert.equal(context.getSingleTrainingPrice_("Разовая тренировка — 3 500 ₽"), 3500);
+  assert.equal(context.getSingleTrainingPrice_("Разовые — 3 500 ₽"), 3500);
+});
+
 test("non-standard products fail closed until explicit conditions are supplied", async () => {
   const context = await loadCalendarContext();
   context.throwDmsMiniAppError_ = (code, status) => {
@@ -155,9 +163,10 @@ test("repeated new-client resolution is idempotent after the queue item is linke
 });
 
 test("resolution is locked, event-specific, audited and journal-independent", async () => {
-  const [adminSource, apiSource, calendarSource, routeSource, shellSource, runtimeSource] = await Promise.all([
+  const [adminSource, apiSource, botSource, calendarSource, routeSource, shellSource, runtimeSource] = await Promise.all([
     readFile(`${candidate}/ZZZZZZZZZZMiniAppAdmin.gs`, "utf8"),
     readFile(`${candidate}/ZZZZZZZZMiniAppApi.gs`, "utf8"),
+    readFile(`${candidate}/TelegramBot.gs`, "utf8"),
     readFile(`${candidate}/CalendarSync.gs`, "utf8"),
     readFile("app/api/dms/route.ts", "utf8"),
     readFile("app/_components/mini-app-shell.tsx", "utf8"),
@@ -187,4 +196,8 @@ test("resolution is locked, event-specific, audited and journal-independent", as
   assert.match(shellSource, /onCancel/);
   assert.match(runtimeSource, /debt-formula-integrity/);
   assert.match(runtimeSource, /extraFormulaRows/);
+  assert.match(runtimeSource, /queue-source-validation/);
+  assert.match(runtimeSource, /function repairDmsQueueSourceValidation/);
+  assert.match(runtimeSource, /'MiniApp'/);
+  assert.match(botSource, /clients\.getRange\(clientRow, 10\)\.clearContent\(\)/);
 });
