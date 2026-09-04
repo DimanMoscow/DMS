@@ -47,6 +47,15 @@
   DMS_APPS_SCRIPT_URL=<active-web-app-url> npm run smoke:apps-script-runtime
   ```
 
+- Before a runtime may emit a new Queue state, extend only the affected validation
+  ranges and read them back. For `Требует регистрации`, matching and processing status
+  columns must both accept the value.
+- A Calendar sync rollout must run `previewDmsCalendarQueueSync` first. Its redacted
+  write set must be understood before applying `syncCalendarToQueue`.
+- The live gate must include `debt-formula-integrity`: `Клиенты!J5` is the sole canonical
+  Debt `ARRAYFORMULA` anchor, its spill range contains no competing formulas, and no
+  displayed spreadsheet errors are present.
+
 ## Production gate
 
 The order is: targeted tests → `npm run check` → read-only state verification → approved

@@ -17,6 +17,8 @@ const actions = new Set([
   "revoke_client_portal_invite",
   "create_client_measurement",
   "correct_client_measurement",
+  "preview_calendar_onboarding",
+  "resolve_calendar_onboarding",
 ]);
 
 const payloadlessClientActions = new Set([

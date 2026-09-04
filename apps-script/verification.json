@@ -283,6 +283,59 @@
         "verifiedAt": "2026-09-02T05:16:00Z",
         "result": "Production v44 was created from the exact sanitized candidate with only the two documented operational URL substitutions; the pre-deploy read-only gate passed 15/15 with reconciliation at zero"
       }
+    },
+    "v46": {
+      "numberedVersion": 46,
+      "baseVersion": "v44",
+      "matchesCandidate": "v46",
+      "fileCount": 16,
+      "sourceTreeSha256": "901fb2ffae8f37ab6a0538ec7787ef6cb6ce5c2666506c7941b1abd1206456e5",
+      "expectedChangedFiles": [
+        "TelegramBot.gs",
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZZClientPortal.gs"
+      ],
+      "liveVerification": {
+        "method": "Apps Script Editor numbered source, deployment metadata, and read-only gate",
+        "verifiedAt": "2026-09-04T19:47:00Z",
+        "result": "Production v46 was created from candidate v46 with only the two documented operational URL substitutions; the read-only API self-test passed and reconciliation remained zero"
+      }
+    },
+    "v47": {
+      "numberedVersion": 47,
+      "baseVersion": "v46",
+      "matchesCandidate": "v47",
+      "fileCount": 16,
+      "sourceTreeSha256": "52bd36cb2d1e6b9eac810754576c72a409048f958cb37ab57c4a045623bedc39",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "QueueProcessing.gs",
+        "TelegramBot.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZMiniAppAdmin.gs"
+      ],
+      "liveVerification": {
+        "method": "Apps Script Editor numbered source, deployment metadata, read-only sync preview, and 16-check live gate",
+        "verifiedAt": "2026-09-04T20:20:44Z",
+        "result": "Production deployment reports v47; Q-0085 alone migrated to registration state, the debt spill guard passed, the read-only system gate passed 16/16, and reconciliation remained zero"
+      }
+    },
+    "v48": {
+      "numberedVersion": 48,
+      "baseVersion": "v47",
+      "matchesCandidate": "v48",
+      "fileCount": 16,
+      "sourceTreeSha256": "0d7b1ee411b3e85cb884e8fa18601b4c3e02fa1d97a8b1d160d7ddc2eee8d26d",
+      "expectedChangedFiles": [
+        "TelegramBot.gs",
+        "ZZZZZZZZZZMiniAppAdmin.gs"
+      ],
+      "liveVerification": {
+        "method": "Apps Script Editor numbered source, deployment metadata, idempotency test, and 16-check live gate",
+        "verifiedAt": "2026-09-04T20:25:25Z",
+        "result": "Production deployment reports v48; matching repeated new-client resolution is a no-op, the live gate passed 16/16, and reconciliation remained zero"
+      }
     }
   },
   "candidates": {
@@ -343,6 +396,28 @@
         "TelegramBot.gs",
         "ZZZZZZZZMiniAppApi.gs",
         "ZZZZZZZZZZZClientPortal.gs"
+      ]
+    },
+    "v47": {
+      "baseVersion": "v46",
+      "fileCount": 16,
+      "sourceTreeSha256": "52bd36cb2d1e6b9eac810754576c72a409048f958cb37ab57c4a045623bedc39",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "QueueProcessing.gs",
+        "TelegramBot.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZMiniAppAdmin.gs"
+      ]
+    },
+    "v48": {
+      "baseVersion": "v47",
+      "fileCount": 16,
+      "sourceTreeSha256": "0d7b1ee411b3e85cb884e8fa18601b4c3e02fa1d97a8b1d160d7ddc2eee8d26d",
+      "expectedChangedFiles": [
+        "TelegramBot.gs",
+        "ZZZZZZZZZZMiniAppAdmin.gs"
       ]
     }
   }
