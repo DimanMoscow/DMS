@@ -1,78 +1,67 @@
 # Current project state
 
-Last verified: 2026-09-03 (UTC).
+Last verified: 2026-09-04 (UTC).
 
-## Confirmed state
+## Confirmed production
 
-- The role-routing implementation on `main` is commit
-  `417d774d74b9884c32ac29ffc2f9c7b181036b42`; the repository remains the source of
-  truth.
-- MiniApp production is release `0.2.3`; Vercel deployment
-  `dpl_63g36CTHJoS5Dmhb9KCzucaPFnYx`, built from Git-linked `main` at
-  `417d774d74b9884c32ac29ffc2f9c7b181036b42`, is `READY`. Its immutable URL and production alias return HTTP
-  200 from `/api/health` with `dataMode: connected`; `/` and `/client` also return
-  HTTP 200.
-- Vercel Production has the required server-only `DMS_APPS_SCRIPT_URL`; its value stays
-  outside Git.
-- Apps Script production uses the existing web-app deployment on numbered version
-  `v45`. Its three changed files are the exact reviewed `v44 -> v45` targeted diff:
-  runtime identity, the payloadless request branch, and the isolated role resolver.
-  The API self-test compiled and executed successfully; the post-deploy read-only gate
-  passed 15/15 with reconciliation at zero.
-- Numbered `v42` is retained as a historical incident artifact and is not deployed. Its
-  stored source contained `client_portal_bootstrap`, but the serving runtime
-  reproducibly returned `unknown_action`. Republishing the same router/client module in
-  `v43` with an explicit identity marker produced the expected runtime.
-- Numbered `v41` is a damaged historical release artifact and was never deployed.
-- `apps-script/versions/v42`, `apps-script/versions/v43`, and
-  `apps-script/versions/v44` preserve the sanitized 16-file numbered sources. The
-  snapshot verifier checks their exact trees and reviewed-candidate identities.
-  Production `v45` is represented by its complete reviewed source in
-  `apps-script/candidates/v45` plus the numbered deployment and gate evidence.
-- Production sheets `Доступ клиентов`, `Замеры`, and
-  `Приглашения Client Portal` exist with the approved schemas. The first approved pilot
-  client has exactly one active binding and a used invitation; its replay was rejected.
-  The second approved pilot client has no binding and one pending invitation. There are
-  zero measurements. Client identifiers, Telegram identities, and invitation secrets
-  stay outside Git and logs.
-- The Apps Script runtime includes hashed, expiring, single-use enrollment under a
-  document lock and append-only trainer measurements with correction history. The
-  corresponding trainer and client MiniApp UI is active in Vercel Production.
-- The production client action is recognized: an invalid signed-data fixture returns
-  `invalid_init_data`, not `unknown_action`, and the response is `Cache-Control:
-  no-store`.
-- Authenticated Telegram smoke confirms that a signed `start_param` routes the root
-  MiniApp into enrollment and an unknown invitation returns
-  `enrollment_invite_invalid`. Runtime logs contain only the allow-listed action,
-  request ID, status, error class, and duration; the token, signed `initData`, Telegram
-  identity, and PII are absent.
-- The Apps Script admin authentication/bootstrap self-test is green. The complete
-  read-only gate passes 15 of 15 checks; Calendar ↔ Queue ↔ Journal reconciliation has
-  zero issues across 84 queue rows, 107 journal rows, and 94 calendar events.
-- Local `npm run check` and CI cover MiniApp lint, tests, TypeScript, build, Apps Script
-  snapshot integrity, client isolation, and runtime identity code.
+- `main` includes the merged client-progress/enrollment UX and Apps Script measurement
+  guard candidate. The exact serving SHA is reported by `/api/health` and must match
+  Vercel deployment metadata at every rollout.
+- MiniApp production follows Git-linked `main`. Its verified deployment is `READY`;
+  `/`, `/client`, and
+  `/api/health` return HTTP 200. Health reports release `0.2.4`, fingerprint
+  `miniapp-r5-progress-enrollment-guard`, the exact source SHA, and
+  `dataMode: connected`.
+- Apps Script production remains the existing deployment on numbered version `v45`.
+  Its runtime implements signed server-authoritative `admin` / `client` / `unlinked`
+  entry resolution, hashed single-use enrollment, one-to-one bindings, and append-only
+  trainer measurements.
+- The two-client controlled pilot is complete. Production contains exactly two active
+  bindings for the two approved clients, with two distinct Telegram identities. The
+  invitation audit has five rows: three `revoked`, two `used`, and zero `pending`.
+  Measurements remain zero.
+- B-side live evidence contains a successful atomic enrollment and client bootstrap,
+  ordinary linked-client re-entry, and replay denial. A-side ordinary re-entry was
+  already confirmed after the role-routing rollout. Automated gates cover A/B data
+  isolation, unlinked denial, selector rejection, client/admin separation, replay,
+  expired/revoked states, and the document-lock race contract.
+- Post-pilot read-only reconciliation reports zero Calendar ↔ Queue ↔ Journal issues
+  across 85 queue rows, 108 journal rows, and 75 active Calendar events in the bounded
+  connector view. Enrollment did not write to those three systems.
+- Production logs use bounded request IDs and allow-listed action/status/error fields.
+  They contain no raw `initData`, invitation tokens, Telegram identities, client IDs,
+  or PII.
 
-## Open risk and next step
+## Delivered UX and release hardening
 
-The existing Vercel project is now Git-linked to `DimanMoscow/DMS`; the production
-branch is `main`. This gives the project a durable deployment path without changing
-its project, domains, or production environment variables.
+- The read-only Client Portal shows per-metric changes from the previous active
+  measurement, with corrections already collapsed by Apps Script. Empty, loading, and
+  error states remain read-only and mobile-first.
+- Admin enrollment now warns that plaintext links cannot be recovered, offers the
+  native share sheet without persistence, explains revoke-and-recreate, and requires a
+  second confirmation before revoke. No token is written to browser storage.
+- The production verifier now checks release, runtime fingerprint, source SHA,
+  connectivity, three public routes, health `no-store`, and a fail-closed `/api/dms`
+  error response with `no-store`.
+- The full repository gate passes 52 tests plus lint, TypeScript, production build, and
+  Apps Script candidate/snapshot integrity.
 
-The `v45` / `0.2.3` rollout fixes ordinary-launch routing with the payloadless
-`resolve_miniapp_entry` action. Apps Script validates signed Telegram `initData` and
-returns only `admin`, `client`, or `unlinked`; the browser never selects a client or
-uses names, usernames, query parameters, or Telegram IDs. Automated gates, production
-deployment identity, and server-side read-only gates are green. Final pilot acceptance
-still requires the first linked client to reopen the Main Mini App normally and the
-second client to consume the existing pending invitation from their own Telegram.
+## Prepared next Apps Script release
 
-## Known limitations
+`apps-script/candidates/v46` is a reviewed, complete 16-file candidate. It adds two
+integrity guards without schema or data migration: identical corrections are rejected
+under the document lock before append, and Client Portal error codes/statuses survive
+the shared admin API boundary. Production remains on `v45`; publishing `v46` requires
+an authenticated Apps Script editor/API write path and the usual runtime identity,
+15/15 gate, reconciliation, and rollback checks.
 
-- Linked-client ordinary re-entry requires one live confirmation by the already linked
-  pilot client; the server-routing release itself is deployed.
-- Apps Script snapshots are sanitized repository copies, not live runtime. Operational
-  URLs and Script Properties remain outside Git.
-- Exact unsanitized exports are intentionally local-only. No `.clasp.json` or
-  repository-to-Apps-Script write workflow is configured.
-- The second pilot binding still requires that client's own authenticated Telegram
-  action. Real measurements require an explicit trainer action.
+## Remaining risks and next step
+
+- Deploy candidate `v46` only after Google authentication is available; the current
+  cloud browser requires the account password, so no Apps Script HEAD/version/deployment
+  write was attempted.
+- Real measurements still require an explicit authenticated trainer action. No real
+  measurement values have been entered.
+- After `v46`, the next useful low-risk step is read-only invitation-history presentation
+  in the admin card (statuses and audit timestamps only, never token hashes or Telegram
+  identities), followed by fixture-based visual regression coverage for progress UX.
