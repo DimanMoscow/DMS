@@ -1,7 +1,7 @@
-export const MINIAPP_RELEASE = "0.2.4";
+export const MINIAPP_RELEASE = "0.2.5";
 
 export const MINIAPP_RUNTIME_FINGERPRINT =
-  "miniapp-r5-progress-enrollment-guard";
+  "miniapp-r6-calendar-onboarding";
 
 const SOURCE_REVISION_PATTERN = /^[0-9a-f]{40}$/i;
 

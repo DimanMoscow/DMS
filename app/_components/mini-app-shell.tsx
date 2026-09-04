@@ -49,13 +49,15 @@ type ClientSummary = {
 type WaitingTraining = {
   queueId: string; time: string; endTime: string; client: string; blockId: string;
   matching: string; decision: string; status: string; processed: boolean;
+  calendarTitle: string; needsRegistration: boolean;
 };
 type Bootstrap = {
   generatedAt: string;
   today: { title: string; dateKey: string; waiting: WaitingTraining[] };
   summary: {
     activeClients: number; openBlocks: number; lowBlocks: number; debtClients: number;
-    queueWaiting: number; queueErrors: number; exhaustedOpenBlocks: number;
+    queueWaiting: number; queueErrors: number; queueRegistrations: number;
+    exhaustedOpenBlocks: number;
   };
   clients: ClientSummary[];
   report: { month: string; metrics: Record<string, string> };
@@ -86,7 +88,22 @@ type MeasurementAdminResponse = { measurements: AdminMeasurements };
 type SystemHealth = {
   ok: boolean; checkedAt: string; durationMs: number; passed: number; total: number;
   failures: { name: string; details: string }[]; queueWaiting: number; queueErrors: number;
-  exhaustedOpenBlocks: number; triggerCount: number;
+  queueRegistrations: number; exhaustedOpenBlocks: number; triggerCount: number;
+};
+type CalendarOnboardingMode = "new" | "link" | "ignore";
+type CalendarOnboardingState = { item: WaitingTraining; mode: CalendarOnboardingMode };
+type CalendarOnboardingPreview = {
+  mode: CalendarOnboardingMode;
+  summary: string;
+  queue: { queueId: string; calendarTitle: string; start: string; end: string };
+  client?: { id?: string; name: string };
+  product?: {
+    code: string; format: string; count: number; price: number; support: number;
+    standardPrice: number | null; usesStandardPrice: boolean;
+  };
+  payment?: { paid: boolean; method: string; amount: number; dateKey: string };
+  createsJournal: boolean;
+  changesCalendar: boolean;
 };
 type ApiResponse<T> = { ok: boolean; error?: string; data?: T };
 type DecisionCode = "done" | "free" | "charge";
@@ -160,6 +177,13 @@ function readableError(error: unknown) {
     measurement_duplicate: "На эту дату уже есть активный замер. Используйте исправление.",
     measurement_correction_conflict: "Замер уже исправлен или изменился. Обновите карточку.",
     measurement_noop: "Измените хотя бы один показатель перед исправлением.",
+    calendar_onboarding_invalid: "Проверьте данные регистрации.",
+    calendar_onboarding_product_invalid: "Выберите формат занятий.",
+    calendar_onboarding_price_invalid: "Проверьте цену и условия.",
+    calendar_onboarding_payment_invalid: "Проверьте оплату.",
+    calendar_onboarding_conflict: "Событие уже было разрешено или изменилось. Обновите данные.",
+    calendar_alias_conflict: "Это название календаря уже связано с другим клиентом.",
+    client_inactive: "Выбранный клиент не активен.",
   };
   return messages[code] || "Не удалось выполнить запрос. Повторите попытку.";
 }
@@ -192,6 +216,7 @@ export function MiniAppShell() {
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [busyKey, setBusyKey] = useState("");
   const [notice, setNotice] = useState("");
+  const [onboarding, setOnboarding] = useState<CalendarOnboardingState | null>(null);
   const clientRequestId = useRef(0);
   const hydrated = useSyncExternalStore(() => () => undefined, () => true, () => false);
   const telegram = hydrated ? (window.Telegram?.WebApp ?? null) : null;
@@ -370,6 +395,7 @@ export function MiniAppShell() {
 
       {view === "today" && data && <TodayView data={data} busyKey={busyKey}
         onDecision={(item, decision) => setConfirmation({ kind: "decision", item, decision })}
+        onOnboard={(item, mode) => setOnboarding({ item, mode })}
         onConfirmDay={() => setConfirmation({
           kind: "day",
           count: data.today.waiting.filter((item) => !item.processed).length,
@@ -391,6 +417,18 @@ export function MiniAppShell() {
       </nav>
       {confirmation && <ConfirmationSheet confirmation={confirmation} busy={Boolean(busyKey)}
         onCancel={() => setConfirmation(null)} onConfirm={confirmAction} />}
+      {onboarding && data && <CalendarOnboardingSheet
+        state={onboarding}
+        clients={data.clients}
+        initData={initData}
+        onCancel={() => setOnboarding(null)}
+        onResolved={() => {
+          setOnboarding(null);
+          setNotice("Событие разрешено без записи тренировки в журнал.");
+          loadBootstrap(initData, false);
+        }}
+        onError={(reason) => setError(readableError(reason))}
+      />}
     </main>
   );
 }
@@ -427,13 +465,14 @@ function HomeView({ data, onNavigate }: { data: Bootstrap; onNavigate: (view: Vi
   </>;
 }
 
-function TodayView({ data, busyKey, onDecision, onConfirmDay }: {
+function TodayView({ data, busyKey, onDecision, onOnboard, onConfirmDay }: {
   data: Bootstrap;
   busyKey: string;
   onDecision: (item: WaitingTraining, decision: DecisionCode) => void;
+  onOnboard: (item: WaitingTraining, mode: CalendarOnboardingMode) => void;
   onConfirmDay: () => void;
 }) {
-  const pending = data.today.waiting.filter((item) => !item.processed);
+  const pending = data.today.waiting.filter((item) => !item.processed && !item.needsRegistration);
   const decided = pending.filter((item) =>
     ["Проведена", "Отмена без списания", "Отмена со списанием"].includes(item.decision)
   );
@@ -459,14 +498,21 @@ function TodayView({ data, busyKey, onDecision, onConfirmDay }: {
             <div><strong>{item.client}</strong><span>{item.blockId || "Разовая"} · {item.decision || "без решения"}</span></div>
             <span className="status-badge">{item.status}</span>
           </header>
-          <div className="decision-actions" aria-label={`Решение для ${item.client}`}>
+          {item.needsRegistration ? <>
+            <p className="registration-copy">В календаре новая запись. Сначала зарегистрируйте клиента, свяжите его с существующим или исключите только это событие.</p>
+            <div className="onboarding-actions" aria-label={`Регистрация для ${item.calendarTitle}`}>
+              <button type="button" onClick={() => onOnboard(item, "new")}>Новый клиент</button>
+              <button type="button" onClick={() => onOnboard(item, "link")}>Связать</button>
+              <button type="button" onClick={() => onOnboard(item, "ignore")}>Игнорировать</button>
+            </div>
+          </> : <div className="decision-actions" aria-label={`Решение для ${item.client}`}>
             <DecisionButton label="Проведена" active={item.decision === "Проведена"}
               disabled={item.processed || Boolean(busyKey)} onClick={() => onDecision(item, "done")} />
             <DecisionButton label="Отмена без списания" active={item.decision === "Отмена без списания"}
               disabled={item.processed || Boolean(busyKey)} onClick={() => onDecision(item, "free")} />
             <DecisionButton label="Отмена со списанием" active={item.decision === "Отмена со списанием"}
               disabled={item.processed || Boolean(busyKey)} onClick={() => onDecision(item, "charge")} />
-          </div>
+          </div>}
           {item.processed && <p className="processed-note">Событие обработано — повторное действие заблокировано.</p>}
         </article>
       )}</section>}
@@ -485,6 +531,163 @@ function TodayView({ data, busyKey, onDecision, onConfirmDay }: {
     </section>
     {!allDecided && pending.length > 0 && <p className="action-hint">Назначьте одно из трёх решений каждому событию.</p>}
   </Page>;
+}
+
+function cleanedCalendarClientName(title: string) {
+  return title
+    .replace(/(^|\s)ПТ(?=$|\s|\[|\()/i, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function CalendarOnboardingSheet({ state, clients, initData, onCancel, onResolved, onError }: {
+  state: CalendarOnboardingState;
+  clients: ClientSummary[];
+  initData: string;
+  onCancel: () => void;
+  onResolved: () => void;
+  onError: (reason: unknown) => void;
+}) {
+  const standards: Record<string, number> = {
+    single: 3500,
+    block5: 16000,
+    block10: 30000,
+  };
+  const [name, setName] = useState(() => cleanedCalendarClientName(state.item.calendarTitle));
+  const [product, setProduct] = useState("single");
+  const [price, setPrice] = useState("3500");
+  const [count, setCount] = useState("10");
+  const [support, setSupport] = useState("0");
+  const [paymentStatus, setPaymentStatus] = useState<"unpaid" | "paid">("unpaid");
+  const [paymentMethod, setPaymentMethod] = useState("Перевод");
+  const [paymentDate, setPaymentDate] = useState(moscowDateKey());
+  const [clientId, setClientId] = useState("");
+  const [preview, setPreview] = useState<CalendarOnboardingPreview | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const payload = useMemo(() => ({
+    queueId: state.item.queueId,
+    mode: state.mode,
+    name,
+    product,
+    price,
+    count,
+    support,
+    paymentStatus,
+    paymentMethod,
+    paymentDate,
+    clientId,
+  }), [
+    clientId, count, name, paymentDate, paymentMethod, paymentStatus,
+    price, product, state.item.queueId, state.mode, support,
+  ]);
+
+  const loadPreview = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      setPreview(await requestDms<CalendarOnboardingPreview>(
+        initData,
+        "preview_calendar_onboarding",
+        payload,
+      ));
+    } catch (reason) {
+      onError(reason);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resolve = async () => {
+    if (busy || !preview) return;
+    setBusy(true);
+    try {
+      await requestDms<Record<string, unknown>>(initData, "resolve_calendar_onboarding", payload);
+      onResolved();
+    } catch (reason) {
+      onError(reason);
+      setPreview(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const chooseProduct = (next: string) => {
+    setProduct(next);
+    if (standards[next]) setPrice(String(standards[next]));
+    if (next === "block5") setCount("5");
+    if (next === "block10") setCount("10");
+  };
+
+  return <div className="sheet-backdrop" role="presentation">
+    <section className="confirmation-sheet onboarding-sheet" role="dialog" aria-modal="true"
+      aria-labelledby="calendar-onboarding-title">
+      <span className="sheet-handle" />
+      <p className="confirmation-subject">Calendar onboarding</p>
+      <h2 id="calendar-onboarding-title">
+        {state.mode === "new" ? "Новый клиент" : state.mode === "link" ? "Связать запись" : "Игнорировать событие?"}
+      </h2>
+      <p><strong>{state.item.calendarTitle}</strong> · {state.item.time}{state.item.endTime ? `–${state.item.endTime}` : ""}</p>
+
+      {!preview && state.mode === "new" && <div className="onboarding-form">
+        <label>Имя клиента<input value={name} maxLength={80} onChange={(event) => setName(event.target.value)} /></label>
+        <label>Формат<select value={product} onChange={(event) => chooseProduct(event.target.value)}>
+          <option value="single">Разовая</option>
+          <option value="block5">Блок 5</option>
+          <option value="block10">Блок 10</option>
+          <option value="hybrid">Гибрид</option>
+          <option value="individual">Индивидуальный</option>
+        </select></label>
+        {(product === "hybrid" || product === "individual") &&
+          <label>Количество тренировок<input inputMode="numeric" value={count} onChange={(event) => setCount(event.target.value)} /></label>}
+        <label>Цена, ₽<input inputMode="decimal" value={price} onChange={(event) => setPrice(event.target.value)} /></label>
+        {product === "hybrid" &&
+          <label>Сопровождение, ₽<input inputMode="decimal" value={support} onChange={(event) => setSupport(event.target.value)} /></label>}
+        <label>Оплата<select value={paymentStatus} onChange={(event) => setPaymentStatus(event.target.value as "unpaid" | "paid")}>
+          <option value="unpaid">Не оплачено</option>
+          <option value="paid">Оплачено</option>
+        </select></label>
+        {paymentStatus === "paid" && <>
+          <label>Способ<select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
+            <option>Перевод</option><option>Наличные</option><option>Эквайринг</option><option>Другое</option>
+          </select></label>
+          <label>Дата оплаты<input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} /></label>
+        </>}
+      </div>}
+
+      {!preview && state.mode === "link" && <div className="onboarding-form">
+        <label>Клиент<select value={clientId} onChange={(event) => setClientId(event.target.value)}>
+          <option value="">Выберите клиента</option>
+          {clients.map((client) => <option value={client.id} key={client.id}>{client.name}</option>)}
+        </select></label>
+        <small>Связь создаётся только после явного выбора; fuzzy matching не используется.</small>
+      </div>}
+
+      {!preview && state.mode === "ignore" &&
+        <p className="registration-copy">Будет исключено только это событие. Само событие в Google Calendar останется, а решение попадёт в аудит.</p>}
+
+      {preview && <div className="onboarding-preview">
+        <strong>{preview.summary}</strong>
+        {preview.client && <span>Клиент: {preview.client.name}</span>}
+        {preview.product && <span>Формат: {preview.product.format} · {money(preview.product.price)}</span>}
+        {preview.payment && <span>Оплата: {preview.payment.paid
+          ? `${money(preview.payment.amount)} · ${preview.payment.method}`
+          : "не внесена"}</span>}
+        <span>Исходная тренировка не попадёт в журнал автоматически.</span>
+        <span>Google Calendar не изменится.</span>
+      </div>}
+
+      <div className="confirmation-actions">
+        <button className="secondary-button" type="button" disabled={busy}
+          onClick={preview ? () => setPreview(null) : onCancel}>{preview ? "Назад" : "Отмена"}</button>
+        <button className="primary-button" type="button" disabled={busy || (
+          !preview && state.mode === "link" && !clientId
+        )} onClick={preview ? resolve : loadPreview}>
+          {busy ? "Проверяю…" : preview ? "Подтвердить" : "Показать preview"}
+        </button>
+      </div>
+    </section>
+  </div>;
 }
 
 function DecisionButton({ label, active, disabled, onClick }: {

@@ -27,6 +27,14 @@ serialized by a document lock and creates the one-to-one binding without client-
 `clientId` input. Invitation state lives in `Приглашения Client Portal`; plaintext
 tokens exist only in the one-time admin response/link.
 
+Unknown Calendar training titles use a separate queue state,
+`Требует регистрации`. Exact-match Calendar sync retains the event without creating a
+Journal, block charge, payment, or client. The admin MiniApp can preview and then either
+create a client, link an explicitly selected active client and alias, or ignore only the
+specific event. The server revalidates the queue row, alias ownership, and Journal
+absence under the document lock. Resolution is audited, matching replay is a no-op, and
+partial mutations are restored if a write or audit append fails.
+
 ## Responsibility boundaries
 
 - `app/_components/mini-app-shell.tsx`: MiniApp presentation, navigation, request state,
@@ -48,6 +56,8 @@ tokens exist only in the one-time admin response/link.
   contains the isolated client portal and runtime identity probe.
 - `CalendarSync.gs`, `QueueProcessing.gs`, and `ZZZZZZZRuntime.gs`: shared calendar,
   queue, dry-run, reconciliation, and processing logic.
+- `docs/CALENDAR_ONBOARDING.md`: queue-state, transaction, audit, and production
+  acceptance contract for unknown Calendar titles.
 - Telegram files: bot UI, commands, scheduling, client/block management, and alerts.
 - Google Sheets: operational records and business state. Google Calendar: schedule and
   event state. These are production data stores, not repository artifacts.
@@ -57,14 +67,16 @@ tokens exist only in the one-time admin response/link.
 | Component | Production runtime | Repository role |
 | --- | --- | --- |
 | MiniApp | Vercel deployment | Canonical source in `app/`, `lib/`, `public/` |
-| Apps Script | Google Apps Script deployment on `v45` | Complete reviewed source in `apps-script/candidates/v45` |
+| Apps Script | Google Apps Script deployment on `v48` | Complete reviewed source in `apps-script/versions/v48` and `apps-script/candidates/v48` |
 | Saved `v39` | Historical numbered version; not deployed | Reviewable snapshot beside `v38` |
 | Retained `v40` candidate | No runtime effect by itself | Reviewed source matching `versions/v40` byte-for-byte |
 | Numbered `v42` | Historical deployment with a proven runtime/source mismatch; not deployed | Source snapshot matching `candidates/v41` |
 | Client portal `v43` | Historical client-portal runtime; not deployed now | Snapshot and candidate match byte-for-byte after URL sanitization |
 | Enrollment and measurements `v44` | Previous production runtime | Snapshot and candidate match byte-for-byte after URL sanitization |
-| Role routing `v45` | Active production runtime | Candidate contains the reviewed runtime marker, MiniApp router, and client portal role resolver diff |
-| Measurement guard `v46` | Reviewed candidate; not deployed | Adds server-side rejection of no-op corrections without changing the schema or existing data |
+| Role routing `v45` | Historical production runtime | Candidate contains the reviewed runtime marker, MiniApp router, and client portal role resolver diff |
+| Measurement guard `v46` | Historical production runtime | Adds server-side rejection of no-op corrections without changing the schema or existing data |
+| Calendar onboarding `v47` | Historical production runtime | Introduced registration queue state, debt-formula guard, redacted API failures, and admin resolution |
+| Idempotency guard `v48` | Active production runtime | Makes matching repeated new-client resolution a no-op and conflicting replay fail closed |
 | Sheets / Calendar | Live Google services | No production data is stored in Git |
 | Telegram | Telegram API calling Apps Script webhook | Bot behavior is implemented in Apps Script files |
 
