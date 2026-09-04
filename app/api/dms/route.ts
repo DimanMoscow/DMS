@@ -34,6 +34,16 @@ function jsonNoStore(body: Record<string, unknown>, status: number) {
   });
 }
 
+function methodNotAllowed() {
+  return jsonNoStore({ ok: false, error: "method_not_allowed" }, 405);
+}
+
+export const GET = methodNotAllowed;
+export const PUT = methodNotAllowed;
+export const PATCH = methodNotAllowed;
+export const DELETE = methodNotAllowed;
+export const OPTIONS = methodNotAllowed;
+
 export async function POST(request: Request) {
   const startedAt = Date.now();
   const requestId = getSafeRequestId(request);

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 const baseUrl = process.argv[2]?.replace(/\/$/, "");
-const expectedRelease = process.env.DMS_EXPECTED_RELEASE || "0.2.4";
+const expectedRelease = process.env.DMS_EXPECTED_RELEASE || "0.2.6";
 const expectedFingerprint = process.env.DMS_EXPECTED_FINGERPRINT ||
-  "miniapp-r5-progress-enrollment-guard";
+  "miniapp-r7-api-no-store";
 const expectedSource = process.env.DMS_EXPECTED_SOURCE?.toLowerCase() || "";
 
 if (!baseUrl || !/^https:\/\//.test(baseUrl)) {
@@ -44,6 +44,20 @@ if (!/no-store/i.test(apiProbe.headers.get("cache-control") || "")) {
   throw new Error("/api/dms error response is cacheable");
 }
 
+const methodProbe = await fetch(`${baseUrl}/api/dms`, {
+  method: "GET",
+  cache: "no-store",
+  redirect: "error",
+  signal: AbortSignal.timeout(15_000),
+});
+const methodProbeBody = await methodProbe.json();
+if (methodProbe.status !== 405 || methodProbeBody.error !== "method_not_allowed") {
+  throw new Error(`/api/dms method probe returned HTTP ${methodProbe.status}`);
+}
+if (!/no-store/i.test(methodProbe.headers.get("cache-control") || "")) {
+  throw new Error("/api/dms method response is cacheable");
+}
+
 const health = await healthResponse.json();
 const cacheControl = healthResponse.headers.get("cache-control") || "";
 if (!/no-store/i.test(cacheControl)) throw new Error("/api/health is cacheable");
@@ -67,4 +81,9 @@ console.log(JSON.stringify({
   sourceRevision: health.sourceRevision,
   dataMode: health.dataMode,
   apiProbe: { status: apiProbe.status, error: apiProbeBody.error, cacheControl: "no-store" },
+  methodProbe: {
+    status: methodProbe.status,
+    error: methodProbeBody.error,
+    cacheControl: "no-store",
+  },
 }));
