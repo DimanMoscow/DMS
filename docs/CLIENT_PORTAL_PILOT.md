@@ -80,3 +80,19 @@ is exposed through another active binding.
 
 Rollback must not touch `Клиенты`, Blocks, Payments, Queue, Journal, Calendar, training
 records, or measurements. Run the full read-only system gate after rollback.
+
+## Acceptance checkpoint
+
+On 2026-09-04 both approved pilot roles completed native Telegram enrollment. Read-back
+showed exactly two active one-to-one bindings with distinct Telegram identities, two
+`used` invitations, no pending invitations, and zero measurements. B-side production
+logs showed one successful atomic enrollment, immediate client bootstrap, ordinary
+linked-client re-entry, and later replay rejection. A-side ordinary re-entry had already
+been confirmed after server-authoritative routing rollout.
+
+The fixture suite remains the non-destructive race/IDOR/unlinked gate; it proves
+one-to-one collision rejection, selector rejection, A/B response isolation, admin API
+denial, and `client_not_linked` without racing or fabricating a real Telegram identity.
+Post-pilot Calendar ↔ Queue ↔ Journal reconciliation remained at zero. Runtime logs
+contained request IDs and allow-listed error classes only, with no raw `initData`,
+Telegram identity, invitation token, client identifier, or PII.

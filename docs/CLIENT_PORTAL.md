@@ -4,8 +4,9 @@
 
 - Client entry point: `/client`. Telegram Main Mini App links land on `/`; the root
   dispatcher selects the client enrollment UI only when signed `initData` contains a
-  non-empty `start_param`. Ordinary bot-menu launches without it remain on the
-  administrative MiniApp.
+  non-empty `start_param`. For an ordinary bot-menu launch, Apps Script resolves the
+  role from signed `initData`: admins enter the admin MiniApp, while linked and
+  unlinked non-admins enter the Client Portal without browser-side identity heuristics.
 - The browser sends signed Telegram `initData` and action
   `client_portal_bootstrap` with no payload.
 - Apps Script validates the Telegram signature and age, then resolves the exact numeric
@@ -148,3 +149,13 @@ Correction never overwrites a row. It appends a new measurement with
 returns only the active leaf. A second correction of the same row, cross-client target,
 unknown fields, invalid ranges, or a future date fail closed. Measurement IDs, audit
 actor, and correction links remain admin-only.
+
+The read-only client UI compares each active measurement only with the preceding active
+measurement and shows neutral one-decimal changes where both values exist. Corrections
+are already collapsed by the server before this comparison; the UI does not infer goals
+or medical meaning.
+
+Candidate `v46` adds the same no-op correction rejection at the server boundary under
+the document lock and preserves Client Portal error codes through the admin API. Until
+that numbered version is explicitly deployed, production `v45` still has the UI guard
+but not this additional direct-API guard.
