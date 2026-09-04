@@ -60,6 +60,9 @@ Last verified: 2026-09-05 (Europe/Moscow).
   repository exposes `release:check`, `release:verify`, and an ignored, non-sensitive
   local release-checkpoint command. Migration packages now carry machine-checked
   preflight, post-check, rollback, and approval metadata.
+- Vercel Preview is isolated from production data: the audited PR Preview reports
+  `dataMode: not-configured`, and its Apps Script runtime endpoint fails closed because
+  the production backend environment is absent.
 - The existing authenticated admin diagnostics view now combines MiniApp identity,
   Apps Script runtime identity, queue waiting/error/registration counts, the read-only
   live gate result, trigger count, and last-check time. It exposes no identifiers or

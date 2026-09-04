@@ -5,8 +5,10 @@
 - Vercel project: `fitness-miniapp`, linked to `DimanMoscow/DMS`.
 - Production branch: `main`. A merge to `main` creates a Production deployment without
   a separate promotion step.
-- Pull requests create Preview deployments. Preview must report its own source SHA and
-  must not perform production writes.
+- Pull requests create Preview deployments. The audited PR Preview reported its exact
+  head SHA with `dataMode: not-configured`; `/api/apps-script-runtime` failed closed with
+  `backend_not_configured`. Production backend configuration is therefore absent from
+  Preview, which prevents Preview from writing production data.
 - Production aliases are `fitness-miniapp-henna.vercel.app`,
   `fitness-miniapp-dimanmoscows-projects.vercel.app`, and the Git-main alias.
 - The required server-only backend environment remained available through a
@@ -30,7 +32,8 @@ Before merge:
 3. Run `npm run release:check` once before merge. It covers lint, repository tests,
    TypeScript, production build, Apps Script snapshot integrity, and migration manifests.
 4. Require GitHub `release-gate` success and a READY Vercel Preview whose source matches
-   the PR head.
+   the PR head. Preview health must stay `not-configured` unless a separate test backend
+   is explicitly introduced.
 5. Review the full diff. Production data writes are never part of PR verification.
 
 After the approved merge:
