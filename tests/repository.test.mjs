@@ -62,6 +62,8 @@ test("client portal proxy rejects selectors and disables caching on every respon
   assert.match(routeSource, /"payload" in input/);
   assert.match(routeSource, /const upstreamBody = payloadlessClientActions\.has\(action\)/);
   assert.match(routeSource, /"Cache-Control": "no-store"/);
+  assert.match(routeSource, /export const GET = methodNotAllowed/);
+  assert.match(routeSource, /export const OPTIONS = methodNotAllowed/);
   assert.doesNotMatch(portalSource, /clientId/);
   assert.doesNotMatch(portalSource, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(portalSource, /console\.(log|info|debug)/);

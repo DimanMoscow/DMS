@@ -11,7 +11,7 @@ test("health exposes a stable release fingerprint and optional source revision",
 
   assert.match(health, /MINIAPP_RUNTIME_FINGERPRINT/);
   assert.match(health, /getMiniAppSourceRevision/);
-  assert.match(identity, /miniapp-r6-calendar-onboarding/);
+  assert.match(identity, /miniapp-r7-api-no-store/);
   assert.match(identity, new RegExp(`MINIAPP_RELEASE = "${packageJson.version}"`));
   assert.match(identity, /\^\[0-9a-f\]\{40\}\$/);
   assert.doesNotMatch(identity, /DMS_APPS_SCRIPT_URL/);
@@ -33,4 +33,6 @@ test("production verifier fails closed on release, fingerprint and source mismat
   assert.match(source, /dataMode !== "connected"/);
   assert.match(source, /apiProbe\.status !== 400/);
   assert.match(source, /api\/dms error response is cacheable/);
+  assert.match(source, /api\/dms method response is cacheable/);
+  assert.match(source, /method_not_allowed/);
 });
