@@ -66,6 +66,7 @@ test("client portal proxy rejects selectors and disables caching on every respon
   assert.doesNotMatch(portalSource, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(portalSource, /console\.(log|info|debug)/);
   assert.match(portalSource, /action: "client_portal_enroll"/);
+  assert.match(portalSource, /measurementDeltas/);
   assert.match(homeSource, /<MiniAppEntry \/>/);
   assert.match(entrySource, /getMiniAppEntryMode\(initData\)/);
   assert.match(entrySource, /action: "resolve_miniapp_entry"/);
@@ -73,6 +74,15 @@ test("client portal proxy rejects selectors and disables caching on every respon
   assert.match(entrySource, /role === "client" \|\| role === "unlinked"/);
   assert.match(entrySource, /<ClientPortal \/>/);
   assert.match(entrySource, /<MiniAppShell \/>/);
+});
+
+test("admin enrollment UI treats plaintext links as ephemeral and confirms revoke", async () => {
+  const shellSource = await readFile("app/_components/mini-app-shell.tsx", "utf8");
+  assert.match(shellSource, /восстановить её позже нельзя/);
+  assert.match(shellSource, /navigator\.share/);
+  assert.match(shellSource, /Ссылка сразу перестанет работать/);
+  assert.match(shellSource, /Запись останется в аудите/);
+  assert.doesNotMatch(shellSource, /localStorage|sessionStorage|document\.cookie/);
 });
 
 test("enrollment keeps tokens and Telegram identities out of application logs", async () => {
