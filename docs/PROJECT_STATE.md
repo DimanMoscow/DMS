@@ -4,13 +4,12 @@ Last verified: 2026-09-04 (UTC).
 
 ## Confirmed production
 
-- `main` at the start of this rollout included the merged client-progress/enrollment UX.
-  Release `0.2.5` and the Calendar onboarding UI are prepared behind the full repository
-  gate; the exact serving SHA must match Vercel deployment metadata at rollout.
-- MiniApp production follows Git-linked `main`. Its verified deployment is `READY`;
-  `/`, `/client`, and
-  `/api/health` return HTTP 200. Health reports release `0.2.4`, fingerprint
-  `miniapp-r5-progress-enrollment-guard`, the exact source SHA, and
+- `main` contains the merged client-progress/enrollment UX and Calendar-driven
+  onboarding. MiniApp release `0.2.6` closes the remaining cache-control gap for
+  rejected API methods.
+- MiniApp production follows Git-linked `main`. The release gate requires `/`,
+  `/client`, and `/api/health` to return HTTP 200; health must report release `0.2.6`,
+  fingerprint `miniapp-r7-api-no-store`, the exact serving source SHA, and
   `dataMode: connected`.
 - Apps Script production uses the existing deployment on numbered version `v48`.
   Its runtime implements signed server-authoritative `admin` / `client` / `unlinked`
@@ -49,8 +48,9 @@ Last verified: 2026-09-04 (UTC).
   native share sheet without persistence, explains revoke-and-recreate, and requires a
   second confirmation before revoke. No token is written to browser storage.
 - The production verifier now checks release, runtime fingerprint, source SHA,
-  connectivity, three public routes, health `no-store`, and a fail-closed `/api/dms`
-  error response with `no-store`.
+  connectivity, three public routes, health `no-store`, and fail-closed `/api/dms`
+  responses for invalid payloads and unsupported HTTP methods. Every API response in
+  those paths must carry `Cache-Control: no-store`.
 - The full repository gate passes 58 tests plus lint, TypeScript, production build, and
   Apps Script candidate/snapshot integrity.
 
@@ -70,5 +70,5 @@ measurements.
 - Resolve `Q-0085` only after the administrator chooses New client, Link, or Ignore and,
   for a new client, confirms product and payment terms. No client is inferred from the
   Calendar title.
-- Complete Vercel production rollout of release `0.2.5`, then verify the Calendar
-  onboarding wizard in the authenticated admin MiniApp without confirming a mutation.
+- Verify the Calendar onboarding wizard in the authenticated admin MiniApp without
+  confirming a mutation, then resolve `Q-0085` only from the approved preview.
