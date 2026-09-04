@@ -67,7 +67,7 @@ partial mutations are restored if a write or audit append fails.
 | Component | Production runtime | Repository role |
 | --- | --- | --- |
 | MiniApp | Vercel deployment | Canonical source in `app/`, `lib/`, `public/` |
-| Apps Script | Google Apps Script deployment on `v48` | Complete reviewed source in `apps-script/versions/v48` and `apps-script/candidates/v48` |
+| Apps Script | Google Apps Script deployment on `v49` | Complete reviewed source in `apps-script/versions/v49` and `apps-script/candidates/v49` |
 | Saved `v39` | Historical numbered version; not deployed | Reviewable snapshot beside `v38` |
 | Retained `v40` candidate | No runtime effect by itself | Reviewed source matching `versions/v40` byte-for-byte |
 | Numbered `v42` | Historical deployment with a proven runtime/source mismatch; not deployed | Source snapshot matching `candidates/v41` |
@@ -76,7 +76,8 @@ partial mutations are restored if a write or audit append fails.
 | Role routing `v45` | Historical production runtime | Candidate contains the reviewed runtime marker, MiniApp router, and client portal role resolver diff |
 | Measurement guard `v46` | Historical production runtime | Adds server-side rejection of no-op corrections without changing the schema or existing data |
 | Calendar onboarding `v47` | Historical production runtime | Introduced registration queue state, debt-formula guard, redacted API failures, and admin resolution |
-| Idempotency guard `v48` | Active production runtime | Makes matching repeated new-client resolution a no-op and conflicting replay fail closed |
+| Idempotency guard `v48` | Historical production runtime | Makes matching repeated new-client resolution a no-op and conflicting replay fail closed |
+| Production guards `v49` | Active production runtime | Accepts canonical one-off onboarding conditions, validates Queue resolution sources, and prevents new clients from duplicating the Debt spill formula |
 | Sheets / Calendar | Live Google services | No production data is stored in Git |
 | Telegram | Telegram API calling Apps Script webhook | Bot behavior is implemented in Apps Script files |
 

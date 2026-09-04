@@ -26,6 +26,21 @@
 - Preserve unrelated user changes and stop on unexpected diffs.
 - Update `docs/PROJECT_STATE.md` whenever a verified production or release fact changes.
 
+## Model, token, and research policy
+
+- Use **GPT-5.6 Sol / High** as the default development mode.
+- Use Spark only for short, low-risk UI, CSS, refactor, or test tasks.
+- Propose **GPT-6 Astra** only for security, race, runtime, or architectural
+  ambiguity, or after two substantive Sol attempts have not established the cause.
+  Task size alone is not a reason to switch to Astra.
+- Run targeted tests while working and the full gate before merge or deployment.
+- Read only the repository areas relevant to the current task. Do not repeat checks
+  whose result is already proved and still current.
+- Research in this order: repository, connected services, official documentation,
+  then the web only when needed. Prefer official sources.
+- Stop research once the cause is proved and move to implementation.
+- Record major checkpoints in Git and current docs instead of relying on chat history.
+
 ## Checks
 
 - Documentation-only change: `git diff --check` and inspect the complete file list.
