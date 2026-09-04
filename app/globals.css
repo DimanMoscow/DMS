@@ -498,6 +498,12 @@ h1 {
 .invite-copy { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 14px; }
 .invite-copy input { min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--metal); background: var(--surface-raised); font: inherit; font-size: 11px; }
 .invite-copy button { padding: 0 12px; }
+.invite-share { width: 100%; margin-top: 8px; }
+.invite-warning { margin: 10px 0 0; color: var(--warning); font-size: 10px; line-height: 1.5; }
+.portal-revoke-confirm { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.portal-revoke-confirm p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.portal-revoke-confirm button { min-height: 40px; }
+.danger-button { color: #f0a09a; border-color: rgba(240, 160, 154, .35); }
 .error-copy { color: #e3a1a1; }
 .measurement-admin { padding: 16px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); }
 .measurement-admin-heading { display: flex; gap: 14px; align-items: center; justify-content: space-between; }

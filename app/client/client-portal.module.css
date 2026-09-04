@@ -134,6 +134,14 @@
   font-weight: 500;
 }
 
+.delta {
+  display: block;
+  margin-top: 7px;
+  color: #cba574;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
 .metricsCompact {
   margin-top: 12px;
 }

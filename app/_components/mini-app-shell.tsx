@@ -575,6 +575,7 @@ function LoadedClientCard({ detail, initData, onBack }: {
   const [portalBusy, setPortalBusy] = useState(false);
   const [portalNotice, setPortalNotice] = useState("");
   const [portalError, setPortalError] = useState("");
+  const [revokeConfirm, setRevokeConfirm] = useState(false);
   const [measurements, setMeasurements] = useState(detail.measurements);
 
   const createInvite = async () => {
@@ -590,7 +591,7 @@ function LoadedClientCard({ detail, initData, onBack }: {
       );
       setPortal(result.clientPortal);
       setInviteUrl(result.inviteUrl || "");
-      setPortalNotice("Приглашение создано. Ссылка показывается только сейчас.");
+      setPortalNotice("Приглашение создано. Скопируйте или передайте ссылку сейчас — восстановить её позже нельзя.");
     } catch (error) {
       setPortalError(readableError(error));
     } finally {
@@ -611,6 +612,7 @@ function LoadedClientCard({ detail, initData, onBack }: {
       );
       setPortal(result.clientPortal);
       setInviteUrl("");
+      setRevokeConfirm(false);
       setPortalNotice("Неиспользованное приглашение отозвано.");
     } catch (error) {
       setPortalError(readableError(error));
@@ -626,6 +628,17 @@ function LoadedClientCard({ detail, initData, onBack }: {
       setPortalNotice("Ссылка скопирована.");
     } catch {
       setPortalError("Не удалось скопировать ссылку. Выделите её вручную.");
+    }
+  };
+
+  const shareInvite = async () => {
+    if (!inviteUrl || !navigator.share) return;
+    try {
+      await navigator.share({ title: "DMS Fitness", text: "Одноразовое приглашение в Client Portal", url: inviteUrl });
+      setPortalNotice("Ссылка передана в выбранное приложение. Убедитесь, что выбран нужный клиент.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setPortalError("Не удалось открыть системное меню. Скопируйте ссылку вручную.");
     }
   };
 
@@ -655,12 +668,21 @@ function LoadedClientCard({ detail, initData, onBack }: {
         : portal.status === "invited"
           ? `Приглашение активно до ${new Date(portal.activeInvite?.expiresAt || "").toLocaleString("ru-RU")}.`
           : "Привязки и активного приглашения нет."}</p>
-      {inviteUrl && <div className="invite-copy"><input value={inviteUrl} readOnly aria-label="Одноразовая ссылка" />
-        <button className="secondary-button" type="button" onClick={copyInvite}>Копировать</button></div>}
+      {inviteUrl && <><div className="invite-copy"><input value={inviteUrl} readOnly aria-label="Одноразовая ссылка" />
+        <button className="secondary-button" type="button" onClick={copyInvite}>Копировать</button></div>
+        {typeof navigator !== "undefined" && "share" in navigator && <button className="secondary-button invite-share"
+          type="button" onClick={shareInvite}>Поделиться безопасно</button>}
+        <p className="invite-warning">Ссылка содержит одноразовый секрет и показывается только в этой сессии. Не сохраняйте её в заметках или документации.</p></>}
+      {portal.status === "invited" && !inviteUrl && <p className="invite-warning">Текущую ссылку восстановить нельзя. Если она потеряна, отзовите приглашение и создайте новое.</p>}
       {portal.status === "unlinked" && <button className="primary-button" type="button" disabled={portalBusy}
         onClick={createInvite}>Создать приглашение в Client Portal</button>}
-      {portal.status === "invited" && <button className="secondary-button portal-revoke" type="button"
-        disabled={portalBusy} onClick={revokeInvite}>Отозвать приглашение</button>}
+      {portal.status === "invited" && !revokeConfirm && <button className="secondary-button portal-revoke" type="button"
+        disabled={portalBusy} onClick={() => setRevokeConfirm(true)}>Отозвать приглашение</button>}
+      {portal.status === "invited" && revokeConfirm && <div className="portal-revoke-confirm" role="group" aria-label="Подтверждение отзыва">
+        <p>Ссылка сразу перестанет работать. Запись останется в аудите.</p>
+        <button className="secondary-button" type="button" disabled={portalBusy} onClick={() => setRevokeConfirm(false)}>Назад</button>
+        <button className="secondary-button danger-button" type="button" disabled={portalBusy} onClick={revokeInvite}>Да, отозвать</button>
+      </div>}
       {portalNotice && <p className="action-hint">{portalNotice}</p>}
       {portalError && <p className="action-hint error-copy">{portalError}</p>}
     </section>

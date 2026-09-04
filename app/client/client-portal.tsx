@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatMeasurementDelta, measurementDeltas } from "@/lib/client-progress";
 import { getSignedStartParam } from "@/lib/telegram-init-data";
 import styles from "./client-portal.module.css";
 
@@ -175,6 +176,7 @@ export function ClientPortal() {
 }
 
 function PortalContent({ data }: { data: ClientPortalData }) {
+  const latestPrevious = data.measurements[1];
   return (
     <>
       <section className={styles.hero}>
@@ -192,7 +194,7 @@ function PortalContent({ data }: { data: ClientPortalData }) {
           {data.latestMeasurement && <time>{formatDate(data.latestMeasurement.measuredAt)}</time>}
         </div>
         {data.latestMeasurement
-          ? <MetricGrid measurement={data.latestMeasurement} />
+          ? <MetricGrid measurement={data.latestMeasurement} previous={latestPrevious} />
           : <div className={styles.empty}>Замеров пока нет. Первый результат появится здесь после внесения тренером.</div>}
       </section>
 
@@ -212,7 +214,7 @@ function PortalContent({ data }: { data: ClientPortalData }) {
                   <span>{formatDate(measurement.measuredAt)}</span>
                   <small>{metricEntries(measurement).length} показателей</small>
                 </summary>
-                <MetricGrid measurement={measurement} compact />
+                <MetricGrid measurement={measurement} previous={data.measurements[index + 1]} compact />
               </details>
             ))}
           </div>
@@ -224,17 +226,28 @@ function PortalContent({ data }: { data: ClientPortalData }) {
   );
 }
 
-function MetricGrid({ measurement, compact = false }: { measurement: Measurement; compact?: boolean }) {
+function MetricGrid({ measurement, previous, compact = false }: {
+  measurement: Measurement;
+  previous?: Measurement;
+  compact?: boolean;
+}) {
+  const deltas = measurementDeltas(measurement, previous);
   return (
     <dl className={compact ? `${styles.metrics} ${styles.metricsCompact}` : styles.metrics}>
       {metricEntries(measurement).map((metric) => (
         <div key={metric.key}>
           <dt>{metric.label}</dt>
           <dd>{metric.value.toLocaleString("ru-RU")} <small>{metric.unit}</small></dd>
+          <MeasurementDelta value={deltas[metric.key]} unit={metric.unit} />
         </div>
       ))}
     </dl>
   );
+}
+
+function MeasurementDelta({ value, unit }: { value?: number; unit: string }) {
+  if (typeof value !== "number") return null;
+  return <span className={styles.delta}>{formatMeasurementDelta(value, unit)} с прошлого замера</span>;
 }
 
 function StatusCard({ title, text, busy = false }: { title: string; text: string; busy?: boolean }) {
