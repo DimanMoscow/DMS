@@ -10,12 +10,16 @@ import { assertPrivateRegularFile } from "../../scripts/path-policy.mjs";
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const scopeSets = {
   reader: [
+    "https://www.googleapis.com/auth/drive.metadata.readonly",
     "https://www.googleapis.com/auth/script.deployments.readonly",
     "https://www.googleapis.com/auth/script.projects.readonly",
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
   ],
   writer: [
+    "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/script.deployments",
     "https://www.googleapis.com/auth/script.projects",
+    "https://www.googleapis.com/auth/spreadsheets",
   ],
 };
 

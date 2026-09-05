@@ -37,3 +37,10 @@ failed workbook and recovery evidence until the incident is closed.
 Official mechanisms: [Drive `files.copy`](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/copy),
 [Workspace export](https://developers.google.com/workspace/drive/api/guides/manage-downloads),
 and [Google Sheets version history](https://support.google.com/docs/answer/190843).
+
+For the Telegram confirmation v50 rollout, the pre-migration backup uses the complete
+current 15-sheet production contract. After the empty `Журнал операций Telegram`
+migration is applied, update the contract and every later manifest to include that
+sixteenth sheet. Once the ledger contains an event it is recovery
+evidence: retain it during rollback and restore, and never truncate it to make a check
+pass.

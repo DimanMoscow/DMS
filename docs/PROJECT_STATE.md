@@ -1,6 +1,6 @@
 # Current project state
 
-Last verified: 2026-09-05 (Europe/Moscow).
+Last verified: 2026-09-06 (Europe/Moscow).
 
 ## Confirmed production
 
@@ -53,7 +53,7 @@ Last verified: 2026-09-05 (Europe/Moscow).
   connectivity, public routes, health `no-store`, the allow-listed Apps Script runtime
   identity, and fail-closed `/api/dms` responses. Every API response in those paths must
   carry `Cache-Control: no-store`.
-- The full repository gate passes 86 tests and covers a high-severity dependency audit, lint,
+- The full repository gate covers a high-severity dependency audit, lint,
   TypeScript, production build, Apps Script candidate/snapshot integrity and production
   pointer, and the applied-migration ledger.
 - GitHub and Vercel release behavior is explicit: pull requests receive Preview
@@ -76,8 +76,16 @@ Last verified: 2026-09-05 (Europe/Moscow).
   plans remain explicitly non-deployable until separate Google authorization verifies
   remote state.
 - The repository records two confirmed applied portal migrations by immutable artifact
-  digest. A private Drive-copy contract and restore runbook exist, but no new production
-  backup was created.
+  digest. On 2026-09-06 a private owner-only Drive copy of production `v49` and a second
+  isolated restore-test copy were read back successfully. All 15 production sheets,
+  populated-row counts, headers, formulas, validations, and aggregate cell hashes matched.
+  The private manifest is outside Git; its backup-reference SHA-256 starts with `bad0040e`.
+- Candidate `v50` adds one-time Telegram mutation confirmations and a durable append-only
+  operation ledger. It binds a cryptographic nonce to the admin, chat, message, action,
+  canonical payload, TTL, and logical operation ID. Generic pre-v50 mutation callbacks
+  fail closed; concurrent and replayed callbacks cannot run the same operation twice.
+  The candidate and the `telegram-confirmations-v1` migration are repository-only and
+  have not been applied to production.
 
 ## Calendar onboarding release
 
@@ -93,7 +101,9 @@ only formula anchor in its spill range.
   measurement values have been entered.
 - A later confirmed Calendar entry may start Hybrid onboarding, but no Hybrid block
   exists until that separate entry and its terms are explicitly confirmed.
-- Telegram confirmation callbacks are not yet bound to a per-flow nonce/message. A
-  focused security-hardening stage should prevent an old confirmation button from acting
-  on newer cached state and add durable idempotency keys for payment/calendar mutations.
+- Telegram confirmation hardening is implemented and fixture-tested in candidate `v50`.
+  The Apps Script console confirms that the sole active production deployment maps to
+  numbered version `49`; production rollout still requires the separated writer OAuth
+  profile, application and read-back of the new empty ledger schema, and the normal live
+  gate and reconciliation.
 - Continue with read-only invitation history without introducing client-side writes.

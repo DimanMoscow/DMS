@@ -15,6 +15,14 @@
         "client-portal-v1"
       ],
       "artifactSha256": "751be0e3092e75dcedc3da02786a595cb7a93f6806c3a05ca5259ba9d1315fd3"
+    },
+    {
+      "id": "telegram-confirmations-v1",
+      "schemaVersion": 1,
+      "dependsOn": [
+        "client-portal-enrollment-v1"
+      ],
+      "artifactSha256": "1f37337d5d703415409711404f933f8f545f7e98b65de2fa86acad019e45664a"
     }
   ],
   "applied": [
