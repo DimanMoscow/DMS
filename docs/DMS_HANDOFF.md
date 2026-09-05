@@ -56,4 +56,3 @@ defined in `docs/RELEASE_OPERATIONS.md`; private backup recovery is defined in
 
 At session start, fetch `origin/main`, read `AGENTS.md` and
 `docs/PROJECT_STATE.md`, then recheck live state relevant to the requested work.
-
