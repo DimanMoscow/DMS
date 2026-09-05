@@ -59,15 +59,15 @@ proves that mapping.
 
 ## Repository protection
 
-The 2026-09-06 post-release audit found 40 remote branches and no open pull requests.
-Retain `main`, `backup/admin-today-pre-20260826`,
+The 2026-09-06 post-release audit found no open pull requests or active Dependabot
+heads. Retain `main`, `backup/admin-today-pre-20260826`,
 `archive/legacy-vps-bot-2026-08-24`, `recovery/apps-script-v38-v39`, and
-`recovery/vercel-production-0.2.1`. The other 35 heads are merged cleanup candidates,
-including the merged Telegram security-release head. The earlier count of 36 merged
-heads included the two `recovery/*` pointers, which must not be deleted; three
-Dependabot heads disappeared after their approved merges and the security-release head
-was added. Delete only after rerunning this audit through an authenticated admin path,
-then enable automatic head-branch deletion after merge.
+`recovery/vercel-production-0.2.1`. All other heads are merged cleanup candidates,
+including the Telegram security-release and final-checkpoint heads. The earlier count
+of 36 merged heads included the two `recovery/*` pointers, which must not be deleted;
+three Dependabot heads disappeared after their approved merges. Recount and recheck all
+candidates through an authenticated admin path immediately before deletion, then enable
+automatic head-branch deletion after merge.
 
 The minimum policy for a solo owner plus Codex is:
 
