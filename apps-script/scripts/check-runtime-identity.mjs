@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { readCanonicalSource, sha256 } from "./source-integrity.mjs";
+import { verifyRuntimeIdentity } from "./runtime-identity.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const candidateDirectory = path.resolve(scriptDirectory, "..", "candidates", "v49");
@@ -10,11 +12,8 @@ const runtimeUrl = String(process.env.DMS_APPS_SCRIPT_URL || "").trim();
 
 assert.ok(runtimeUrl, "DMS_APPS_SCRIPT_URL is required");
 
-function sha256(fileName) {
-  return crypto
-    .createHash("sha256")
-    .update(fs.readFileSync(path.join(candidateDirectory, fileName), "utf8").replace(/\r\n/g, "\n"))
-    .digest("hex");
+function sourceSha256(fileName) {
+  return sha256(readCanonicalSource(path.join(candidateDirectory, fileName)));
 }
 
 const url = new URL(runtimeUrl);
@@ -30,22 +29,9 @@ const response = await fetch(url, {
 assert.equal(response.ok, true, `runtime identity returned HTTP ${response.status}`);
 
 const identity = await response.json();
-assert.deepEqual(Object.keys(identity).sort(), [
-  "clientPortalHandlerLoaded",
-  "clientPortalSha256",
-  "ok",
-  "release",
-  "routerSha256",
-  "service",
-]);
-assert.equal(identity.ok, true);
-assert.equal(identity.service, "dms-fitness-apps-script");
-assert.equal(identity.release, "calendar-onboarding-r8-production-guards");
-assert.equal(identity.routerSha256, sha256("ZZZZZZZZMiniAppApi.gs"));
-assert.equal(
-  identity.clientPortalSha256,
-  sha256("ZZZZZZZZZZZClientPortal.gs"),
-);
-assert.equal(identity.clientPortalHandlerLoaded, true);
+verifyRuntimeIdentity(identity, {
+  routerSha256: sourceSha256("ZZZZZZZZMiniAppApi.gs"),
+  clientPortalSha256: sourceSha256("ZZZZZZZZZZZClientPortal.gs"),
+});
 
 console.log("Apps Script runtime identity verified: calendar-onboarding-r8-production-guards");

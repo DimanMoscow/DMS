@@ -20,12 +20,20 @@
     "release:check": "npm run check",
     "release:verify": "node scripts/verify-production.mjs",
     "release:checkpoint": "node scripts/capture-release-checkpoint.mjs",
+    "release:source-check": "node scripts/verify-source-state.mjs",
+    "release:apps-script:plan": "node apps-script/scripts/release-plan.mjs",
+    "release:apps-script:credential-check": "node apps-script/scripts/check-credential-profile.mjs",
+    "release:backup:verify": "node apps-script/scripts/verify-backup-manifest.mjs",
+    "release:migration:readiness": "node scripts/verify-migration-readiness.mjs",
+    "audit:dependencies": "npm audit --audit-level=high",
+    "verify:dependency-policy": "node scripts/verify-dependency-policy.mjs",
     "verify:migrations": "node apps-script/scripts/verify-migrations.mjs",
+    "verify:migration-history": "node apps-script/scripts/verify-ledger-history.mjs",
     "check:miniapp": "npm run lint && npm run test && npm run typecheck && npm run build",
-    "check": "npm run check:miniapp && npm run verify:apps-script && npm run verify:migrations"
+    "check": "npm run verify:dependency-policy && npm run audit:dependencies && npm run check:miniapp && npm run verify:apps-script && npm run verify:migrations"
   },
   "dependencies": {
-    "next": "16.2.6",
+    "next": "16.3.4",
     "react": "19.2.6",
     "react-dom": "19.2.6"
   },
@@ -34,7 +42,7 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.3.4",
     "typescript": "5.9.3"
   }
 }

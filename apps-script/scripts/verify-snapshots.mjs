@@ -1,14 +1,24 @@
 import assert from "node:assert/strict";
-import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
+import {
+  canonicalSource,
+  readCanonicalSource,
+  sha256,
+  sourceTreeSha256,
+} from "./source-integrity.mjs";
+import { verifyRuntimeIdentity } from "./runtime-identity.mjs";
+
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const appsScriptDirectory = path.resolve(scriptDirectory, "..");
 const verificationPath = path.join(appsScriptDirectory, "verification.json");
 const verification = JSON.parse(fs.readFileSync(verificationPath, "utf8"));
+const production = JSON.parse(
+  fs.readFileSync(path.join(appsScriptDirectory, "production.json"), "utf8"),
+);
 const versions = Object.keys(verification.versions);
 const sanitizationPatterns = {
   appsScriptProductionUrl: /https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec/g,
@@ -30,21 +40,6 @@ const prohibitedPatterns = [
     /\b(?:token|secret|api[_-]?key|script[_-]?id|spreadsheet[_-]?id|calendar[_-]?id)\s*[:=]\s*["'][^"']{8,}["']/gi,
   ],
 ];
-
-function sha256(value) {
-  return crypto.createHash("sha256").update(value).digest("hex");
-}
-
-function sourceTreeSha256(directory, fileNames) {
-  const hash = crypto.createHash("sha256");
-  for (const fileName of fileNames) {
-    hash.update(fileName);
-    hash.update("\0");
-    hash.update(fs.readFileSync(path.join(directory, fileName)));
-    hash.update("\0");
-  }
-  return hash.digest("hex");
-}
 
 function repositoryFileName(file) {
   if (file.type === "JSON") return `${file.name}.json`;
@@ -72,6 +67,19 @@ function sanitizeExactSource(fileName, source) {
 
 const actualSources = {};
 
+function regularSourceFileNames(directory, label) {
+  const names = fs.readdirSync(directory, { withFileTypes: true }).map((entry) => {
+    assert.equal(entry.isSymbolicLink(), false, `${label}/${entry.name}: symlinks are forbidden`);
+    assert.equal(entry.isFile(), true, `${label}/${entry.name}: only regular files are allowed`);
+    assert.ok(entry.name === "appsscript.json" || entry.name.endsWith(".gs"),
+      `${label}/${entry.name}: unsupported Apps Script file type`);
+    return entry.name;
+  }).sort();
+  assert.equal(names.filter((name) => name === "appsscript.json").length, 1,
+    `${label}: exactly one appsscript.json is required`);
+  return names;
+}
+
 for (const version of versions) {
   const expected = verification.versions[version];
   assert.ok(expected, `${version}: verification metadata is missing`);
@@ -84,24 +92,17 @@ for (const version of versions) {
   const expectedFileNames = expected.files
     ? Object.keys(expected.files).sort()
     : expected.matchesCandidate
-      ? fs
-        .readdirSync(path.join(appsScriptDirectory, "candidates", expected.matchesCandidate), {
-          withFileTypes: true,
-        })
-        .filter((entry) => entry.isFile())
-        .map((entry) => entry.name)
-        .sort()
+      ? regularSourceFileNames(
+        path.join(appsScriptDirectory, "candidates", expected.matchesCandidate),
+        `candidate ${expected.matchesCandidate}`,
+      )
       : Object.keys(actualSources[expected.baseVersion] ?? {}).sort();
   assert.equal(
     expectedFileNames.length,
     expected.fileCount,
     `${version}: reference file set is missing`,
   );
-  const actualFileNames = fs
-    .readdirSync(versionDirectory, { withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
-    .sort();
+  const actualFileNames = regularSourceFileNames(versionDirectory, `snapshot ${version}`);
   assert.deepEqual(actualFileNames, expectedFileNames, `${version}: repository file set differs`);
   assert.equal(
     actualFileNames.length,
@@ -115,7 +116,7 @@ for (const version of versions) {
   );
 
   for (const fileName of actualFileNames) {
-    const source = fs.readFileSync(path.join(versionDirectory, fileName), "utf8");
+    const source = readCanonicalSource(path.join(versionDirectory, fileName));
     actualSources[version][fileName] = source;
     if (expected.files) {
       assert.equal(
@@ -201,13 +202,16 @@ for (const version of versions) {
     for (const file of payload.files) {
       const fileName = repositoryFileName(file);
       assert.equal(
-        sha256(file.source),
+        sha256(canonicalSource(file.source, `${version}/${fileName} exact export`)),
         expected.files[fileName].originalSourceSha256,
         `${version}/${fileName}: exact source SHA-256 differs`,
       );
       assert.equal(
         actualSources[version][fileName],
-        sanitizeExactSource(fileName, file.source),
+        sanitizeExactSource(
+          fileName,
+          canonicalSource(file.source, `${version}/${fileName} exact export`),
+        ),
         `${version}/${fileName}: repository source is not the exact sanitized export`,
       );
     }
@@ -225,7 +229,7 @@ for (const [version, expected] of Object.entries(verification.versions)) {
   for (const fileName of fileNames) {
     assert.equal(
       actualSources[version][fileName],
-      fs.readFileSync(path.join(candidateDirectory, fileName), "utf8"),
+      readCanonicalSource(path.join(candidateDirectory, fileName)),
       `${version}/${fileName}: differs from candidate ${expected.matchesCandidate}`,
     );
   }
@@ -246,11 +250,7 @@ for (const [candidate, expected] of Object.entries(verification.candidates ?? {}
   assert.ok(baseSources, `${candidate}: unknown base version ${expected.baseVersion}`);
 
   const candidateDirectory = path.join(appsScriptDirectory, "candidates", candidate);
-  const actualFileNames = fs
-    .readdirSync(candidateDirectory, { withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
-    .sort();
+  const actualFileNames = regularSourceFileNames(candidateDirectory, `candidate ${candidate}`);
   assert.equal(actualFileNames.length, expected.fileCount, `${candidate}: file count differs`);
   const missingBaseFiles = Object.keys(baseSources).filter(
     (fileName) => !actualFileNames.includes(fileName),
@@ -268,7 +268,7 @@ for (const [candidate, expected] of Object.entries(verification.candidates ?? {}
   );
 
   for (const fileName of actualFileNames) {
-    const source = fs.readFileSync(path.join(candidateDirectory, fileName), "utf8");
+    const source = readCanonicalSource(path.join(candidateDirectory, fileName));
     candidateSources[fileName] = source;
 
     for (const rule of verification.repositorySanitizations) {
@@ -323,3 +323,45 @@ console.log(
     "two documented redactions per version.",
 );
 console.log(`v38 -> v39 changed files: ${changedFiles.join(", ")}`);
+
+assert.deepEqual(Object.keys(production).sort(), [
+  "candidate",
+  "formatVersion",
+  "lastVerified",
+  "numberedVersion",
+  "runtimeIdentity",
+  "snapshot",
+]);
+assert.equal(production.formatVersion, 1);
+assert.match(production.candidate, /^v\d+$/);
+assert.equal(production.snapshot, production.candidate);
+assert.equal(production.numberedVersion, Number(production.snapshot.slice(1)));
+assert.equal(verification.versions[production.snapshot]?.matchesCandidate, production.candidate);
+assert.equal(
+  verification.versions[production.snapshot]?.sourceTreeSha256,
+  verification.candidates[production.candidate]?.sourceTreeSha256,
+  "production candidate and snapshot tree hashes differ",
+);
+assert.deepEqual(Object.keys(production.lastVerified).sort(), [
+  "at", "liveGatePassed", "liveGateTotal", "reconciliationIssues",
+]);
+assert.ok(Number.isInteger(production.lastVerified.liveGateTotal) &&
+  production.lastVerified.liveGateTotal > 0, "production live-gate total must be positive");
+assert.ok(Number.isInteger(production.lastVerified.liveGatePassed),
+  "production live-gate passed count must be an integer");
+assert.equal(production.lastVerified.liveGatePassed, production.lastVerified.liveGateTotal);
+assert.equal(production.lastVerified.reconciliationIssues, 0);
+const verifiedAt = new Date(production.lastVerified.at);
+assert.equal(Number.isNaN(verifiedAt.getTime()), false, "production verification time is invalid");
+assert.match(production.lastVerified.at,
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/,
+  "production verification time must be UTC");
+verifyRuntimeIdentity(production.runtimeIdentity, {
+  routerSha256: sha256(actualSources[production.snapshot]["ZZZZZZZZMiniAppApi.gs"]),
+  clientPortalSha256: sha256(actualSources[production.snapshot]["ZZZZZZZZZZZClientPortal.gs"]),
+}, { requireOk: false });
+console.log(
+  `Production pointer verified: ${production.snapshot}, ` +
+  `${production.lastVerified.liveGatePassed}/${production.lastVerified.liveGateTotal}, ` +
+  `reconciliation ${production.lastVerified.reconciliationIssues}.`,
+);

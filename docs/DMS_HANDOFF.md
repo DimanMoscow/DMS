@@ -16,7 +16,8 @@ authoritative.
   `/`, `/client`, `/api/health`, and `/api/apps-script-runtime` return 200;
   APIs are `no-store` and `dataMode` is `connected`.
 - Apps Script Production: `v49`; last verified live gate `17/17`.
-- Repository gate: `64/64`; reconciliation: `0`.
+- Repository gate: `86/86`; includes dependency audit, Apps Script source/production identity,
+  migration ledger, tests, lint, TypeScript, and production build; reconciliation: `0`.
 - Production rows: Clients 18, Blocks 15, Queue 85, Journal 109, Payments 21;
   bindings 2 active; invitations 3 revoked / 2 used / 0 pending; measurements 0.
 - Calendar-driven onboarding is active. The Debt formula has one canonical anchor
@@ -32,7 +33,8 @@ authoritative.
 - No new functional stage has started after this checkpoint.
 
 Release policy, rollback references, staging boundaries, and migration discipline are
-defined in `docs/RELEASE_OPERATIONS.md`.
+defined in `docs/RELEASE_OPERATIONS.md`; private backup recovery is defined in
+`docs/DISASTER_RECOVERY.md`.
 
 At session start, fetch `origin/main`, read `AGENTS.md` and
 `docs/PROJECT_STATE.md`, then recheck live state relevant to the requested work.

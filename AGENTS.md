@@ -28,6 +28,9 @@
   client-selected `clientId`, infer a link from names/usernames, or share admin responses.
 - Preserve unrelated user changes and stop on unexpected diffs.
 - Update `docs/PROJECT_STATE.md` whenever a verified production or release fact changes.
+- Codex is the primary development executor for repository work, tests, PRs, and
+  checkpoints. Use Work/browser production UI only for an operation that cannot be
+  completed safely through reviewed repository tooling or a connected read-only service.
 
 ## Model, token, and research policy
 
@@ -50,6 +53,9 @@
 ## Checks
 
 - Documentation-only change: `git diff --check` and inspect the complete file list.
+- `npm run release:check` includes the high-severity dependency audit. Do not bypass it
+  because an advisory appears unrelated; document reachability and upgrade to a patched
+  compatible version when one exists.
 - Apps Script snapshot or verifier change:
   `npm run verify:apps-script`.
 - Files under `apps-script/versions/**` are immutable production snapshots. Verify
@@ -61,6 +67,13 @@
 - Isolated MiniApp change: run the relevant test and `npm run check:miniapp`.
 - Cross-boundary, authentication, queue, day-confirmation, release, or deployment change:
   run `npm run check` and the full authorized smoke gate.
+- Before Apps Script release work, create and verify an offline plan, then validate the
+  separate reader/writer credential-profile format. That format check is not
+  authentication. An offline plan can never claim that remote state was verified or
+  that it is deployable.
+- Before any migration write, require the applied-migration ledger and a fresh verified
+  private recovery manifest. Repository fixtures are contract tests, not production
+  backup evidence.
 
 Narrow tests are enough only when the changed files cannot affect runtime behavior. A
 full smoke is required when a request can cross MiniApp → Apps Script, mutate queue or

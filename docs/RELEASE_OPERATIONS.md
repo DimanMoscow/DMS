@@ -29,8 +29,9 @@ Before merge:
 
 1. Branch from current `origin/main` and keep one scope per PR.
 2. Run targeted tests during development.
-3. Run `npm run release:check` once before merge. It covers lint, repository tests,
-   TypeScript, production build, Apps Script snapshot integrity, and migration manifests.
+3. Run `npm run release:check` once before merge. It covers the high-severity dependency
+   audit, lint, repository tests, TypeScript, production build, Apps Script snapshot
+   integrity, production pointer, and migration ledger.
 4. Require GitHub `release-gate` success and a READY Vercel Preview whose source matches
    the PR head. Preview health must stay `not-configured` unless a separate test backend
    is explicitly introduced.
@@ -48,11 +49,20 @@ After the approved merge:
    and rollback references with `npm run release:checkpoint`. Keep the generated file
    local or in an approved private operations store.
 
+The checkpoint command is strict: `DMS_VERCEL_DEPLOYMENT_ID`,
+`DMS_APPS_SCRIPT_VERSION`, `DMS_APPS_SCRIPT_DEPLOYMENT_ID`, and `DMS_SCHEMA_VERSION`
+must all be present. It computes the migration-ledger digest itself and refuses a
+checkpoint that cannot identify both rollback references. Environment values alone do
+not attest the Apps Script deployment-to-version mapping, so the local record remains
+`remoteStateVerified:false` and `rollbackReady:false` until an authenticated API read
+proves that mapping.
+
 ## Repository protection
 
-The hygiene audit found 36 remote branches: `main`, 33 unchanged heads of merged PRs,
-and two semantic recovery pointers. The 33 merged heads contain no post-merge work and
-may be deleted; retain `backup/admin-today-pre-20260826` and
+The hygiene audit at `main` `7c18cb4` found 37 remote branches: `main`, 34 unchanged
+heads of merged PRs, and two semantic recovery pointers. Those audited merged heads
+contained no post-merge work and may be deleted after rerunning the audit immediately
+before deletion; retain `backup/admin-today-pre-20260826` and
 `archive/legacy-vps-bot-2026-08-24`. Enable automatic head-branch deletion after merge
 once the initial cleanup is complete.
 
@@ -97,6 +107,24 @@ token files are sensitive local plaintext and must remain ignored. Do not commit
 Service-account use is deferred until the project ownership model proves it is supported
 for this script; it is not assumed.
 
+`apps-script/production.json` is the non-sensitive machine-readable pointer to the
+confirmed candidate, numbered snapshot, runtime identity, live gate, and reconciliation
+result. Before authentication, create a deterministic plan with
+`npm run release:apps-script:plan -- --candidate v49 --baseline v49`; verify the emitted
+ignored artifact with the same command and `--verify <plan-path>`. It records only file
+digests and always remains `OFFLINE_READY`, `authenticated:false`,
+`remoteStateVerified:false`, and `deployable:false`.
+
+The credential-profile format check is
+`npm run release:apps-script:credential-check -- --mode reader|writer`. It accepts only an
+absolute credential-profile path outside the repository through
+`DMS_APPS_SCRIPT_AUTH_FILE`, never prints credential fields, and requires the exact scope
+set for the selected profile. It always reports `authenticated:false`; a token refresh
+and read-only Apps Script API call are still required to prove authentication. The reader
+scopes are `script.projects.readonly` and
+`script.deployments.readonly`; the writer scopes are `script.projects` and
+`script.deployments`. A Google login and consent remain a user operation.
+
 Official references:
 
 - [clasp guide](https://developers.google.com/apps-script/guides/clasp)
@@ -105,6 +133,17 @@ Official references:
 - [`projects.versions.create`](https://developers.google.com/apps-script/api/reference/rest/v1/projects.versions/create)
 - [`projects.deployments.update`](https://developers.google.com/apps-script/api/reference/rest/v1/projects.deployments/update)
 - [OAuth for desktop apps](https://developers.google.com/identity/protocols/oauth2/native-app)
+
+## Dependency security
+
+The framework and matching ESLint configuration are pinned together. The current floor
+is Next.js `16.3.4`, which includes the vendor fixes released in `16.3.3` and resolves
+the audited Next.js, PostCSS, and Sharp findings. `npm audit --audit-level=high` runs in
+the release gate, and Dependabot plus the scheduled weekly gate detect advisories that
+arrive between code changes. Security upgrades stay scoped to the smallest compatible
+patch or minor release; a major upgrade requires an architectural review.
+`security/dependency-policy.json` also enforces the vendor security floors because a
+registry audit can lag a newly published framework advisory.
 
 ## Lightweight test and staging strategy
 
@@ -135,15 +174,26 @@ but does not capture Calendar, portal access/invitations/measurements, audit/set
 formulas, validations, formatting, or an independently tested restore path. Do not claim
 recovery readiness from its freshness check alone. A future backup stage should add an
 independent private destination, retention, checksums, schema/formula metadata, and a
-tested read-back/restore runbook without placing personal data in Git.
+tested read-back/restore runbook without placing personal data in Git. The implemented
+contract is `apps-script/backup/contract.json`; validate a private Drive-copy manifest
+with `npm run release:backup:verify -- <private-manifest.json>`. The recovery procedure
+and retention rules are in `docs/DISASTER_RECOVERY.md`.
 
 Every migration package must contain `schema.json`, `preflight.mjs`, `migration.json`,
 and documentation. `migration.json` declares its affected sheets, schema version,
 non-destructive status, separate approval for writes, preflight, post-check, and rollback.
-`npm run verify:migrations` enforces this contract. A production migration must be
+`apps-script/migrations/ledger.json` records versioned artifact digests, dependency
+order, evidence for the two confirmed applied migrations, and current per-sheet schema
+versions. `npm run verify:migrations` checks manifests against schemas, detects artifact
+drift and dependency errors, and verifies applied evidence. A production migration must be
 idempotent, stop on schema mismatch, capture a private pre-release recovery export, read
 back the exact result, and audit the execution. Destructive migrations require a
 separate design and approval.
+
+Before a future migration, run its package-specific read-only preflight and then
+`npm run release:migration:readiness -- <migration-id> <private-manifest.json>`. The
+readiness command verifies dependency order and binds the private backup to the current
+ledger and production Apps Script version; it does not execute the package preflight.
 
 ## Admin diagnostics and checkpoints
 
@@ -163,9 +213,13 @@ history.
 ## Known process risks
 
 - Main branch protection and automatic stale-branch deletion still require repository
-  administration access; the audited minimum rule is documented above.
-- Apps Script automated release still requires a local OAuth setup and exact live
-  export/read-back tooling. Production remains on the confirmed numbered `v49` flow.
+  administration access; audited merged heads remain pending authenticated cleanup and
+  the minimum rule is documented above.
+- Apps Script planning, source integrity, production identity, and credential-profile
+  format checks are automated offline. Exact live export/read-back and writes remain blocked
+  on separate local OAuth profiles. Production remains on confirmed numbered `v49`.
+- A private Google Drive workbook copy and isolated restore test are still required
+  before the repository can claim disaster-recovery readiness.
 - Historical production `v45` has no numbered source snapshot in Git. Do not invent one;
   restore it only from an exact Apps Script export if the numbered version remains
   available.

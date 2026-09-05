@@ -1,0 +1,26 @@
+{
+  "formatVersion": 1,
+  "provider": "google-drive.files.copy",
+  "storage": "existing-private-google-drive",
+  "repositoryStorageAllowed": false,
+  "requiredSheets": [
+    "Клиенты",
+    "Блоки",
+    "Оплаты",
+    "Журнал тренировок",
+    "Очередь подтверждения",
+    "Журнал действий бота",
+    "Резервные копии бота",
+    "Настройки",
+    "Доступ клиентов",
+    "Приглашения Client Portal",
+    "Замеры"
+  ],
+  "retention": {
+    "minimumCopies": 3,
+    "minimumDays": 30,
+    "deleteRequiresApproval": true
+  },
+  "maximumCheckpointAgeHours": 48,
+  "maximumRestoreTestAgeDays": 90
+}

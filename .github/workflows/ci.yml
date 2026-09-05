@@ -5,12 +5,14 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: "17 3 * * 1"
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -29,6 +31,16 @@ jobs:
 
       - run: npm ci
       - run: npm run check
+
+      - name: Verify checkout source and clean dependency install
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: node scripts/verify-source-state.mjs --expected "$EXPECTED_SHA" --allow-main
+
+      - name: Verify applied migration ledger is append-only
+        env:
+          DMS_LEDGER_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+        run: npm run verify:migration-history
 
       - name: Check changed non-Apps-Script-source files for whitespace errors
         env:
