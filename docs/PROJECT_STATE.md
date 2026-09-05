@@ -29,8 +29,10 @@ Last verified: 2026-09-06 (Europe/Moscow).
   already confirmed after the role-routing rollout. Automated gates cover A/B data
   isolation, unlinked denial, selector rejection, client/admin separation, replay,
   expired/revoked states, and the document-lock race contract.
-- Post-onboarding read-only reconciliation reports zero Calendar ↔ Queue ↔ Journal
-  issues across 85 queue rows, 109 journal rows, and 95 Calendar events.
+- The 2026-09-06 01:39 Europe/Moscow read-only reconciliation reports zero Calendar ↔
+  Queue ↔ Journal issues across 93 queue rows, 109 journal rows, and 103 Calendar
+  events. The matched eight-row increase since the previous checkpoint reflects normal
+  calendar-driven scheduling and introduced no accounting rows or discrepancies.
 - The Debt `ARRAYFORMULA` is restored at the sole canonical `Клиенты!J5` anchor. The
   conflicting formula in the spill range was removed without changing payment or block
   amounts, and the new live guard passes.
