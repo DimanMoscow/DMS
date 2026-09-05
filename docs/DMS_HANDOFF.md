@@ -15,11 +15,16 @@ authoritative.
   fingerprint `miniapp-r8-apps-script-runtime-probe` must match the deployed source.
   `/`, `/client`, `/api/health`, and `/api/apps-script-runtime` return 200;
   APIs are `no-store` and `dataMode` is `connected`.
-- Apps Script Production: `v49`; last verified live gate `17/17`.
+- Apps Script Production: `v49`; live gate `17/17` and reconciliation `0` were
+  reverified read-only on 2026-09-06 at 01:39 Europe/Moscow.
 - Repository gate includes dependency audit, Apps Script source/production identity,
   migration ledger, tests, lint, TypeScript, and production build; reconciliation: `0`.
-- Production rows: Clients 18, Blocks 15, Queue 85, Journal 109, Payments 21;
+- Production business counts last confirmed in the operational checkpoint: Clients 18,
+  Blocks 15, Journal 109, Payments 21;
   bindings 2 active; invitations 3 revoked / 2 used / 0 pending; measurements 0.
+- The latest live reconciliation counted Queue 93 and Calendar 103. The increase from
+  Queue 85 / Calendar 95 is matched and produced no Queue ↔ Journal or Calendar
+  inconsistency; Journal remains 109.
 - Calendar-driven onboarding is active. The Debt formula has one canonical anchor
   at `Клиенты!J5` with no spill errors. `Q-0085` has one Queue row and one
   linked Journal row and was processed once.
@@ -31,6 +36,10 @@ authoritative.
   outside Git; backup-reference SHA-256 prefix: `bad0040e`. The Apps Script console shows
   the active production deployment on numbered version `49`; the read-only ledger
   preflight passed with zero pending operations.
+- GitHub currently reports 40 remote branches and no open pull requests. Keep `main`,
+  the two documented backup/archive pointers, and both `recovery/*` pointers. The other
+  35 heads are merged cleanup candidates, including the merged security-release head;
+  deletion and `main` protection remain blocked only on an authenticated admin path.
 
 ## Constraints
 
@@ -47,3 +56,4 @@ defined in `docs/RELEASE_OPERATIONS.md`; private backup recovery is defined in
 
 At session start, fetch `origin/main`, read `AGENTS.md` and
 `docs/PROJECT_STATE.md`, then recheck live state relevant to the requested work.
+
