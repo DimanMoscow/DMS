@@ -36,10 +36,11 @@ authoritative.
   outside Git; backup-reference SHA-256 prefix: `bad0040e`. The Apps Script console shows
   the active production deployment on numbered version `49`; the read-only ledger
   preflight passed with zero pending operations.
-- GitHub currently reports 40 remote branches and no open pull requests. Keep `main`,
-  the two documented backup/archive pointers, and both `recovery/*` pointers. The other
-  35 heads are merged cleanup candidates, including the merged security-release head;
-  deletion and `main` protection remain blocked only on an authenticated admin path.
+- GitHub reports no open pull requests or active Dependabot heads. Keep `main`, the two
+  documented backup/archive pointers, and both `recovery/*` pointers. All other heads
+  are merged cleanup candidates, including the security-release and final-checkpoint
+  heads; recount and recheck them immediately before deletion. Cleanup and `main`
+  protection remain blocked only on an authenticated admin path.
 
 ## Constraints
 
