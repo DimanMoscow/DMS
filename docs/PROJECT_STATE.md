@@ -110,4 +110,3 @@ only formula anchor in its spill range.
   gate and reconciliation. The private production-schema preflight reports zero pending
   operations and is ready to create the 13-column ledger.
 - Continue with read-only invitation history without introducing client-side writes.
-
