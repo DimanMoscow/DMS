@@ -105,5 +105,6 @@ only formula anchor in its spill range.
   The Apps Script console confirms that the sole active production deployment maps to
   numbered version `49`; production rollout still requires the separated writer OAuth
   profile, application and read-back of the new empty ledger schema, and the normal live
-  gate and reconciliation.
+  gate and reconciliation. The private production-schema preflight reports zero pending
+  operations and is ready to create the 13-column ledger.
 - Continue with read-only invitation history without introducing client-side writes.

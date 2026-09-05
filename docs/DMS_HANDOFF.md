@@ -29,7 +29,8 @@ authoritative.
 - A private owner-only Drive backup and isolated restore-test copy were verified on
   2026-09-06 against all 15 production sheets. The non-sensitive private manifest stays
   outside Git; backup-reference SHA-256 prefix: `bad0040e`. The Apps Script console shows
-  the active production deployment on numbered version `49`.
+  the active production deployment on numbered version `49`; the read-only ledger
+  preflight passed with zero pending operations.
 
 ## Constraints
 
