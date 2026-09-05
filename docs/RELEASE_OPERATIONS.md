@@ -121,9 +121,12 @@ absolute credential-profile path outside the repository through
 `DMS_APPS_SCRIPT_AUTH_FILE`, never prints credential fields, and requires the exact scope
 set for the selected profile. It always reports `authenticated:false`; a token refresh
 and read-only Apps Script API call are still required to prove authentication. The reader
-scopes are `script.projects.readonly` and
-`script.deployments.readonly`; the writer scopes are `script.projects` and
-`script.deployments`. A Google login and consent remain a user operation.
+scopes are `script.projects.readonly`, `script.deployments.readonly`,
+`drive.metadata.readonly`, and `spreadsheets.readonly`. The writer scopes are
+`script.projects`, `script.deployments`, `drive`, and `spreadsheets`. The Drive writer
+scope is required because the release tool copies an existing production workbook by
+ID; `drive.file` cannot discover or access that pre-existing file without a separate
+Picker grant. A Google login and consent remain a user operation.
 
 Official references:
 
@@ -218,10 +221,30 @@ history.
 - Apps Script planning, source integrity, production identity, and credential-profile
   format checks are automated offline. Exact live export/read-back and writes remain blocked
   on separate local OAuth profiles. Production remains on confirmed numbered `v49`.
-- A private Google Drive workbook copy and isolated restore test are still required
-  before the repository can claim disaster-recovery readiness.
+- A private owner-only Google Drive workbook copy and an isolated restore-test copy were
+  verified on 2026-09-06 across the complete 15-sheet production workbook. The private
+  manifest stays outside Git; retention still needs two additional fresh copies over the
+  normal 30-day window before the minimum three-copy policy is satisfied.
 - Historical production `v45` has no numbered source snapshot in Git. Do not invent one;
   restore it only from an exact Apps Script export if the numbered version remains
   available.
 - Telegram confirmation callbacks need a dedicated security-hardening stage to bind
   confirmations to a nonce/message and make payment/calendar retries durably idempotent.
+- Candidate `v50` implements that mechanism, but production remains on `v49` until
+  authenticated backup, migration, exact source deployment, live gate, and reconciliation
+  can run through the official Google flow.
+
+## Telegram confirmation v50 rollout
+
+1. Create and verify a private Drive copy of production `v49`, including the current
+   complete 15-sheet backup contract, and complete an isolated restore test.
+2. Run migration readiness and the private read-only preflight for
+   `telegram-confirmations-v1`.
+3. Create the empty `Журнал операций Telegram` sheet with the exact 13-column schema;
+   read it back before any callback can write an event.
+4. Update the backup contract after migration so future copies include the ledger.
+5. Compare Apps Script HEAD with candidate `v50`, create one numbered version, and move
+   only the approved production deployment.
+6. Verify runtime identity, the read-only live gate, zero reconciliation issues, and an
+   empty or structurally valid operation ledger. Do not exercise a payment, Calendar,
+   Queue, client, block, or undo mutation as production smoke.

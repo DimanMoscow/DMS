@@ -446,6 +446,16 @@
         "ZZZZZZZRuntime.gs",
         "Код.gs"
       ]
+    },
+    "v50": {
+      "baseVersion": "v49",
+      "fileCount": 17,
+      "sourceTreeSha256": "ced403932c8f7a5b079560762d210fa5ce38de7c9e6c5c59ebc27cd6820f2898",
+      "expectedChangedFiles": [
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZZZZZZZZZZZTelegramConfirmations.gs"
+      ]
     }
   }
 }

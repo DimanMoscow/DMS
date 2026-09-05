@@ -55,8 +55,10 @@ test("Apps Script authorization profiles enforce exact least-privilege scopes", 
     client_secret: "client-secret",
     refresh_token: "refresh-token",
     scopes: [
+      "https://www.googleapis.com/auth/drive.metadata.readonly",
       "https://www.googleapis.com/auth/script.projects.readonly",
       "https://www.googleapis.com/auth/script.deployments.readonly",
+      "https://www.googleapis.com/auth/spreadsheets.readonly",
     ],
   };
   assert.deepEqual(validateAuthorizationProfile(profile, "reader"), {
@@ -67,6 +69,8 @@ test("Apps Script authorization profiles enforce exact least-privilege scopes", 
     () => validateAuthorizationProfile({ ...profile, scopes: [
       "https://www.googleapis.com/auth/script.projects",
       "https://www.googleapis.com/auth/script.deployments",
+      "https://www.googleapis.com/auth/drive",
+      "https://www.googleapis.com/auth/spreadsheets",
     ] }, "reader"),
     /least-privilege scopes/,
   );

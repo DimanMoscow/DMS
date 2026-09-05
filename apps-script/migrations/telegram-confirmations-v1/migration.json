@@ -1,0 +1,21 @@
+{
+  "id": "telegram-confirmations-v1",
+  "schemaVersion": 1,
+  "appliesTo": ["Журнал операций Telegram"],
+  "destructive": false,
+  "productionWritesRequireApproval": true,
+  "preflight": [
+    "require target sheet to be absent or empty with the exact schema",
+    "require a verified private backup bound to production v49",
+    "require zero pending confirmation operations"
+  ],
+  "postCheck": [
+    "read back exact headers and frozen row",
+    "require append-only protections for operational tooling",
+    "verify no plaintext nonce, Telegram identity, client or financial payload columns"
+  ],
+  "rollback": [
+    "before first operation delete only the newly created empty sheet",
+    "after first operation retain the audit ledger and roll application code forward"
+  ]
+}
