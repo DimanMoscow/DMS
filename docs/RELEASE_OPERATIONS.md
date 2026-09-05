@@ -59,12 +59,15 @@ proves that mapping.
 
 ## Repository protection
 
-The hygiene audit at `main` `7c18cb4` found 37 remote branches: `main`, 34 unchanged
-heads of merged PRs, and two semantic recovery pointers. Those audited merged heads
-contained no post-merge work and may be deleted after rerunning the audit immediately
-before deletion; retain `backup/admin-today-pre-20260826` and
-`archive/legacy-vps-bot-2026-08-24`. Enable automatic head-branch deletion after merge
-once the initial cleanup is complete.
+The 2026-09-06 post-release audit found 40 remote branches and no open pull requests.
+Retain `main`, `backup/admin-today-pre-20260826`,
+`archive/legacy-vps-bot-2026-08-24`, `recovery/apps-script-v38-v39`, and
+`recovery/vercel-production-0.2.1`. The other 35 heads are merged cleanup candidates,
+including the merged Telegram security-release head. The earlier count of 36 merged
+heads included the two `recovery/*` pointers, which must not be deleted; three
+Dependabot heads disappeared after their approved merges and the security-release head
+was added. Delete only after rerunning this audit through an authenticated admin path,
+then enable automatic head-branch deletion after merge.
 
 The minimum policy for a solo owner plus Codex is:
 
@@ -248,3 +251,4 @@ history.
 6. Verify runtime identity, the read-only live gate, zero reconciliation issues, and an
    empty or structurally valid operation ledger. Do not exercise a payment, Calendar,
    Queue, client, block, or undo mutation as production smoke.
+
