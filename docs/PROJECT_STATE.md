@@ -53,8 +53,9 @@ Last verified: 2026-09-05 (Europe/Moscow).
   connectivity, public routes, health `no-store`, the allow-listed Apps Script runtime
   identity, and fail-closed `/api/dms` responses. Every API response in those paths must
   carry `Cache-Control: no-store`.
-- The full repository gate passes 64 tests plus lint, TypeScript, production build, and
-  Apps Script candidate/snapshot integrity.
+- The full repository gate passes 86 tests and covers a high-severity dependency audit, lint,
+  TypeScript, production build, Apps Script candidate/snapshot integrity and production
+  pointer, and the applied-migration ledger.
 - GitHub and Vercel release behavior is explicit: pull requests receive Preview
   deployments and an approved merge to `main` automatically deploys Production. The
   repository exposes `release:check`, `release:verify`, and an ignored, non-sensitive
@@ -67,6 +68,16 @@ Last verified: 2026-09-05 (Europe/Moscow).
   Apps Script runtime identity, queue waiting/error/registration counts, the read-only
   live gate result, trigger count, and last-check time. It exposes no identifiers or
   client, medical, or financial records.
+- Next.js and `eslint-config-next` are pinned to `16.3.4`. The upgrade removes the
+  audited Next.js/PostCSS/Sharp findings, including the vendor-published `16.3.3`
+  critical security fixes, without changing application code.
+- Apps Script source verification canonicalizes LF/CRLF while rejecting lone carriage
+  returns, so Windows and Linux prove the same immutable source hashes. Offline release
+  plans remain explicitly non-deployable until separate Google authorization verifies
+  remote state.
+- The repository records two confirmed applied portal migrations by immutable artifact
+  digest. A private Drive-copy contract and restore runbook exist, but no new production
+  backup was created.
 
 ## Calendar onboarding release
 

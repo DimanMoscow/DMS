@@ -155,7 +155,5 @@ measurement and shows neutral one-decimal changes where both values exist. Corre
 are already collapsed by the server before this comparison; the UI does not infer goals
 or medical meaning.
 
-Candidate `v46` adds the same no-op correction rejection at the server boundary under
-the document lock and preserves Client Portal error codes through the admin API. Until
-that numbered version is explicitly deployed, production `v45` still has the UI guard
-but not this additional direct-API guard.
+Production `v49` includes the no-op correction rejection at the server boundary under
+the document lock and preserves Client Portal error codes through the admin API.

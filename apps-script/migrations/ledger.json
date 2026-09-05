@@ -1,0 +1,41 @@
+{
+  "formatVersion": 1,
+  "environment": "production",
+  "catalog": [
+    {
+      "id": "client-portal-v1",
+      "schemaVersion": 1,
+      "dependsOn": [],
+      "artifactSha256": "64495b7d6ccb25d5b3f2acac43632376419b99293d10e128b04af7f1edfde3e6"
+    },
+    {
+      "id": "client-portal-enrollment-v1",
+      "schemaVersion": 1,
+      "dependsOn": [
+        "client-portal-v1"
+      ],
+      "artifactSha256": "751be0e3092e75dcedc3da02786a595cb7a93f6806c3a05ca5259ba9d1315fd3"
+    }
+  ],
+  "applied": [
+    {
+      "id": "client-portal-v1",
+      "artifactSha256": "64495b7d6ccb25d5b3f2acac43632376419b99293d10e128b04af7f1edfde3e6",
+      "verifiedOn": "2026-09-04",
+      "sourceSnapshot": "v49",
+      "evidence": "docs/CLIENT_PORTAL_PILOT.md"
+    },
+    {
+      "id": "client-portal-enrollment-v1",
+      "artifactSha256": "751be0e3092e75dcedc3da02786a595cb7a93f6806c3a05ca5259ba9d1315fd3",
+      "verifiedOn": "2026-09-04",
+      "sourceSnapshot": "v49",
+      "evidence": "docs/CLIENT_PORTAL_PILOT.md"
+    }
+  ],
+  "currentSchemaVersions": {
+    "Доступ клиентов": 1,
+    "Замеры": 1,
+    "Приглашения Client Portal": 1
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "formatVersion": 1,
+  "minimumVersions": {
+    "next": {
+      "version": "16.3.4",
+      "advisories": [
+        "GHSA-p293-qw3h-jr36",
+        "GHSA-2xp9-vwfh-vxw4",
+        "GHSA-6gpp-xcg3-4w24",
+        "GHSA-m99w-x7hq-7vfj",
+        "GHSA-89xv-2m56-2m9x",
+        "GHSA-p9j2-gv94-2wf4"
+      ]
+    },
+    "postcss": {
+      "version": "8.5.23",
+      "advisories": ["GHSA-6g55-p6wh-862q", "GHSA-r28c-9q8g-f849"]
+    },
+    "sharp": {
+      "version": "0.35.0",
+      "advisories": ["GHSA-f88m-g3jw-g9cj"]
+    }
+  }
+}
