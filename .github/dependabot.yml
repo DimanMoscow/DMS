@@ -9,6 +9,10 @@ updates:
       timezone: Europe/Moscow
     target-branch: main
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
@@ -18,3 +22,7 @@ updates:
       timezone: Europe/Moscow
     target-branch: main
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
