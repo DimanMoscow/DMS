@@ -251,4 +251,3 @@ history.
 6. Verify runtime identity, the read-only live gate, zero reconciliation issues, and an
    empty or structurally valid operation ledger. Do not exercise a payment, Calendar,
    Queue, client, block, or undo mutation as production smoke.
-
