@@ -1166,9 +1166,10 @@ function telegramAuditAction_(action, entity, description, undoPayload) {
     const sheet = getOrCreateTelegramAuditSheet_();
     const id = 'AU-' + Utilities.formatDate(new Date(),
       SpreadsheetApp.getActive().getSpreadsheetTimeZone() || 'Europe/Moscow', 'yyyyMMddHHmmss') +
-      '-' + Math.floor(Math.random() * 1000);
+      '-' + Utilities.getUuid();
+    const compensation = sealDmsDomainUndo_(undoPayload, id, action, entity);
     sheet.appendRow([id, new Date(), action, entity || '', description || '',
-      undoPayload ? JSON.stringify(undoPayload) : '', false, 'Telegram']);
+      compensation ? JSON.stringify(compensation) : '', false, 'Telegram']);
     return id;
   } catch (error) {
     console.error('Audit error: ' + (error.message || String(error)));
@@ -1190,7 +1191,8 @@ function getOrCreateTelegramAuditSheet_() {
 
 function makeTelegramRestoreRangeUndo_(sheet, row, column, values) {
   return {type: 'restore_range', sheet: sheet.getName(), row: row, column: column,
-    values: serializeTelegramUndoValues_(values)};
+    values: serializeTelegramUndoValues_(values),
+    expected: serializeTelegramUndoValues_(sheet.getRange(row, column, values.length, values[0].length).getValues())};
 }
 
 function serializeTelegramUndoValues_(values) {
@@ -1218,8 +1220,25 @@ function showTelegramUndoConfirmation_(chatId, messageId) {
     else telegramSendMessage_(chatId, text, null);
     return;
   }
+  let plan;
+  try { plan = JSON.parse(item.payload); } catch (ignore) {}
+  if (!plan || plan.type !== 'domain_compensation' || plan.version !== 1) {
+    telegramSendMessage_(chatId, 'Для этого старого действия автоматическая отмена недоступна. Требуется ручная сверка.', null);
+    return;
+  }
+  const descriptions = {
+    restore_fields: 'Будут восстановлены предыдущие значения.',
+    retire_client: 'Клиент будет перенесён в архив; история сохранится.',
+    retire_block: 'Блок будет закрыт; запись и исходные условия сохранятся в истории.',
+    void_payment: 'Оплата будет помечена отменённой.',
+    move_calendar_event: 'Событие будет возвращено на прежнее время.',
+    delete_calendar_event: 'Созданное событие будет удалено.'
+  };
+  const effects = plan.steps.map(function(step) { return descriptions[step.kind]; })
+    .filter(function(value, index, items) { return value && items.indexOf(value) === index; });
   const text = '<b>Отменить последнее действие?</b>\n' +
-    escapeTelegramHtml_(item.description) + '\n\nБудут восстановлены предыдущие значения.';
+    escapeTelegramHtml_(item.description) + '\n\n' + effects.join('\n') +
+    '\nЕсли появились зависимые записи, отмена будет отклонена.';
   const markup = {inline_keyboard: [[
     {text: '↩️ Отменить', callback_data: 'ops:undoYes:' + item.id},
     {text: '❌ Назад', callback_data: 'ops:more'}
@@ -1260,8 +1279,8 @@ function performTelegramUndo_(auditId) {
       throw new Error('Появилось более новое действие. Открой откат заново.');
     }
     const payload = JSON.parse(values[5]);
-    validateTelegramUndoPayload_(payload);
-    applyTelegramUndoPayload_(payload, true);
+    validateDmsDomainUndo_(payload, values);
+    applyDmsDomainUndo_(payload);
     sheet.getRange(row, 7).setValue(true);
     telegramAuditAction_('undo', auditId,
       'Отменено: ' + String(values[4] || ''), null);
@@ -1271,45 +1290,9 @@ function performTelegramUndo_(auditId) {
 }
 
 function applyTelegramUndoPayload_(payload, validated) {
-  if (!validated) validateTelegramUndoPayload_(payload);
-  applyTelegramUndoPayloadUnsafe_(payload);
-  SpreadsheetApp.flush();
-}
-
-function validateTelegramUndoPayload_(payload) {
-  if (!payload || typeof payload !== 'object') {
-    throw new Error('Некорректный пакет отката.');
-  }
-
-  if (payload.type === 'restore_range') {
-    const target = getRequiredSheet_(SpreadsheetApp.getActive(), payload.sheet);
-    const values = deserializeTelegramUndoValues_(payload.values || []);
-    validateTelegramUndoRange_(target, payload.row, payload.column, values);
-  } else if (payload.type === 'clear_range') {
-    const target = getRequiredSheet_(SpreadsheetApp.getActive(), payload.sheet);
-    validateTelegramUndoRange_(target, payload.row, payload.column,
-      makeTelegramUndoValidationMatrix_(payload.rows, payload.columns));
-  } else if (payload.type === 'compound') {
-    if (!Array.isArray(payload.items) || !payload.items.length) {
-      throw new Error('Пустой составной пакет отката.');
-    }
-    payload.items.forEach(validateTelegramUndoPayload_);
-  } else if (payload.type === 'delete_calendar_event') {
-    if (!payload.calendarId || !payload.eventId) {
-      throw new Error('В откате не указан идентификатор события календаря.');
-    }
-  } else if (payload.type === 'move_calendar_event') {
-    if (!payload.calendarId || !payload.eventId || !payload.start ||
-        !payload.end || !payload.timeZone) {
-      throw new Error('В откате переноса не хватает данных календаря.');
-    }
-    if (isNaN(new Date(payload.start).getTime()) ||
-        isNaN(new Date(payload.end).getTime())) {
-      throw new Error('В откате переноса указано некорректное время.');
-    }
-  } else {
-    throw new Error('Неизвестный тип отката.');
-  }
+  // Generic historical clear/restore payloads are never an execution authority.
+  validateDmsDomainUndo_(payload);
+  applyDmsDomainUndo_(payload);
 }
 
 function validateTelegramUndoRange_(sheet, row, column, values) {
@@ -1344,33 +1327,6 @@ function makeTelegramUndoValidationMatrix_(rows, columns) {
   return Array.from({length: height}, function() {
     return Array(width).fill(null);
   });
-}
-
-function applyTelegramUndoPayloadUnsafe_(payload) {
-  if (payload.type === 'restore_range') {
-    const target = getRequiredSheet_(SpreadsheetApp.getActive(), payload.sheet);
-    const values = deserializeTelegramUndoValues_(payload.values);
-    target.getRange(payload.row, payload.column,
-      values.length, values[0].length).setValues(values);
-  } else if (payload.type === 'clear_range') {
-    getRequiredSheet_(SpreadsheetApp.getActive(), payload.sheet)
-      .getRange(payload.row, payload.column,
-        payload.rows, payload.columns).clearContent();
-  } else if (payload.type === 'compound') {
-    payload.items.slice().reverse().forEach(applyTelegramUndoPayloadUnsafe_);
-  } else if (payload.type === 'delete_calendar_event') {
-    try {
-      dmsCalendarRemove_(payload.calendarId, payload.eventId,
-        {sendUpdates: 'none'});
-    } catch (error) {
-      if (!isCalendarEventMissingError_(error)) throw error;
-    }
-  } else if (payload.type === 'move_calendar_event') {
-    dmsCalendarPatch_({
-      start: {dateTime: payload.start, timeZone: payload.timeZone},
-      end: {dateTime: payload.end, timeZone: payload.timeZone}
-    }, payload.calendarId, payload.eventId, {sendUpdates: 'none'});
-  }
 }
 
 function sendTelegramAuditHistory_(chatId, messageId) {

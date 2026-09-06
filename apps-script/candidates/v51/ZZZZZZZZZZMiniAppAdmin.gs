@@ -828,14 +828,15 @@ function appendDmsCalendarOnboardingAudit_(action, entity, description, undoPayl
   const sheet = getOrCreateTelegramAuditSheet_();
   const timeZone = SpreadsheetApp.getActive().getSpreadsheetTimeZone() || 'Europe/Moscow';
   const id = 'AU-' + Utilities.formatDate(new Date(), timeZone, 'yyyyMMddHHmmss') +
-    '-' + Math.floor(Math.random() * 1000);
+    '-' + Utilities.getUuid();
+  const compensation = sealDmsDomainUndo_(undoPayload, id, action, entity);
   sheet.appendRow([
     id,
     new Date(),
     action,
     entity || '',
     description || '',
-    undoPayload ? JSON.stringify(undoPayload) : '',
+    compensation ? JSON.stringify(compensation) : '',
     false,
     'MiniApp'
   ]);

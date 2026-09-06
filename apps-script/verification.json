@@ -476,8 +476,8 @@
     },
     "v51": {
       "baseVersion": "v50",
-      "fileCount": 18,
-      "sourceTreeSha256": "392faa5d008264c84636f7c65834684384af71e44233ef74dc8d7fe7114c6136",
+      "fileCount": 19,
+      "sourceTreeSha256": "18b9ad17b85f14471f2bc36d4422aaa8a8400ab7c1592cd85701ad2a134a7243",
       "expectedChangedFiles": [
         "CalendarSync.gs",
         "QueueProcessing.gs",
@@ -491,6 +491,7 @@
         "ZZZZZZZZZZZClientPortal.gs",
         "ZZZZZZZZZZZZTelegramConfirmations.gs",
         "ZZZZZZZZZZZZZOperationSafety.gs",
+        "ZZZZZZZZZZZZZZUndoSafety.gs",
         "Код.gs"
       ]
     }
