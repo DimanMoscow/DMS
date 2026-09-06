@@ -742,6 +742,7 @@ function applyDmsCalendarOnboardingNewClient_(ss, item, preview, actorId) {
 }
 
 function captureDmsCalendarOnboardingRange_(sheet, row, column, columns) {
+  ensureDmsSheetRowCapacity_(sheet, row);
   const range = sheet.getRange(row, column, 1, columns);
   return {
     sheet: sheet,
@@ -786,6 +787,7 @@ function resolveDmsCalendarOnboardingQueueValues_(values, client) {
 function appendDmsCalendarOnboardingPayment_(ss, clientId, blockId, payment) {
   const sheet = getRequiredSheet_(ss, DMS_CALENDAR_ONBOARDING.PAYMENTS);
   const row = findTelegramEmptyPaymentRow_(sheet);
+  ensureDmsSheetRowCapacity_(sheet, row);
   const operationId = makeNextTelegramPaymentId_(sheet);
   const timeZone = ss.getSpreadsheetTimeZone() || 'Europe/Moscow';
   const paidAt = Utilities.parseDate(

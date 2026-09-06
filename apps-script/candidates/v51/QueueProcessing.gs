@@ -22,7 +22,7 @@ function setupQueueProcessing() {
     .setAllowInvalid(false)
     .build();
 
-  log.getRange('I4:I503').setDataValidation(methodRule);
+  log.getRange(4, 9, log.getMaxRows() - 3, 1).setDataValidation(methodRule);
   ss.toast(
     'Обработка очереди настроена. Значения и остатки не изменены.',
     'DMS Fitness',
@@ -913,6 +913,7 @@ function writeQueueTrainingLogRowFast_(log, data, context) {
   const newRow = context.emptyLogRows.length
     ? context.emptyLogRows.shift()
     : context.nextLogRow++;
+  ensureDmsSheetRowCapacity_(log, newRow);
   const recordId = 'TR-' + String(
     context.nextRecordNumber++
   ).padStart(3, '0');

@@ -1375,6 +1375,7 @@ function appendTelegramPayment_(state) {
   const ss = SpreadsheetApp.getActive();
   const payments = getRequiredSheet_(ss, DMS_TELEGRAM_CLIENTS.PAYMENTS);
   const row = findTelegramEmptyPaymentRow_(payments);
+  ensureDmsSheetRowCapacity_(payments, row);
   const operationId = makeNextTelegramPaymentId_(payments);
   const now = new Date();
   if (payments.getLastRow() >= DMS_TELEGRAM_CLIENTS.PAYMENT_FIRST_ROW) {

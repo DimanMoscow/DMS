@@ -101,15 +101,47 @@ passed actual isolated Sheets writes/read-back with zero dangling references and
 zero production writes. Their synthetic starting state is produced by the real
 onboarding implementation; the Node runtime/lock limitations above still apply.
 The undo-stage full release gate passed 160 tests and all other repository checks.
+PR #51 merged as `4036eec67d681b99d9850ed63d123d88f42b7e0c`; the exact automatic
+Vercel Production source and read-only health/runtime checks passed.
+
+## Financial growth (P1.6)
+
+Authenticated read-only formula inspection confirmed the live 203/503 bounds in
+Clients E:J and Blocks I/J/N/O. The current J5 anchor also omitted the single
+training debt branch supported by the existing core generator. Candidate v51
+uses nine shared financial anchors: occupied IDs feed grouped history aggregates,
+then vector lookups produce completed counts, remaining sessions, amounts paid
+and debt. Single-training debt follows the existing max(0, charges − confirmed
+unallocated payments) rule. Prices and contract inputs are preserved.
+
+The versioned financial migration atomically replaces only declared derived
+columns and repairs known client-format lookup formulas; literal formats remain.
+It reads inputs back unchanged and is idempotent. The read-only guard independently
+recomputes every financial result from full Payments/Journal history and validates
+formula ownership. Entity writers preserve anchors, including the first client,
+and expand physical grid capacity before reaching the end of a sheet. Validation
+setup follows grid capacity instead of the former template limits.
+
+Native Google Sheets tests reproduce old numeric failures, then pass at rows
+202/203/204, 502/503/504, and distant rows 705/2504. A post-install growth case adds
+entities at 1105 and history at 2700 after grid expansion, without reinstalling
+formulas. Both the 18-client/15-block/21-payment/115-Journal fixture and tenfold
+fixture match independently generated expectations. The final measured
+write/recalculate/read intervals were 2.0–3.1 seconds; these include API latency
+and are not isolated formula CPU benchmarks. The numeric guard also rejects an
+incorrect result while the correct formula text remains present.
+
+The full financial release gate passed 167 tests and all repository checks.
+Financial formulas and schema have been changed only on the private isolated copy.
 
 ## Remaining P1 gates
 
 Operation changes remain an undeployed candidate; final combined release checks,
 fresh private recovery, and live legacy inventory are still required.
 Domain undo remains a repository candidate until the combined Apps Script release.
-P1.6: source recheck confirms financial generators stop at rows 203/503 and the
-Debt guard explicitly expects these fixed boundaries. Behavioral reproduction and
-remediation for these findings remain required; none is closed by this checkpoint.
+All six findings now have candidate remediation and behavioral evidence. The
+production rollout still requires fresh recovery, actual legacy-property inventory,
+drain/compatibility checks, updated runtime fingerprints and final live read-only gates.
 
 Google's [LockService contract](https://developers.google.com/apps-script/reference/lock/lock-service)
 returns null for DocumentLock in web app execution. Existing tests that inject an

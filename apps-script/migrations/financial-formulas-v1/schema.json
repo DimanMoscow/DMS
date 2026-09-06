@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sheets": {
+    "clients": {
+      "name": "Клиенты",
+      "firstRow": 5,
+      "computedColumns": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "anchors": {
+        "F5": "=ARRAYFORMULA(IF(A5:A=\"\";\"\";IF(D5:D=\"\";\"\";IFNA(VLOOKUP(D5:D;FILTER('Блоки'!A4:O;'Блоки'!A4:A<>\"\");9;FALSE);\"\"))))",
+        "G5": "=ARRAYFORMULA(IF(A5:A=\"\";\"\";IF(D5:D=\"\";\"\";IFNA(VLOOKUP(D5:D;FILTER('Блоки'!A4:O;'Блоки'!A4:A<>\"\");10;FALSE);\"\"))))",
+        "H5": "=ARRAYFORMULA(IF(A5:A=\"\";\"\";IF(D5:D=\"\";\"\";IFNA(VLOOKUP(D5:D;FILTER('Блоки'!A4:O;'Блоки'!A4:A<>\"\");11;FALSE);\"\"))))",
+        "I5": "=ARRAYFORMULA(IF(A5:A=\"\";\"\";IF(D5:D=\"\";\"\";IFNA(VLOOKUP(D5:D;FILTER('Блоки'!A4:O;'Блоки'!A4:A<>\"\");14;FALSE);\"\"))))",
+        "J5": "=ARRAYFORMULA(LET(charges;IFNA(VLOOKUP(A5:A;QUERY(FILTER('Журнал тренировок'!C4:H;'Журнал тренировок'!A4:A<>\"\");\"select Col1,sum(Col6) where Col3='Разовая' and Col5='Проведена' group by Col1 label sum(Col6) ''\";0);2;FALSE);0);paid;IFNA(VLOOKUP(A5:A;QUERY(FILTER('Оплаты'!C4:H;'Оплаты'!A4:A<>\"\");\"select Col1,sum(Col5) where Col2 is null and Col6='Подтверждён' group by Col1 label sum(Col5) ''\";0);2;FALSE);0);balance;charges-paid;IF(A5:A=\"\";\"\";IF(D5:D<>\"\";IFNA(VLOOKUP(D5:D;FILTER('Блоки'!A4:O;'Блоки'!A4:A<>\"\");15;FALSE);\"\");IF(REGEXMATCH(K5:K;\"^Разов(ые|ая тренировка)[ —–-]\");IF(balance>0;balance;0);\"\")))))"
+      }
+    },
+    "blocks": {
+      "name": "Блоки",
+      "firstRow": 4,
+      "computedColumns": [
+        9,
+        10,
+        14,
+        15
+      ],
+      "anchors": {
+        "I4": "=ARRAYFORMULA(IF(A4:A=\"\";\"\";IFNA(VLOOKUP(A4:A;QUERY(FILTER('Журнал тренировок'!C4:H;'Журнал тренировок'!A4:A<>\"\");\"select Col2,count(Col2) where Col2 is not null and Col5='Проведена' group by Col2 label count(Col2) ''\";0);2;FALSE);0)))",
+        "J4": "=ARRAYFORMULA(IF(A4:A=\"\";\"\";IF(H4:H=\"\";\"\";H4:H-I4:I)))",
+        "N4": "=ARRAYFORMULA(IF(A4:A=\"\";\"\";IFNA(VLOOKUP(A4:A;QUERY(FILTER('Оплаты'!C4:H;'Оплаты'!A4:A<>\"\");\"select Col2,sum(Col5) where Col2 is not null and Col6='Подтверждён' group by Col2 label sum(Col5) ''\";0);2;FALSE);0)))",
+        "O4": "=ARRAYFORMULA(IF(A4:A=\"\";\"\";IF(K4:K=\"\";\"\";K4:K-N4:N)))"
+      }
+    }
+  }
+}
