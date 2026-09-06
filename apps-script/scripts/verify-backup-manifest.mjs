@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { sha256 } from "./source-integrity.mjs";
@@ -14,6 +15,15 @@ const hashPattern = /^[0-9a-f]{64}$/;
 const production = JSON.parse(
   fs.readFileSync(path.join(appsScriptRoot, "production.json"), "utf8"),
 );
+const liveProductionContext = new AsyncLocalStorage();
+
+// Immutable migration packages call the ordinary verifier. A release that has
+// independently read back a newer paused deployment supplies that actual version
+// for this operation only; other calls still use the repository production pin.
+export function withBackupProductionPointer(pointer, callback) {
+  assert.ok(Number.isInteger(pointer?.numberedVersion) && pointer.numberedVersion > 0);
+  return liveProductionContext.run(Object.freeze({numberedVersion: pointer.numberedVersion}), callback);
+}
 
 function exactKeys(value, keys, label) {
   assert.ok(value && typeof value === "object" && !Array.isArray(value), `${label} must be an object`);
@@ -22,7 +32,7 @@ function exactKeys(value, keys, label) {
 
 export function verifyBackupManifest(manifest, {
   contract = JSON.parse(fs.readFileSync(path.join(appsScriptRoot, "backup", "contract.json"), "utf8")),
-  productionPointer = production,
+  productionPointer = liveProductionContext.getStore() || production,
   now = new Date(),
 } = {}) {
   exactKeys(manifest, [

@@ -65,6 +65,12 @@ Last verified: 2026-09-06 (Europe/Moscow).
   distant-row, post-install growth, production-sized and tenfold scenarios.
   The full financial gate passed 167 tests. Both new migrations remain unapplied
   in production; the combined Apps Script rollout and live legacy inventory remain.
+  PR #52 merged as `3b3e6cd91a673fa292b2940f2a728d37fe6c076a`; its exact automatic
+  Vercel deployment passed read-only health/runtime checks with connected data and
+  no-store responses. The release-readiness candidate adds a default-closed writer
+  interlock, original-context count-only inventory, full safety-module fingerprints
+  and a scoped staged rollout; see `docs/P1_RELEASE.md`. These release phases have
+  not yet changed production.
 
 - Create measurements only through an explicit authenticated administrator action.
 - Do not create the pending Hybrid product until a separate confirmed Calendar start
