@@ -9,6 +9,7 @@ function getDmsMutationLock_() {
   return {
     tryLock: function(timeout) {
       if (acquired) return true;
+      assertDmsP1ReleaseReady_();
       if (!DMS_MUTATION_DEPTH) {
         const mutex = LockService.getScriptLock();
         if (!mutex || typeof mutex.tryLock !== 'function') throw new Error('Script lock unavailable.');

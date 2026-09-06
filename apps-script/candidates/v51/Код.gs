@@ -28,6 +28,7 @@ function onOpen() {
 }
 
 function setupDmsFitness() {
+  assertDmsP1ReleaseReady_();
   const ss = SpreadsheetApp.getActive();
   ss.setSpreadsheetTimeZone('Europe/Moscow');
 
@@ -57,6 +58,7 @@ function setupDmsFitness() {
 
 function onEdit(e) {
   if (!e || e.value !== 'TRUE') return;
+  assertDmsP1ReleaseReady_();
 
   const range = e.range;
   const sheet = range.getSheet();

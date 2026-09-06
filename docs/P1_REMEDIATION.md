@@ -143,6 +143,16 @@ All six findings now have candidate remediation and behavioral evidence. The
 production rollout still requires fresh recovery, actual legacy-property inventory,
 drain/compatibility checks, updated runtime fingerprints and final live read-only gates.
 
+The final 21-file candidate has 174 tests, including the real MiniApp runtime
+proxy response path and default-closed release entry points. Its 2000 lifecycle
+load includes 200 committed payments with replay, plus expired and revoked tickets;
+Properties stay bounded and new operations still succeed. Seven actual isolated
+Sheets operation/retention scenarios and five domain-undo scenarios passed against
+candidate tree `4893e98864e18bd879597ce2f1c32a000e5e04ee2d1f25a324fc22dc0729103b`.
+Native financial checks on that same tree passed boundaries, post-install growth,
+production-sized and tenfold data; the latter completed write/recalculation/read-back
+in 2260 ms. See `P1_RELEASE.md` for the reviewed staged release and drain interlock.
+
 Google's [LockService contract](https://developers.google.com/apps-script/reference/lock/lock-service)
 returns null for DocumentLock in web app execution. Existing tests that inject an
 always-successful DocumentLock do not establish mutual exclusion. The operation

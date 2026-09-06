@@ -1313,6 +1313,7 @@ function runDmsBackupSetupV31() {
 }
 
 function runDmsWatchdog() {
+  assertDmsP1ReleaseReady_();
   const report = runDmsReadOnlySelfTests();
   const props = PropertiesService.getScriptProperties();
   const signatureKey = 'DMS_WATCHDOG_ALERT_SIGNATURE';

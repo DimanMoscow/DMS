@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
-import { verifyBackupManifest } from "../apps-script/scripts/verify-backup-manifest.mjs";
+import { verifyBackupManifest, withBackupProductionPointer } from "../apps-script/scripts/verify-backup-manifest.mjs";
 
 const fixture = JSON.parse(fs.readFileSync("tests/fixtures/backups/valid.json", "utf8"));
 const now = new Date("2026-09-05T01:00:00Z");
@@ -37,4 +37,16 @@ test("recovery manifest rejects stale and untested backups", () => {
   const untested = structuredClone(fixture);
   untested.restoreTest.status = "not-run";
   assert.throws(() => verifyBackupManifest(untested, { now }), /not-run/);
+});
+
+test('verified paused deployment context is scoped and does not weaken ordinary backup checks', async () => {
+  const paused = {...structuredClone(fixture), appsScriptVersion: 'v51'};
+  assert.throws(() => verifyBackupManifest(paused, {now}), /production pointer/);
+  await withBackupProductionPointer({numberedVersion: 51}, async () => {
+    await Promise.resolve();
+    assert.equal(verifyBackupManifest(paused, {now}).ok, true);
+    assert.throws(() => verifyBackupManifest(fixture, {now}), /production pointer/);
+  });
+  assert.throws(() => verifyBackupManifest(paused, {now}), /production pointer/);
+  assert.equal(verifyBackupManifest(fixture, {now}).ok, true);
 });

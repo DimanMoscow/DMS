@@ -214,18 +214,31 @@ test('P1.4 Telegram transport failure after commit cannot repeat payment', () =>
   assert.equal(f.payments().length, 1);
 });
 
-test('P1.5 2000 revoked lifecycles allocate no ticket properties and retain ledger bindings', () => {
+test('P1.5 2000 consumed/expired/revoked lifecycles keep Properties bounded and preserve results', () => {
   const f = fixture();
   const initialBytes = f.context.getDmsPropertyUsage_().script.bytes;
   for (let i = 0; i < 2000; i++) {
-    const ticket = f.context.createTelegramConfirmation_('1001', '2002', '7', 'payment', {index: i});
-    f.context.revokeTelegramConfirmationById_(ticket.id, 'cancel');
+    const state = {...f.state, secureFlowId: 'retention-' + i};
+    const ticket = f.context.createTelegramConfirmation_('1001', '2002', '7', 'payment',
+      f.context.makeTelegramStateConfirmationPayload_('pc:yes', 'payment', state));
+    const parsed = f.context.parseTelegramConfirmationCallback_(ticket.callbackData);
+    if (i % 10 === 0) {
+      assert.equal(f.context.processTelegramSecureCallback_(f.query, parsed).code, 'payment_recorded');
+      assert.equal(f.context.processTelegramSecureCallback_(f.query, parsed).code, 'payment_recorded');
+    } else if (i % 2) {
+      assert.throws(() => f.context.validateTelegramConfirmation_(parsed, f.query, Date.now() + 3600000), /истёк/);
+    } else f.context.revokeTelegramConfirmationById_(ticket.id, 'cancel');
   }
   assert.equal(f.context.getDmsPropertyUsage_().script.bytes, initialBytes);
   assert.equal([...f.shared.keys()].filter(k => k.startsWith('DMS_TG_CF_')).length, 0);
   f.restart();
   assert.equal(f.context.getTelegramConfirmationState_(f.ticket.id).status, 'pending');
-  assert.equal(f.pay().code, 'payment_recorded');
+  assert.equal(f.payments().length, 200);
+  const final = f.context.createTelegramConfirmation_('1001', '2002', '7', 'payment',
+    f.context.makeTelegramStateConfirmationPayload_('pc:yes', 'payment', {...f.state, secureFlowId: 'after-load'}));
+  assert.equal(f.context.processTelegramSecureCallback_(f.query,
+    f.context.parseTelegramConfirmationCallback_(final.callbackData)).code, 'payment_recorded');
+  assert.equal(f.payments().length, 201);
 });
 
 test('P1.5 quota warning and fail-safe precede any new confirmation write', () => {

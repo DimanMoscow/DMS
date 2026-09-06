@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-export function loadBundle(candidate = 'v51', overrides = {}) {
+export function loadBundle(candidate = 'v51', overrides = {}, {releaseReady = true} = {}) {
   const writes = [];
   const logs = [];
   const properties = new Map([
@@ -60,6 +60,11 @@ export function loadBundle(candidate = 'v51', overrides = {}) {
     HtmlService: {createHtmlOutput: text => ({text})},
     ...overrides,
   });
+  // Explicit deployment configuration of this test project. Tests for the
+  // initial, paused HEAD opt out and exercise the real default-deny behavior.
+  if (candidate === 'v51' && releaseReady) {
+    context.PropertiesService.getScriptProperties().setProperty('DMS_P1_RELEASE_READY', 'v51');
+  }
   const root = `apps-script/candidates/${candidate}`;
   const files = fs.readdirSync(root).filter(name => name.endsWith('.gs')).sort();
   for (const name of files) {

@@ -29,6 +29,7 @@ function doPost(e) {
     if (!update || typeof update !== 'object' || Array.isArray(update)) {
       return telegramTextResponse_('invalid_request');
     }
+    assertDmsP1ReleaseReady_();
     if (typeof isDmsMiniAppRequest_ === 'function' && isDmsMiniAppRequest_(update)) {
       return handleDmsMiniAppRequest_(update);
     }
@@ -574,6 +575,7 @@ function toggleTelegramSetting_(key) {
 }
 
 function sendTelegramMorningDigest() {
+  assertDmsP1ReleaseReady_();
   const settings = getTelegramFinalSettings_();
   if (!settings.morning) return 'Утренняя сводка отключена.';
   validateTelegramConfiguration_();
@@ -588,6 +590,7 @@ function sendTelegramMorningDigest() {
 }
 
 function sendTelegramDailyQueue() {
+  assertDmsP1ReleaseReady_();
   const settings = getTelegramFinalSettings_();
   if (!settings.evening) return 'Вечерняя проверка отключена.';
   validateTelegramConfiguration_();

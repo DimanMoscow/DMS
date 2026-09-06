@@ -19,8 +19,8 @@ const DMS_RUNTIME_IDENTITY = {
   SERVICE: 'dms-fitness-apps-script',
   RELEASE: 'calendar-onboarding-r8-production-guards',
   ROUTER_SHA256: 'fe206783b972575e9265cb1c5fc172661814b83662e0603d88c8b8a93000783f',
-  CLIENT_PORTAL_SHA256: '5b1e75207fce0184a89870848b79e1b0eea738359ccd11d0c17684902b34ebf5',
-  TELEGRAM_CONFIRMATIONS_SHA256: '3122547e3eb8631756071eae2b1e62fb43acb6c2c698bb2eb4471e7fd58a7584'
+  CLIENT_PORTAL_SHA256: '8175d6dc221392814d284d209720d0a65b25f704e32818cdf8e3103ee05935ec',
+  TELEGRAM_CONFIRMATIONS_SHA256: '1dc817c07a7bbc09a39ac93e2c17adee2fd8a4587d18319499baae2221cf49ce'
 };
 
 /**
@@ -68,7 +68,12 @@ function getDmsRuntimeIdentity_() {
     clientPortalSha256: DMS_RUNTIME_IDENTITY.CLIENT_PORTAL_SHA256,
     clientPortalHandlerLoaded: typeof handleDmsClientPortalRequest_ === 'function',
     telegramConfirmationsSha256: DMS_RUNTIME_IDENTITY.TELEGRAM_CONFIRMATIONS_SHA256,
-    telegramConfirmationsHandlerLoaded: typeof handleTelegramCallback_ === 'function'
+    telegramConfirmationsHandlerLoaded: typeof handleTelegramCallback_ === 'function' &&
+      typeof processTelegramSecureCallback_ === 'function' &&
+      typeof getDmsMutationLock_ === 'function' &&
+      typeof assertDmsP1ReleaseReady_ === 'function' &&
+      typeof getDmsFinancialHealth_ === 'function' &&
+      typeof sealDmsDomainUndo_ === 'function'
   };
 }
 

@@ -11,6 +11,7 @@ import {
   sourceTreeSha256,
 } from "./source-integrity.mjs";
 import { verifyRuntimeIdentity } from "./runtime-identity.mjs";
+import { runtimeSourceHashes } from "./runtime-source-hashes.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const appsScriptDirectory = path.resolve(scriptDirectory, "..");
@@ -356,13 +357,9 @@ assert.equal(Number.isNaN(verifiedAt.getTime()), false, "production verification
 assert.match(production.lastVerified.at,
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/,
   "production verification time must be UTC");
-verifyRuntimeIdentity(production.runtimeIdentity, {
-  routerSha256: sha256(actualSources[production.snapshot]["ZZZZZZZZMiniAppApi.gs"]),
-  clientPortalSha256: sha256(actualSources[production.snapshot]["ZZZZZZZZZZZClientPortal.gs"]),
-  telegramConfirmationsSha256: sha256(
-    actualSources[production.snapshot]["ZZZZZZZZZZZZTelegramConfirmations.gs"],
-  ),
-}, { requireOk: false });
+verifyRuntimeIdentity(production.runtimeIdentity,
+  runtimeSourceHashes(path.join(appsScriptDirectory, 'versions', production.snapshot)),
+  { requireOk: false });
 console.log(
   `Production pointer verified: ${production.snapshot}, ` +
   `${production.lastVerified.liveGatePassed}/${production.lastVerified.liveGateTotal}, ` +

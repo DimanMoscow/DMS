@@ -94,6 +94,33 @@ try {
     results.push({boundary, status: result.status || result.code, paymentRows: payments.length, passed: true});
     console.log('Isolated Sheets boundary passed: ' + boundary);
   }
+  // Retention writes durable copies to actual isolated Sheets before removing
+  // ephemeral keys from the Properties service adapter. Unknown state survives.
+  const initial = {'Журнал операций Telegram': [headers]};
+  rpc({op: 'reset', initial});
+  const book = memoryWorkbook(initial);
+  book.hooks.before = event => rpc({op: 'write', event});
+  const retention = loadBundle('v51', {SpreadsheetApp: book.service,
+    LockService: {getScriptLock: () => ({tryLock: () => true, releaseLock() {}})}});
+  const originals = [];
+  for (const [i, status] of ['consumed', 'expired', 'revoked', 'pending', 'unknown'].entries()) {
+    const id = (i + 1).toString(16).padStart(16, '0');
+    const raw = JSON.stringify({id, operationId: 'legacy-' + i, status, action: 'payment',
+      adminHash: '', chatHash: '', messageId: '7', payloadHash: ''});
+    retention.properties.set('DMS_TG_CF_' + id, raw); originals.push(raw);
+  }
+  assert.equal(retention.context.cleanupDmsLegacyConfirmationTickets_({limit: 2,
+    legacyExecutionsDrained: true}).deletedEphemeralKeys, 2);
+  assert.equal(retention.context.cleanupDmsLegacyConfirmationTickets_({limit: 50,
+    legacyExecutionsDrained: true}).deletedEphemeralKeys, 3);
+  assert.equal(retention.context.cleanupDmsLegacyConfirmationTickets_({limit: 50,
+    legacyExecutionsDrained: true}).deletedEphemeralKeys, 0);
+  const retained = await googleJson(token, 'https://sheets.googleapis.com/v4/spreadsheets/' +
+    encodeURIComponent(target.isolatedSpreadsheetId) + '/values/' + encodeURIComponent("'Журнал операций Telegram'!A2:Q"));
+  assert.deepEqual(retained.values.map(row => row[14]), originals);
+  assert.equal(retained.values.filter(row => row[10] === 'manual_review').length, 2);
+  results.push({boundary: 'legacy-retention', copiedBeforeRemoval: 5, batches: [2, 3, 0],
+    rawEvidencePreserved: true, passed: true});
   const directory = 'apps-script/candidates/v51';
   const report = {verifiedAt: new Date().toISOString(), candidateTreeSha256: sourceTreeSha256(directory, fs.readdirSync(directory).sort()),
     migration: {writes: migration.writes, idempotentRerun: true}, results,

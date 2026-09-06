@@ -1,4 +1,4 @@
-import { EXPECTED_APPS_SCRIPT_RUNTIME } from "@/lib/apps-script-runtime-identity";
+import { matchesAppsScriptRuntime } from "@/lib/apps-script-runtime-identity";
 import { getDmsAppsScriptUrl } from "@/lib/dms-server-config";
 
 export const dynamic = "force-dynamic";
@@ -27,16 +27,7 @@ export async function GET() {
       signal: AbortSignal.timeout(15_000),
     });
     const identity = await upstream.json() as Record<string, unknown>;
-    const matches = upstream.ok &&
-      identity.ok === true &&
-      identity.service === EXPECTED_APPS_SCRIPT_RUNTIME.service &&
-      identity.release === EXPECTED_APPS_SCRIPT_RUNTIME.release &&
-      identity.routerSha256 === EXPECTED_APPS_SCRIPT_RUNTIME.routerSha256 &&
-      identity.clientPortalSha256 === EXPECTED_APPS_SCRIPT_RUNTIME.clientPortalSha256 &&
-      identity.clientPortalHandlerLoaded === true &&
-      identity.telegramConfirmationsSha256 ===
-        EXPECTED_APPS_SCRIPT_RUNTIME.telegramConfirmationsSha256 &&
-      identity.telegramConfirmationsHandlerLoaded === true;
+    const matches = upstream.ok && matchesAppsScriptRuntime(identity);
 
     if (!matches) {
       return jsonNoStore({ ok: false, error: "runtime_identity_mismatch" }, 502);
