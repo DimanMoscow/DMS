@@ -3891,7 +3891,7 @@ function createTelegramClient_(state) {
     DMS_TELEGRAM_MANAGEMENT.CLIENT_FIRST_ROW,
     DMS_TELEGRAM_MANAGEMENT.CLIENT_COLUMNS
   );
-  // J5 owns the only Debt ARRAYFORMULA. Copying the template row into a new
+// J5 owns the only Debt ARRAYFORMULA. Copying the template row into a new
   // client must not create a second spill anchor in the target row.
   clients.getRange(clientRow, 10).clearContent();
   clients.getRange(clientRow, 1, 1, 5).setValues([[

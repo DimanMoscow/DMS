@@ -24,6 +24,13 @@ function makeStore() {
 }
 
 function createContext() {
+  const fixedNow = Date.parse("2026-09-06T00:01:00Z");
+  class FixedDate extends Date {
+    constructor(value) {
+      super(value === undefined ? fixedNow : value);
+    }
+    static now() { return fixedNow; }
+  }
   const documentProperties = makeStore();
   const scriptProperties = makeStore();
   const cache = new Map();
@@ -32,7 +39,7 @@ function createContext() {
   let mutationCount = 0;
   const context = vm.createContext({
     console,
-    Date,
+    Date: FixedDate,
     JSON,
     Object,
     Array,

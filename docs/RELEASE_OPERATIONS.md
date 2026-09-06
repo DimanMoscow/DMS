@@ -59,15 +59,11 @@ proves that mapping.
 
 ## Repository protection
 
-The 2026-09-06 post-release audit found no open pull requests or active Dependabot
-heads. Retain `main`, `backup/admin-today-pre-20260826`,
+The 2026-09-06 repository hygiene stage removed only rechecked merged heads and enabled
+automatic deletion of merged pull-request branches. The retained long-lived pointers are
+`main`, `backup/admin-today-pre-20260826`,
 `archive/legacy-vps-bot-2026-08-24`, `recovery/apps-script-v38-v39`, and
-`recovery/vercel-production-0.2.1`. All other heads are merged cleanup candidates,
-including the Telegram security-release and final-checkpoint heads. The earlier count
-of 36 merged heads included the two `recovery/*` pointers, which must not be deleted;
-three Dependabot heads disappeared after their approved merges. Recount and recheck all
-candidates through an authenticated admin path immediately before deletion, then enable
-automatic head-branch deletion after merge.
+`recovery/vercel-production-0.2.1`, plus any current open-PR head.
 
 The minimum policy for a solo owner plus Codex is:
 
@@ -80,7 +76,7 @@ The minimum policy for a solo owner plus Codex is:
   as an incident that must be documented.
 
 Do not require duplicate CI workflows or CODEOWNERS approval for a one-owner repository.
-Repository rules must be tested with a disposable PR before relying on them.
+The active rule has been verified through the normal PR workflow.
 
 ## Apps Script target flow
 
@@ -98,22 +94,21 @@ release sequence is:
 6. Verify the runtime fingerprint, run the authenticated read-only live gate, require
    zero reconciliation issues, then store the sanitized numbered snapshot and checkpoint.
 
-The local machine currently has Node and npm, but no `clasp`, `.clasp.json`, clasp user
-credential file, gcloud CLI, or gcloud credential directory. Therefore no unattended
-Apps Script write flow is enabled yet. The recommended next setup is official `clasp`
-plus two local user OAuth profiles: a read-only audit profile and a separately selected
-writer profile. Use a personal Google Cloud Desktop OAuth client and an OS-protected
-credential store where available. Do not use OAuth Playground, and do not leave a
-personal-use consent screen in Testing if a durable refresh token is required. `clasp`
-token files are sensitive local plaintext and must remain ignored. Do not commit
-`.clasp.json`, token files, OAuth client files, script IDs, deployment IDs, or URLs.
-Service-account use is deferred until the project ownership model proves it is supported
-for this script; it is not assumed.
+Operational authorization uses two different official Google Desktop OAuth clients: a
+read-only audit profile and a separately selected writer profile. Keeping distinct
+client IDs prevents a reader grant from inheriting writer scopes. OAuth Playground is
+forbidden. Store client files, durable profiles, the private script target, backups, and
+generated reports under `${DMS_PRIVATE_CHECKPOINTS}/google-auth/` outside this
+repository. The profile names are `reader-profile.json` and `writer-profile.json`;
+the private target is `target.json`. These paths document filenames only and contain
+no credential values. Do not commit token files, OAuth client files, script IDs,
+deployment IDs, or URLs.
 
 `apps-script/production.json` is the non-sensitive machine-readable pointer to the
 confirmed candidate, numbered snapshot, runtime identity, live gate, and reconciliation
 result. Before authentication, create a deterministic plan with
-`npm run release:apps-script:plan -- --candidate v49 --baseline v49`; verify the emitted
+`npm run release:apps-script:plan -- --candidate <candidate> --baseline <baseline>`;
+verify the emitted
 ignored artifact with the same command and `--verify <plan-path>`. It records only file
 digests and always remains `OFFLINE_READY`, `authenticated:false`,
 `remoteStateVerified:false`, and `deployable:false`.
@@ -129,7 +124,22 @@ scopes are `script.projects.readonly`, `script.deployments.readonly`,
 `script.projects`, `script.deployments`, `drive`, and `spreadsheets`. The Drive writer
 scope is required because the release tool copies an existing production workbook by
 ID; `drive.file` cannot discover or access that pre-existing file without a separate
-Picker grant. A Google login and consent remain a user operation.
+Picker grant. A Google login and consent remain a user operation. Both local profiles
+were authorized and passed remote read-only preflight on 2026-09-06.
+
+Create each profile through the official loopback flow with
+`npm run release:apps-script:authorize -- --mode reader|writer --client <absolute-client-json> --output <absolute-profile-json> --request-output <absolute-request-json>`.
+The command writes the consent URL to the private request file and never prints tokens.
+After consent, prove read-only readiness with
+`npm run release:apps-script:preflight -- --mode reader|writer --target <absolute-target-json> --backup <absolute-backup-manifest> --output <absolute-report-json>` while
+`DMS_APPS_SCRIPT_AUTH_FILE` points to the selected profile. Both modes perform GET-only
+remote verification. The writer invocation is a dry run and must report zero production
+writes before release tooling is allowed to mutate Apps Script or Sheets.
+
+The guarded v50 runner is `npm run release:apps-script:v50`. It requires the writer
+profile, explicit `--confirm v50`, verified private target and backup paths, an exact
+v49 production baseline, and zero pending ledger operations. It stops on any read-back,
+snapshot, deployment, runtime, or mutation-counter mismatch.
 
 Official references:
 
@@ -218,36 +228,24 @@ history.
 
 ## Known process risks
 
-- Main branch protection and automatic stale-branch deletion still require repository
-  administration access; audited merged heads remain pending authenticated cleanup and
-  the minimum rule is documented above.
-- Apps Script planning, source integrity, production identity, and credential-profile
-  format checks are automated offline. Exact live export/read-back and writes remain blocked
-  on separate local OAuth profiles. Production remains on confirmed numbered `v49`.
-- A private owner-only Google Drive workbook copy and an isolated restore-test copy were
-  verified on 2026-09-06 across the complete 15-sheet production workbook. The private
-  manifest stays outside Git; retention still needs two additional fresh copies over the
-  normal 30-day window before the minimum three-copy policy is satisfied.
+- The Google Auth Platform app remains in Testing. Google may expire refresh tokens for
+  these scopes after about seven days, requiring the operator to repeat the same official
+  local consent flow until branding and publication prerequisites are completed.
+- Private owner-only pre-v50 and post-v50 Drive copies plus isolated restore-test copies
+  were verified on 2026-09-06. The normal three-copy, 30-day retention policy still
+  requires ongoing rotation rather than treating this release ceremony as permanent
+  coverage.
 - Historical production `v45` has no numbered source snapshot in Git. Do not invent one;
   restore it only from an exact Apps Script export if the numbered version remains
   available.
-- Telegram confirmation callbacks need a dedicated security-hardening stage to bind
-  confirmations to a nonce/message and make payment/calendar retries durably idempotent.
-- Candidate `v50` implements that mechanism, but production remains on `v49` until
-  authenticated backup, migration, exact source deployment, live gate, and reconciliation
-  can run through the official Google flow.
 
-## Telegram confirmation v50 rollout
+## Telegram confirmation v50 checkpoint
 
-1. Create and verify a private Drive copy of production `v49`, including the current
-   complete 15-sheet backup contract, and complete an isolated restore test.
-2. Run migration readiness and the private read-only preflight for
-   `telegram-confirmations-v1`.
-3. Create the empty `Журнал операций Telegram` sheet with the exact 13-column schema;
-   read it back before any callback can write an event.
-4. Update the backup contract after migration so future copies include the ledger.
-5. Compare Apps Script HEAD with candidate `v50`, create one numbered version, and move
-   only the approved production deployment.
-6. Verify runtime identity, the read-only live gate, zero reconciliation issues, and an
-   empty or structurally valid operation ledger. Do not exercise a payment, Calendar,
-   Queue, client, block, or undo mutation as production smoke.
+The 2026-09-06 rollout completed through the official local writer profile. A verified
+v49 backup and isolated restore preceded the migration. The exact empty 13-column
+`Журнал операций Telegram` was read back before deployment, and the backup contract
+was advanced to 16 sheets. The release tool proved candidate → HEAD → numbered `v50`
+→ production deployment → runtime identity. A post-migration 16-sheet backup and
+isolated restore matched exactly. The live gate passed `17/17`, reconciliation was
+`0`, and no payment, Calendar, Queue, client, block, or undo mutation was used as
+smoke.

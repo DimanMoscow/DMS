@@ -7,7 +7,7 @@ import { readCanonicalSource, sha256 } from "./source-integrity.mjs";
 import { verifyRuntimeIdentity } from "./runtime-identity.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const candidateDirectory = path.resolve(scriptDirectory, "..", "candidates", "v49");
+const candidateDirectory = path.resolve(scriptDirectory, "..", "candidates", "v50");
 const runtimeUrl = String(process.env.DMS_APPS_SCRIPT_URL || "").trim();
 
 assert.ok(runtimeUrl, "DMS_APPS_SCRIPT_URL is required");
@@ -32,6 +32,7 @@ const identity = await response.json();
 verifyRuntimeIdentity(identity, {
   routerSha256: sourceSha256("ZZZZZZZZMiniAppApi.gs"),
   clientPortalSha256: sourceSha256("ZZZZZZZZZZZClientPortal.gs"),
+  telegramConfirmationsSha256: sourceSha256("ZZZZZZZZZZZZTelegramConfirmations.gs"),
 });
 
-console.log("Apps Script runtime identity verified: calendar-onboarding-r8-production-guards");
+console.log("Apps Script runtime identity verified: v50 Telegram confirmation hardening");

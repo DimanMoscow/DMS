@@ -39,11 +39,19 @@
       "verifiedOn": "2026-09-04",
       "sourceSnapshot": "v49",
       "evidence": "docs/CLIENT_PORTAL_PILOT.md"
+    },
+    {
+      "id": "telegram-confirmations-v1",
+      "artifactSha256": "1f37337d5d703415409711404f933f8f545f7e98b65de2fa86acad019e45664a",
+      "verifiedOn": "2026-09-06",
+      "sourceSnapshot": "v50",
+      "evidence": "docs/TELEGRAM_CONFIRMATION_HARDENING.md"
     }
   ],
   "currentSchemaVersions": {
     "Доступ клиентов": 1,
     "Замеры": 1,
-    "Приглашения Client Portal": 1
+    "Приглашения Client Portal": 1,
+    "Журнал операций Telegram": 1
   }
 }

@@ -45,8 +45,9 @@
 
 - The Git-linked MiniApp exposes `/api/apps-script-runtime` as a fail-closed,
   allow-listed server-side verifier. It must return HTTP 200 with `no-store`, the
-  expected release fingerprints, and `clientPortalHandlerLoaded: true`; it never
-  exposes the configured backend URL.
+  expected release fingerprints, `clientPortalHandlerLoaded: true`, and
+  `telegramConfirmationsHandlerLoaded: true`; it never exposes the configured
+  backend URL.
 
   ```bash
   DMS_APPS_SCRIPT_URL=<active-web-app-url> npm run smoke:apps-script-runtime
@@ -74,7 +75,7 @@ After a successful verification, a non-sensitive local rollback record can be ca
 
 ```bash
 DMS_EXPECTED_SOURCE=<main-sha> npm run release:verify -- https://production.example
-DMS_VERCEL_DEPLOYMENT_ID=<deployment-id> DMS_APPS_SCRIPT_VERSION=v49 \
+DMS_VERCEL_DEPLOYMENT_ID=<deployment-id> DMS_APPS_SCRIPT_VERSION=v50 \
   npm run release:checkpoint -- https://production.example
 ```
 

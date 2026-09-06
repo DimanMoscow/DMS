@@ -5,9 +5,9 @@
   "copyVerifiedAt": "2026-09-05T00:05:00Z",
   "sourceSpreadsheetRefSha256": "1111111111111111111111111111111111111111111111111111111111111111",
   "backupFileRefSha256": "2222222222222222222222222222222222222222222222222222222222222222",
-  "sheetStructureSha256": "5c6260cc91fc5e728010b6057ed513e8c5259c8370a095cde3abe8bf8168aeeb",
+  "sheetStructureSha256": "32845805a7083de72cabfe7b4194c3d5dcda31f151717077cc20d38c2f8ae2fe",
   "migrationLedgerSha256": "4444444444444444444444444444444444444444444444444444444444444444",
-  "appsScriptVersion": "v49",
+  "appsScriptVersion": "v50",
   "sheets": [
     {
       "name": "Клиенты",
@@ -109,6 +109,13 @@
     },
     {
       "name": "Замеры",
+      "rowCount": 0,
+      "headerSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "formulaSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "validationSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    {
+      "name": "Журнал операций Telegram",
       "rowCount": 0,
       "headerSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "formulaSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
