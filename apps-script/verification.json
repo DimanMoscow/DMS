@@ -473,6 +473,14 @@
         "TelegramFinal.gs",
         "ZZZZZZZZZZZZTelegramConfirmations.gs"
       ]
+    },
+    "v51": {
+      "baseVersion": "v50",
+      "fileCount": 17,
+      "sourceTreeSha256": "3ac8ea06840c4dd0acae7f51fa0406832dd70680e61f0d535f08bc8106cec1b0",
+      "expectedChangedFiles": [
+        "TelegramFinal.gs"
+      ]
     }
   }
 }

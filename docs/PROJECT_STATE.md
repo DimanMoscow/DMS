@@ -45,6 +45,12 @@ Last verified: 2026-09-06 (Europe/Moscow).
 
 ## Constraints and next stage
 
+- P1 remediation is authorized and in progress; see `docs/P1_REMEDIATION.md`.
+  The starting main and READY Vercel Production source were freshly verified as
+  `178a3503a11ed7c02e65fca52010cc0bb0f23007`. Authenticated Google read-back still
+  matched numbered v50 and an empty operation ledger. Candidate v51 contains the
+  ingress fix only at this checkpoint and has not been deployed.
+
 - Create measurements only through an explicit authenticated administrator action.
 - Do not create the pending Hybrid product until a separate confirmed Calendar start
   and explicit terms exist.
