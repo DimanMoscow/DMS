@@ -366,7 +366,7 @@ function confirmTelegramUpcomingCancellation_(userId, chatId, messageId) {
     try {
       dmsCalendarRemove_(state.calendarId, item.id, {sendUpdates: 'none'});
     } catch (error) {
-      if (queueUndo) applyTelegramUndoPayload_(queueUndo);
+      if (queueUndo) restoreDmsImmediateQueueCompensation_(queueUndo);
       throw error;
     }
     telegramAuditAction_('cancel_future_training', item.id,

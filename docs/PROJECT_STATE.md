@@ -55,7 +55,10 @@ Last verified: 2026-09-06 (Europe/Moscow).
   implementation. Six crash/retry cases passed with real writes on a private
   isolated Sheets copy; production writes were zero. The additive ledger v2
   migration was applied only to that test copy. Apps Script production remains
-  v50; domain undo, financial bounds and the combined live release gate remain.
+  v50. PR #50 merged as `b392fb19e082835be7885dae12f13031f14fdaf3`; its automatic
+  Vercel deployment passed read-only health/runtime and page checks. Candidate v51
+  also has versioned domain undo; 11 full-bundle tests and five actual isolated
+  Sheets scenarios passed. Financial bounds and the combined live release remain.
 
 - Create measurements only through an explicit authenticated administrator action.
 - Do not create the pending Hybrid product until a separate confirmed Calendar start

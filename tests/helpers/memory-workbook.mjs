@@ -92,6 +92,10 @@ export function memoryWorkbook(initial = {}) {
     getSpreadsheetTimeZone: () => 'Europe/Moscow',
   };
   const service = {getActive: () => workbook, getActiveSpreadsheet: () => workbook,
+    newDataValidation: () => {
+      const rule = {requireValueInList: () => rule, setAllowInvalid: () => rule, build: () => ({})};
+      return rule;
+    },
     flush: () => {}, CopyPasteType: {PASTE_FORMAT: 'format', PASTE_DATA_VALIDATION: 'validation'}};
   return {workbook, sheets, service, writes, hooks};
 }

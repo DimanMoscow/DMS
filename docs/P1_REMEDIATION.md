@@ -72,13 +72,41 @@ transports are emulated, not a live Apps Script concurrency test. Separate
 service-boundary tests enforce mutual exclusion across independent executions.
 The operation-stage `npm run release:check` passed all 149 tests, dependency audit,
 lint, TypeScript, production build, snapshot verification and migration integrity.
+PR #50 merged as `b392fb19e082835be7885dae12f13031f14fdaf3`. Its exact automatic
+Vercel Production deployment passed read-only health/runtime and page checks.
+
+## Domain undo (P1.3)
+
+Inventory: restore_range is emitted for client fields, block fields, payment
+status and queue changes; clear_range for newly created clients, blocks and
+payments; compound groups these; move_calendar_event restores a prior time.
+delete_calendar_event was accepted by the old dispatcher but has no active emitter.
+The old generic execution dispatcher is removed. New audit records seal a
+versioned domain plan with audit/action/entity identity, row ID, expected values
+and the post-operation business hash. Legacy plans require manual review.
+
+Compensation archives a created client, closes a created block while retaining
+its original terms, and voids a created payment. IDs and history remain. A queue
+or field restoration checks expected state and references before writing. All
+steps are validated before the first write under the shared ScriptLock. New
+Journal, Payment, Block, Queue or portal references reject unsafe retirement.
+Calendar restoration also checks the original post-operation ETag. Immediate
+queue compensation after a failed Calendar cancellation has a separate narrow
+expected-value check; it cannot execute arbitrary historical range payloads.
+
+Eleven complete-bundle tests exercise actual onboarding with/without payment,
+the required downstream-reference cases, row/audit drift, repeated undo, competing
+executions and interrupted cf2 undo across a VM restart. Five scenarios also
+passed actual isolated Sheets writes/read-back with zero dangling references and
+zero production writes. Their synthetic starting state is produced by the real
+onboarding implementation; the Node runtime/lock limitations above still apply.
+The undo-stage full release gate passed 160 tests and all other repository checks.
 
 ## Remaining P1 gates
 
 Operation changes remain an undeployed candidate; final combined release checks,
 fresh private recovery, and live legacy inventory are still required.
-P1.3: source recheck confirms generic clear/restore undo validates range shape but
-does not validate current state or domain references.
+Domain undo remains a repository candidate until the combined Apps Script release.
 P1.6: source recheck confirms financial generators stop at rows 203/503 and the
 Debt guard explicitly expects these fixed boundaries. Behavioral reproduction and
 remediation for these findings remain required; none is closed by this checkpoint.

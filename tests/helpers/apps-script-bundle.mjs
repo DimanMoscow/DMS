@@ -38,6 +38,10 @@ export function loadBundle(candidate = 'v51', overrides = {}) {
       getSpreadsheetTimeZone: () => 'Europe/Moscow',
     }), flush: () => {}},
     Utilities: {
+      parseDate: (value, timeZone, pattern) => {
+        if (timeZone !== 'Europe/Moscow' || pattern !== 'yyyy-MM-dd HH:mm') throw new Error('Unsupported fixture date format');
+        return new Date(value.replace(' ', 'T') + ':00+03:00');
+      },
       formatDate: (date, timeZone, pattern) => {
         const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {timeZone,
           year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit',

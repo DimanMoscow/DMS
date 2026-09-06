@@ -102,6 +102,7 @@ function getDmsConfirmationCalendarTargets_(payload) {
     function collect(undo) {
       if (undo.calendarId && undo.eventId) add(undo.calendarId, undo.eventId);
       (undo.items || []).forEach(collect);
+      (undo.steps || []).forEach(collect);
     }
     collect(JSON.parse(audit.getRange(row, 6).getValue()));
   }
