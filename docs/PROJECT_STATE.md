@@ -48,8 +48,14 @@ Last verified: 2026-09-06 (Europe/Moscow).
 - P1 remediation is authorized and in progress; see `docs/P1_REMEDIATION.md`.
   The starting main and READY Vercel Production source were freshly verified as
   `178a3503a11ed7c02e65fca52010cc0bb0f23007`. Authenticated Google read-back still
-  matched numbered v50 and an empty operation ledger. Candidate v51 contains the
-  ingress fix only at this checkpoint and has not been deployed.
+  matched numbered v50 and an empty operation ledger. PR #49 subsequently merged
+  as `7e9218188045b48e3f1904b0c86d70d77c1b27d1`; its exact automatic Vercel Production
+  deployment passed read-only health, runtime, route and no-store checks.
+  Candidate v51 now includes ingress and the cf2 immutable operation/ScriptLock
+  implementation. Six crash/retry cases passed with real writes on a private
+  isolated Sheets copy; production writes were zero. The additive ledger v2
+  migration was applied only to that test copy. Apps Script production remains
+  v50; domain undo, financial bounds and the combined live release gate remain.
 
 - Create measurements only through an explicit authenticated administrator action.
 - Do not create the pending Hybrid product until a separate confirmed Calendar start

@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 2,
+  "sheet": {
+    "name": "Журнал операций Telegram",
+    "columns": [
+      {
+        "name": "Event ID",
+        "type": "text",
+        "required": true,
+        "unique": true,
+        "pattern": "^TGE-[A-Za-z0-9-]+$"
+      },
+      {
+        "name": "At",
+        "type": "datetime",
+        "required": true
+      },
+      {
+        "name": "Operation ID",
+        "type": "text",
+        "required": true,
+        "pattern": "^TGOP-[a-f0-9]{24}$"
+      },
+      {
+        "name": "Confirmation ID",
+        "type": "text",
+        "required": true,
+        "pattern": "^[a-f0-9]{16}$"
+      },
+      {
+        "name": "Event",
+        "type": "enum",
+        "required": true,
+        "values": [
+          "pending",
+          "committed",
+          "failed",
+          "replay",
+          "expired",
+          "revoked",
+          "ticket",
+          "ticket_pending",
+          "ticket_consumed",
+          "ticket_expired",
+          "ticket_revoked",
+          "started",
+          "result",
+          "manual_review",
+          "legacy_ticket_preserved"
+        ]
+      },
+      {
+        "name": "Action",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "Admin Hash",
+        "type": "text",
+        "required": true,
+        "pattern": "^[A-Za-z0-9_-]{43}$"
+      },
+      {
+        "name": "Chat Hash",
+        "type": "text",
+        "required": true,
+        "pattern": "^[A-Za-z0-9_-]{43}$"
+      },
+      {
+        "name": "Message ID",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "Payload Hash",
+        "type": "text",
+        "required": true,
+        "pattern": "^[A-Za-z0-9_-]{43}$"
+      },
+      {
+        "name": "Result Code",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "Result Ref Hash",
+        "type": "text",
+        "required": false,
+        "pattern": "^[A-Za-z0-9_-]{43}$"
+      },
+      {
+        "name": "Detail",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "Protocol",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "Ticket JSON",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "Payload JSON",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "Result JSON",
+        "type": "text",
+        "required": false
+      }
+    ],
+    "frozenRows": 1,
+    "appendOnly": true
+  },
+  "invariants": [
+    "Original v1 columns and all existing rows remain unchanged",
+    "cf2 payload and hashed nonce binding are durable private workbook data; never expose them through client APIs or logs",
+    "Never replay a started operation without positive domain evidence",
+    "Legacy unknown operations remain manual-review evidence",
+    "Append-only operation history survives ephemeral ticket cleanup"
+  ]
+}

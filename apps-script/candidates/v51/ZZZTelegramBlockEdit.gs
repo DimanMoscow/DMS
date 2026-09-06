@@ -250,7 +250,7 @@ function confirmTelegramBlockEdit_(userId, chatId, messageId) {
   const state = getTelegramOpsState_(userId, chatId);
   if (!state || state.action !== 'block_edit' || state.phase !== 'confirm')
     throw new Error('Сценарий устарел. Открой параметры блока заново.');
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');
   try {
     const card = getTelegramClientCard_(state.clientId);

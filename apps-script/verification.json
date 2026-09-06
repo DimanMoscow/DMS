@@ -476,10 +476,22 @@
     },
     "v51": {
       "baseVersion": "v50",
-      "fileCount": 17,
-      "sourceTreeSha256": "3ac8ea06840c4dd0acae7f51fa0406832dd70680e61f0d535f08bc8106cec1b0",
+      "fileCount": 18,
+      "sourceTreeSha256": "392faa5d008264c84636f7c65834684384af71e44233ef74dc8d7fe7114c6136",
       "expectedChangedFiles": [
-        "TelegramFinal.gs"
+        "CalendarSync.gs",
+        "QueueProcessing.gs",
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZTelegramArchive.gs",
+        "ZZZTelegramBlockEdit.gs",
+        "ZZZZZTelegramUpcomingActions.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZZZMiniAppAdmin.gs",
+        "ZZZZZZZZZZZClientPortal.gs",
+        "ZZZZZZZZZZZZTelegramConfirmations.gs",
+        "ZZZZZZZZZZZZZOperationSafety.gs",
+        "Код.gs"
       ]
     }
   }

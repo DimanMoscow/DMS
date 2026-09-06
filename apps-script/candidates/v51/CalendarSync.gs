@@ -12,7 +12,7 @@ const DMS_SYNC = {
 const DMS_UNKNOWN_CLIENT_STATUS = 'Требует регистрации';
 
 function syncCalendarToQueue() {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
 
   if (!lock.tryLock(10000)) {
     throw new Error('Синхронизация уже выполняется. Повтори через несколько секунд.');

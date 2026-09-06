@@ -116,7 +116,7 @@ function getTelegramConfirmationProperties_() {
   return properties;
 }
 
-function getTelegramConfirmationState_(confirmationId) {
+function getTelegramConfirmationState_LegacyV50_(confirmationId) {
   const raw = getTelegramConfirmationProperties_().getProperty(
     DMS_TELEGRAM_CONFIRMATION.PROPERTY_PREFIX + String(confirmationId || '')
   );
@@ -128,7 +128,7 @@ function getTelegramConfirmationState_(confirmationId) {
   }
 }
 
-function putTelegramConfirmationState_(state) {
+function putTelegramConfirmationState_LegacyV50_(state) {
   getTelegramConfirmationProperties_().setProperty(
     DMS_TELEGRAM_CONFIRMATION.PROPERTY_PREFIX + state.id,
     JSON.stringify(state)
@@ -143,7 +143,7 @@ function putTelegramConfirmationPayload_(confirmationId, payload) {
   );
 }
 
-function getTelegramConfirmationPayload_(confirmationId) {
+function getTelegramConfirmationPayload_LegacyV50_(confirmationId) {
   const raw = CacheService.getScriptCache().get(
     DMS_TELEGRAM_CONFIRMATION.PAYLOAD_PREFIX + confirmationId
   );
@@ -151,7 +151,7 @@ function getTelegramConfirmationPayload_(confirmationId) {
   return JSON.parse(raw);
 }
 
-function createTelegramConfirmation_(userId, chatId, messageId, action, payload, nowMs) {
+function createTelegramConfirmation_LegacyV50_(userId, chatId, messageId, action, payload, nowMs) {
   const now = Number(nowMs === undefined ? Date.now() : nowMs);
   const id = makeTelegramConfirmationId_();
   const nonce = makeTelegramConfirmationNonce_();
@@ -186,10 +186,14 @@ function createTelegramConfirmation_(userId, chatId, messageId, action, payload,
 }
 
 function bindTelegramConfirmationMessage_(confirmationId, messageId) {
-  const state = getTelegramConfirmationState_(confirmationId);
-  if (!state || state.status !== 'pending') throw new Error('Подтверждение больше не активно.');
-  state.messageId = String(messageId);
-  putTelegramConfirmationState_(state);
+  return withTelegramDocumentLock_(function() {
+    const state = getTelegramConfirmationState_(confirmationId);
+    if (!state || state.status !== 'pending' || state.messageId || findTelegramOperationResult_(state.operationId)) {
+      throw new Error('Подтверждение больше не активно.');
+    }
+    state.messageId = String(messageId);
+    putTelegramConfirmationState_(state);
+  });
 }
 
 function sendTelegramSecureConfirmation_(userId, chatId, messageId, text, action, payload, buttonText) {
@@ -211,7 +215,7 @@ function sendTelegramSecureConfirmation_(userId, chatId, messageId, text, action
   return ticket.id;
 }
 
-function parseTelegramConfirmationCallback_(data) {
+function parseTelegramConfirmationCallback_LegacyV50_(data) {
   const match = String(data || '').match(/^(cf1|cx1):([a-f0-9]{16}):([a-f0-9]{32})$/);
   if (!match) throw new Error('Некорректное защищённое подтверждение.');
   return {kind: match[1], id: match[2], nonce: match[3]};
@@ -231,7 +235,7 @@ function assertTelegramConfirmationPayloadCurrent_(payload, userId, chatId) {
   }
 }
 
-function validateTelegramConfirmation_(parsed, query, nowMs) {
+function validateTelegramConfirmation_LegacyV50_(parsed, query, nowMs) {
   const state = getTelegramConfirmationState_(parsed.id);
   const message = query.message || {};
   const chatId = message.chat && message.chat.id;
@@ -265,7 +269,7 @@ function validateTelegramConfirmation_(parsed, query, nowMs) {
   return {state: state, payload: payload, userId: userId, chatId: chatId, messageId: message.message_id};
 }
 
-function getTelegramOperationLedger_() {
+function getTelegramOperationLedger_LegacyV50_() {
   const sheet = SpreadsheetApp.getActive().getSheetByName(DMS_TELEGRAM_CONFIRMATION.LEDGER);
   if (!sheet) throw new Error('Не применена схема журнала защищённых операций.');
   const headers = sheet.getRange(1, 1, 1, DMS_TELEGRAM_CONFIRMATION.LEDGER_HEADERS.length).getDisplayValues()[0];
@@ -275,7 +279,7 @@ function getTelegramOperationLedger_() {
   return sheet;
 }
 
-function appendTelegramOperationEvent_(state, event, resultCode, resultRef, detail) {
+function appendTelegramOperationEvent_LegacyV50_(state, event, resultCode, resultRef, detail) {
   const sheet = getTelegramOperationLedger_();
   const now = new Date();
   sheet.appendRow([
@@ -287,7 +291,7 @@ function appendTelegramOperationEvent_(state, event, resultCode, resultRef, deta
   SpreadsheetApp.flush();
 }
 
-function findTelegramOperationResult_(operationId) {
+function findTelegramOperationResult_LegacyV50_(operationId) {
   const sheet = getTelegramOperationLedger_();
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return null;
@@ -304,15 +308,17 @@ function findTelegramOperationResult_(operationId) {
 }
 
 function revokeTelegramConfirmationById_(confirmationId, detail) {
-  const state = getTelegramConfirmationState_(confirmationId);
-  if (!state || state.status !== 'pending') return false;
-  state.status = 'revoked';
-  putTelegramConfirmationState_(state);
-  try { appendTelegramOperationEvent_(state, 'revoked', '', '', detail || 'cancel'); } catch (ignore) {}
-  return true;
+  return withTelegramDocumentLock_(function() {
+    const state = getTelegramConfirmationState_(confirmationId);
+    if (!state || state.status !== 'pending' || findTelegramOperationResult_(state.operationId)) return false;
+    state.status = 'revoked';
+    putTelegramConfirmationState_(state);
+    appendTelegramOperationEvent_(state, 'revoked', '', '', detail || 'cancel');
+    return true;
+  });
 }
 
-function beginTelegramSecureOperation_(parsed, query, nowMs) {
+function beginTelegramSecureOperation_LegacyV50_(parsed, query, nowMs) {
   const validated = validateTelegramConfirmation_(parsed, query, nowMs);
   const state = validated.state;
   const previous = findTelegramOperationResult_(state.operationId);
@@ -353,8 +359,8 @@ function finalizeTelegramSecureOperation_(state, result, event, detail) {
   return normalized;
 }
 
-function withTelegramDocumentLock_(callback) {
-  const lock = LockService.getDocumentLock();
+function withTelegramDocumentLock_LegacyV50_(callback) {
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');
   try { return callback(); } finally { lock.releaseLock(); }
 }
@@ -363,6 +369,7 @@ function handleTelegramSecureCancellation_(query, parsed) {
   let validated;
   withTelegramDocumentLock_(function() {
     validated = validateTelegramConfirmation_(parsed, query);
+    if (findTelegramOperationResult_(validated.state.operationId)) throw new Error('Операция уже принята.');
     if (validated.state.status !== 'pending') throw new Error('Подтверждение уже завершено.');
     validated.state.status = 'revoked';
     putTelegramConfirmationState_(validated.state);
@@ -403,12 +410,13 @@ function attachTelegramSecureOperationId_(payload, userId, chatId, operationId) 
 }
 
 function executeTelegramSecureMutation_(context) {
+  if (DMS_CONFIRMED_EXECUTION !== context || !DMS_MUTATION_DEPTH) throw new Error('Confirmed execution lock required.');
   const data = String(context.payload.legacyData || '');
   const userId = context.userId;
   const chatId = context.chatId;
   const messageId = context.messageId;
   const operationId = context.state.operationId;
-  attachTelegramSecureOperationId_(context.payload, userId, chatId, operationId);
+  // Mutation parameters come only from the execution-local immutable context.
   DMS_TELEGRAM_SECURE_DELIVERY = true;
   try {
     if (data === 'pc:yes') return {code: 'payment_recorded', ref: confirmTelegramPayment_(userId, chatId, messageId)};
@@ -456,16 +464,19 @@ function markTelegramQueueOperation_(queueId, operationId) {
 }
 
 function performTelegramDayConfirmationSecure_(dateKey, chatId, messageId, operationId) {
-  syncCalendarToQueue();
+  // The accepted queue is immutable for this execution. A sync here could add
+  // trainings that were never included in the confirmed operation.
   const date = parseTelegramDateKey_(dateKey);
   activateStartedPlannedBlocksForDate_(date);
   const result = processQueueDate_(date, 'Telegram', false);
   const calendarResult = applyTelegramCalendarCancellationsForDate_(date);
+  const incomplete = Number(result.blocked || 0) + Number(calendarResult.failed || 0) > 0;
   telegramAuditAction_('confirm_day', dateKey,
-    'День подтверждён через Telegram [' + operationId + ']', null);
+    (incomplete ? 'День обработан частично' : 'День подтверждён') + ' через Telegram [' + operationId + ']', null);
   telegramEditMessage_(chatId, messageId,
     buildTelegramDayConfirmationText_(date, result, calendarResult) + buildTelegramWarningsText_(), null);
-  return {code: 'day_confirmed', ref: dateKey};
+  return {code: incomplete ? 'day_partial' : 'day_confirmed', ref: dateKey,
+    added: result.added, blocked: result.blocked, calendarFailed: calendarResult.failed || 0};
 }
 
 function recoverTelegramSecureMutation_(context) {
@@ -475,16 +486,20 @@ function recoverTelegramSecureMutation_(context) {
     const sheet = getRequiredSheet_(SpreadsheetApp.getActive(), DMS_TELEGRAM_FINAL.PAYMENTS);
     const lastRow = sheet.getLastRow();
     if (lastRow >= 4) {
-      const rows = sheet.getRange(4, 1, lastRow - 3, 10).getDisplayValues();
-      for (let index = rows.length - 1; index >= 0; index--) {
-        if (String(rows[index][9] || '').indexOf('[tgop:' + operationId + ']') !== -1) {
-          return {code: 'payment_recorded', ref: rows[index][0]};
-        }
+      const rows = sheet.getRange(4, 1, lastRow - 3, 10).getValues().filter(function(row) {
+        return String(row[9] || '').indexOf('[tgop:' + operationId + ']') !== -1;
+      });
+      const expected = context.payload.state;
+      if (rows.length === 1 && expected && rows[0][0] &&
+          String(rows[0][2]) === String(expected.clientId) && String(rows[0][3]) === String(expected.blockId || '') &&
+          rows[0][4] === 'Оплата' && rows[0][5] === expected.method &&
+          Number(rows[0][6]) === Number(expected.amount) && rows[0][7] === 'Подтверждён') {
+        return {code: 'payment_recorded', ref: String(rows[0][0])};
       }
     }
   }
   if (data === 'scc:yes' || data === 'scc:force') {
-    const state = getTelegramScheduleState_(context.userId, context.chatId);
+    const state = context.payload.state;
     const settings = getRequiredSheet_(SpreadsheetApp.getActive(), DMS_TELEGRAM_SCHEDULING.SETTINGS);
     const config = getCalendarSyncSettings_(settings);
     const response = Calendar.Events.list(config.calendarId, {
@@ -492,8 +507,15 @@ function recoverTelegramSecureMutation_(context) {
       maxResults: 2,
       showDeleted: false
     });
-    if (response.items && response.items.length === 1) return {code: 'calendar_created', ref: response.items[0].id};
-    if (!state) return null;
+    if (state && response.items && response.items.length === 1) {
+      const event = response.items[0];
+      if (event.id === 'dms' + hashTelegramConfirmationHex_(operationId) && event.status !== 'cancelled' &&
+          event.summary === state.calendarTitle &&
+          new Date(event.start && event.start.dateTime).getTime() === Number(state.startMs) &&
+          new Date(event.end && event.end.dateTime).getTime() === Number(state.startMs) + Number(state.duration) * 60000) {
+        return {code: 'calendar_created', ref: event.id};
+      }
+    }
   }
   if (data.indexOf('qd:') === 0) {
     const parts = data.split(':');
@@ -506,7 +528,7 @@ function recoverTelegramSecureMutation_(context) {
   return null;
 }
 
-function processTelegramSecureCallback_(query, parsed) {
+function processTelegramSecureCallback_LegacyV50_(query, parsed) {
   let started;
   started = withTelegramDocumentLock_(function() {
     return beginTelegramSecureOperation_(parsed, query);
@@ -575,14 +597,19 @@ function describeTelegramLegacyMutation_(data) {
 }
 
 function upgradeTelegramLegacyMutation_(query, descriptor, data) {
+  return withTelegramDocumentLock_(function() {
   const message = query.message || {};
   const chatId = message.chat && message.chat.id;
   const userId = query.from && query.from.id;
-  const original = String(message.text || 'Подтверди выбранное действие.').substring(0, 3400);
+  let original = String(message.text || 'Подтверди выбранное действие.').substring(0, 3400);
+  if (descriptor.action === 'confirm_day') {
+    original = buildDmsExactDayConfirmationText_(data.substring(3));
+  }
   sendTelegramSecureConfirmation_(userId, chatId, message.message_id,
     original + '\n\n<b>Защищённое одноразовое подтверждение</b>',
     descriptor.action, {legacyData: data, sourceMessageId: String(message.message_id)}, descriptor.button);
   telegramAnswerCallback_(query.id, 'Требуется одноразовое подтверждение', false);
+  });
 }
 
 function handleTelegramCallback_(query) {
@@ -594,10 +621,10 @@ function handleTelegramCallback_(query) {
     return;
   }
   const data = String(query.data || '');
-  if (data.indexOf('cf1:') === 0 || data.indexOf('cx1:') === 0) {
+  if (/^(cf[12]|cx[12]):/.test(data)) {
     try {
       const parsed = parseTelegramConfirmationCallback_(data);
-      if (parsed.kind === DMS_TELEGRAM_CONFIRMATION.CANCEL_VERSION) handleTelegramSecureCancellation_(query, parsed);
+      if (parsed.kind === 'cx2') handleTelegramSecureCancellation_(query, parsed);
       else processTelegramSecureCallback_(query, parsed);
     } catch (error) {
       telegramAnswerCallback_(query.id, 'Действие отклонено', true);
@@ -621,7 +648,7 @@ function handleTelegramCallback_(query) {
   handleTelegramCallbackV49_(query);
 }
 
-function makeTelegramStateConfirmationPayload_(legacyData, stateKind, state) {
+function makeTelegramStateConfirmationPayload_LegacyV50_(legacyData, stateKind, state) {
   return {
     legacyData: legacyData,
     stateKind: stateKind,
@@ -722,6 +749,7 @@ function prepareTelegramUpcomingMoveConfirmation_(state, userId, chatId, text) {
   const conflicts = listTelegramUpcomingMoveConflicts_(state.calendarId, item.id, newStart, newEnd, timeZone);
   state.phase = 'move_confirm';
   state.newStartMs = newStart.getTime();
+  state.confirmedCalendarEtag = event.etag;
   putTelegramOpsState_(userId, chatId, state);
   const lines = ['<b>Перенести тренировку?</b>', escapeTelegramHtml_(state.clientName),
     escapeTelegramHtml_(formatTelegramUpcomingTraining_(event, timeZone)) + ' →',
@@ -742,6 +770,7 @@ function showTelegramUpcomingCancelConfirmation_(userId, chatId, index, messageI
   const timeZone = getTelegramUpcomingTimeZone_();
   state.phase = 'cancel_confirm';
   state.selectedIndex = index;
+  state.confirmedCalendarEtag = event.etag;
   putTelegramOpsState_(userId, chatId, state);
   sendTelegramSecureConfirmation_(userId, chatId, messageId,
     '<b>Отменить тренировку без списания?</b>\n' + escapeTelegramHtml_(state.clientName) + '\n<b>' +
@@ -789,7 +818,7 @@ function putTelegramConfirmationMoveState_(userId, chatId, state) {
 function performTelegramQueueMoveSecure_(userId, chatId, messageId, operationId) {
   const state = getTelegramMoveState_(userId, chatId);
   if (!state || state.phase !== 'secure_move_confirm') throw new Error('Сценарий переноса устарел.');
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throw new Error('Другое действие ещё выполняется.');
   try {
     const ss = SpreadsheetApp.getActive();
@@ -804,7 +833,7 @@ function performTelegramQueueMoveSecure_(userId, chatId, messageId, operationId)
     if (!calendarId || !eventId) throw new Error('У события отсутствует связь с Google Calendar.');
     const newStart = new Date(Number(state.newStartMs));
     const newEnd = new Date(newStart.getTime() + Number(state.durationMs));
-    Calendar.Events.patch({start: {dateTime: newStart.toISOString(), timeZone: timeZone},
+    dmsCalendarPatch_({start: {dateTime: newStart.toISOString(), timeZone: timeZone},
       end: {dateTime: newEnd.toISOString(), timeZone: timeZone},
       extendedProperties: {private: {dmsOperationId: operationId}}},
       calendarId, eventId, {sendUpdates: 'none'});

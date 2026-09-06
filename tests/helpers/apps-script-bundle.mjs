@@ -38,10 +38,18 @@ export function loadBundle(candidate = 'v51', overrides = {}) {
       getSpreadsheetTimeZone: () => 'Europe/Moscow',
     }), flush: () => {}},
     Utilities: {
-      formatDate: () => '20260907000000', getUuid: () => crypto.randomUUID(),
+      formatDate: (date, timeZone, pattern) => {
+        const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {timeZone,
+          year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit',
+          minute: '2-digit', second: '2-digit', hourCycle: 'h23'}).formatToParts(date).map(p => [p.type, p.value]));
+        const tokens = {yyyy: parts.year, MM: parts.month, dd: parts.day,
+          HH: parts.hour, mm: parts.minute, ss: parts.second};
+        return pattern.replace(/yyyy|MM|dd|HH|mm|ss/g, token => tokens[token]);
+      }, getUuid: () => crypto.randomUUID(),
       DigestAlgorithm: {SHA_256: 'sha256'}, Charset: {UTF_8: 'utf8'},
       computeDigest: (_, value) => [...crypto.createHash('sha256').update(String(value)).digest()],
       base64EncodeWebSafe: bytes => Buffer.from(bytes.map(b => b & 255)).toString('base64url'),
+      newBlob: value => ({getBytes: () => [...Buffer.from(String(value))]}),
     },
     ContentService: {MimeType: {TEXT: 'text', JSON: 'json'},
       createTextOutput: text => ({text, setMimeType() {return this;}})},

@@ -25,7 +25,7 @@ const cases = [
 for (const [name, body, key] of cases) {
   test(`P1.1 full bundle: ${name} has zero Sheet writes and redacted logs`, () => {
     const fixture = loadBundle();
-    assert.equal(fixture.fileCount, 16);
+    assert.equal(fixture.fileCount, 17);
     for (let attempt = 0; attempt < 20; attempt++) fixture.context.doPost(request(body, key));
     assert.deepEqual(fixture.writes, []);
     assert.ok(fixture.logs.every(log => log === 'DMS ingress request failed'));

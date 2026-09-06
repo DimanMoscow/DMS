@@ -126,7 +126,7 @@ function cancelTrainingFromSelectedRow() {
 }
 
 function addTraining_(clientRow) {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
 
   if (!lock.tryLock(5000)) {
     throw new Error('Предыдущее действие ещё выполняется. Повтори через несколько секунд.');
@@ -279,7 +279,7 @@ function writeTrainingLogRow_(log, data) {
 }
 
 function closeBlock_(blockRow) {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
 
   if (!lock.tryLock(5000)) {
     throw new Error('Предыдущее действие ещё выполняется.');
@@ -350,7 +350,7 @@ function closeBlock_(blockRow) {
 }
 
 function cancelTraining_(logRow) {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
 
   if (!lock.tryLock(5000)) {
     throw new Error('Предыдущее действие ещё выполняется.');

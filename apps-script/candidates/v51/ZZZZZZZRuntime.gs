@@ -4,7 +4,7 @@ function myFunctionTelegramRuntime_() {
 // DMS Telegram calendar-permission and cancellation-retry extension v18.
 
 function applyTelegramCalendarCancellationsForDate_(date) {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
 
   if (!lock.tryLock(10000)) {
     return {
@@ -54,7 +54,7 @@ function applyTelegramCalendarCancellationsForDate_(date) {
       }
 
       try {
-        Calendar.Events.remove(calendarId, eventId, {sendUpdates: 'none'});
+        dmsCalendarRemove_(calendarId, eventId, {sendUpdates: 'none'});
         result.deleted++;
         values[13] = 'Обработано';
         values[16] = mergeQueueComment_(
@@ -151,7 +151,7 @@ function repairDmsCalendarCancellations() {
 
 function processQueueDate_(date, confirmationSource, dryRun, options) {
   const settings = options || {};
-  const lock = settings.lockHeld ? null : LockService.getDocumentLock();
+  const lock = settings.lockHeld ? null : getDmsMutationLock_();
 
   if (lock && !lock.tryLock(10000)) {
     throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');
@@ -497,7 +497,7 @@ function autoCloseExhaustedBlock_(clients, blocks, context, blockId, closedAt) {
 }
 
 function closeAllExhaustedBlocks() {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throw new Error('Другое действие ещё выполняется.');
 
   try {
@@ -533,7 +533,7 @@ function runDmsMaintenance() {
 // One-off and scheduled maintenance entry points.
 
 function repairDmsExhaustedQueueRows() {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throw new Error('Другое действие ещё выполняется.');
 
   try {
@@ -1209,7 +1209,7 @@ function previewDmsCalendarQueueRepair() {
 }
 
 function repairDmsCalendarQueueReconciliation() {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throw new Error('Другое действие ещё выполняется.');
 
   try {
@@ -1276,7 +1276,7 @@ function repairDmsCalendarCancellationQ0038() {
 }
 
 function repairDmsCalendarCancellationByQueueId_(queueId) {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throw new Error('Другое действие ещё выполняется.');
 
   try {
@@ -1309,7 +1309,7 @@ function repairDmsCalendarCancellationByQueueId_(queueId) {
 
     let result;
     try {
-      Calendar.Events.remove(calendarId, eventId, {sendUpdates: 'none'});
+      dmsCalendarRemove_(calendarId, eventId, {sendUpdates: 'none'});
       result = 'Событие удалено через Telegram';
     } catch (error) {
       if (!isCalendarEventMissingError_(error)) throw error;

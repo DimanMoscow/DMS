@@ -17,7 +17,7 @@ function setDmsMiniAppQueueDecision_(payload) {
     throwDmsMiniAppError_('invalid_decision', 400, 'Неизвестное решение очереди.');
   }
 
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) {
     throwDmsMiniAppError_('operation_busy', 409, 'Другое действие ещё выполняется.');
   }
@@ -91,7 +91,7 @@ function confirmDmsMiniAppDay_(payload) {
     throwDmsMiniAppError_('not_today', 409, 'Подтвердить можно только текущий день.');
   }
 
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) {
     throwDmsMiniAppError_('operation_busy', 409, 'Другое действие ещё выполняется.');
   }
@@ -214,7 +214,7 @@ function previewDmsCalendarOnboarding_(payload) {
 }
 
 function resolveDmsCalendarOnboarding_(payload, actorId) {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) {
     throwDmsMiniAppError_('operation_busy', 409, 'Другое действие ещё выполняется.');
   }

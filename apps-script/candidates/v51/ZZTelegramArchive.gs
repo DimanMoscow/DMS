@@ -213,7 +213,7 @@ function showTelegramRestoreClient_(chatId, clientId, messageId) {
 }
 
 function confirmTelegramRestoreClient_(chatId, clientId, messageId) {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');
   try {
     const card = getTelegramClientCard_(clientId);

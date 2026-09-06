@@ -282,7 +282,7 @@ function prepareTelegramUpcomingMoveConfirmation_(state, userId, chatId, text) {
 function confirmTelegramUpcomingMove_(userId, chatId, messageId) {
   const state = getTelegramUpcomingState_(userId, chatId, 'move_confirm');
   const item = getTelegramUpcomingStateItem_(state, state.selectedIndex);
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');
   try {
     const event = getTelegramUpcomingLiveEvent_(state, item);
@@ -295,7 +295,7 @@ function confirmTelegramUpcomingMove_(userId, chatId, messageId) {
     const duration = Math.max(oldEnd.getTime() - oldStart.getTime(), 5 * 60 * 1000);
     const newEnd = new Date(newStart.getTime() + duration);
     assertTelegramUpcomingQueueEditable_(state.calendarId, item.id);
-    Calendar.Events.patch({
+    dmsCalendarPatch_({
       start: {dateTime: newStart.toISOString(), timeZone: timeZone},
       end: {dateTime: newEnd.toISOString(), timeZone: timeZone}
     }, state.calendarId, item.id, {sendUpdates: 'none'});
@@ -304,7 +304,7 @@ function confirmTelegramUpcomingMove_(userId, chatId, messageId) {
       queueUndo = updateTelegramQueueForUpcomingMove_(
         state.calendarId, item.id, newStart, newEnd);
     } catch (error) {
-      Calendar.Events.patch({
+      dmsCalendarPatch_({
         start: {dateTime: oldStart.toISOString(), timeZone: timeZone},
         end: {dateTime: oldEnd.toISOString(), timeZone: timeZone}
       }, state.calendarId, item.id, {sendUpdates: 'none'});
@@ -355,7 +355,7 @@ function showTelegramUpcomingCancelConfirmation_(userId, chatId, index, messageI
 function confirmTelegramUpcomingCancellation_(userId, chatId, messageId) {
   const state = getTelegramUpcomingState_(userId, chatId, 'cancel_confirm');
   const item = getTelegramUpcomingStateItem_(state, state.selectedIndex);
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');
   try {
     const event = getTelegramUpcomingLiveEvent_(state, item);
@@ -364,7 +364,7 @@ function confirmTelegramUpcomingCancellation_(userId, chatId, messageId) {
     assertTelegramUpcomingQueueEditable_(state.calendarId, item.id);
     const queueUndo = updateTelegramQueueForUpcomingCancellation_(state.calendarId, item.id);
     try {
-      Calendar.Events.remove(state.calendarId, item.id, {sendUpdates: 'none'});
+      dmsCalendarRemove_(state.calendarId, item.id, {sendUpdates: 'none'});
     } catch (error) {
       if (queueUndo) applyTelegramUndoPayload_(queueUndo);
       throw error;
