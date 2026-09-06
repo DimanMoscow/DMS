@@ -119,7 +119,7 @@ function processSelectedQueueDay() {
 }
 
 function processQueueDateLegacy_(date, confirmationSource, dryRun) {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
 
   if (!lock.tryLock(10000)) {
     throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');
@@ -573,7 +573,7 @@ function selfTestQueueProcessing() {
 }
 
 function processQueueDateLegacyV2_(date, confirmationSource, dryRun) {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
 
   if (!lock.tryLock(10000)) {
     throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');

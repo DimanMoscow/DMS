@@ -1026,6 +1026,8 @@ function startTelegramMove_(userId, chatId, dashboardMessageId, item) {
 }
 
 function getTelegramMoveState_(userId, chatId) {
+  const confirmed = getDmsConfirmedState_('move', userId, chatId);
+  if (confirmed !== undefined) return confirmed;
   const raw = CacheService.getScriptCache().get(
     makeTelegramMoveCacheKey_(userId, chatId)
   );
@@ -1066,7 +1068,7 @@ function cancelTelegramMove_(state, userId, chatId) {
 }
 
 function handleTelegramMoveInput_(state, userId, chatId, text) {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
 
   try {
     if (!lock.tryLock(10000)) {
@@ -1108,7 +1110,7 @@ function handleTelegramMoveInput_(state, userId, chatId, text) {
       : 60 * 60 * 1000;
     const newEnd = new Date(newStart.getTime() + durationMs);
 
-    Calendar.Events.patch({
+    dmsCalendarPatch_({
       start: {dateTime: newStart.toISOString(), timeZone: timeZone},
       end: {dateTime: newEnd.toISOString(), timeZone: timeZone}
     }, calendarId, eventId, {sendUpdates: 'none'});
@@ -1217,7 +1219,7 @@ function parseTelegramMoveDate_(text, timeZone, now) {
 }
 
 function applyTelegramCalendarCancellationsForDateLegacyV4_(date) {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
 
   if (!lock.tryLock(10000)) {
     return {
@@ -1265,7 +1267,7 @@ function applyTelegramCalendarCancellationsForDateLegacyV4_(date) {
       }
 
       try {
-        Calendar.Events.remove(calendarId, eventId, {sendUpdates: 'none'});
+        dmsCalendarRemove_(calendarId, eventId, {sendUpdates: 'none'});
         result.deleted++;
         values[16] = mergeQueueComment_(
           values[16],
@@ -1924,7 +1926,7 @@ function confirmTelegramPayment_(userId, chatId, messageId) {
     return;
   }
 
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) {
     throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');
   }
@@ -1950,6 +1952,7 @@ function confirmTelegramPayment_(userId, chatId, messageId) {
         {text: '🔙 Клиенты', callback_data: 'clp:0'}
       ]]}
     );
+    return operationId;
   } catch (error) {
     if (DMS_TELEGRAM_SECURE_DELIVERY) throw error;
     telegramSendMessage_(chatId,
@@ -2055,6 +2058,8 @@ function putTelegramPaymentState_(userId, chatId, state) {
 }
 
 function getTelegramPaymentState_(userId, chatId) {
+  const confirmed = getDmsConfirmedState_('payment', userId, chatId);
+  if (confirmed !== undefined) return confirmed;
   const raw = CacheService.getScriptCache().get(
     makeTelegramPaymentCacheKey_(userId, chatId)
   );
@@ -2766,7 +2771,7 @@ function confirmTelegramSchedule_(userId, chatId, messageId, allowConflict) {
     throw new Error('Сценарий создания тренировки устарел.');
   }
 
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) {
     throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');
   }
@@ -2813,7 +2818,7 @@ function confirmTelegramSchedule_(userId, chatId, messageId, allowConflict) {
         private: {dmsOperationId: String(state.secureOperationId)}
       };
     }
-    event = Calendar.Events.insert(eventResource, config.calendarId, {sendUpdates: 'none'});
+    event = dmsCalendarInsert_(eventResource, config.calendarId, {sendUpdates: 'none'});
 
     clearTelegramScheduleState_(userId, chatId);
   } finally {
@@ -2928,6 +2933,8 @@ function putTelegramScheduleState_(userId, chatId, state) {
 }
 
 function getTelegramScheduleState_(userId, chatId) {
+  const confirmed = getDmsConfirmedState_('schedule', userId, chatId);
+  if (confirmed !== undefined) return confirmed;
   const raw = CacheService.getScriptCache().get(
     makeTelegramScheduleCacheKey_(userId, chatId)
   );
@@ -3808,7 +3815,7 @@ function confirmTelegramManagementState_(userId, chatId, messageId) {
     throw new Error('Срок подтверждения истёк. Начни действие заново.');
   }
 
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) {
     throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');
   }
@@ -4065,7 +4072,7 @@ function confirmTelegramGift_(chatId, payload, messageId) {
   const clientId = parts[0];
   const blockId = parts[1];
   const expectedTotal = Number(parts[2]);
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throw new Error('Другое действие ещё выполняется.');
 
   try {
@@ -4133,7 +4140,7 @@ function confirmTelegramBlockStatus_(chatId, payload, action, messageId) {
   const parts = String(payload || '').split(':');
   const clientId = parts[0];
   const blockId = parts[1];
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throw new Error('Другое действие ещё выполняется.');
 
   try {
@@ -4504,6 +4511,8 @@ function putTelegramManagementState_(userId, chatId, state) {
 }
 
 function getTelegramManagementState_(userId, chatId) {
+  const confirmed = getDmsConfirmedState_('management', userId, chatId);
+  if (confirmed !== undefined) return confirmed;
   const raw = CacheService.getScriptCache().get(makeTelegramManagementCacheKey_(userId, chatId));
   if (!raw) return null;
   try {

@@ -925,7 +925,7 @@ function confirmTelegramVoidPayment_(chatId, operationId, messageId) {
 }
 
 function createTelegramDataBackup() {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) {
     throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');
   }
@@ -1243,7 +1243,7 @@ function getTelegramLastUndoableAudit_() {
 }
 
 function performTelegramUndo_(auditId) {
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) {
     throw new Error('Другое действие ещё выполняется. Повтори через несколько секунд.');
   }
@@ -1360,13 +1360,13 @@ function applyTelegramUndoPayloadUnsafe_(payload) {
     payload.items.slice().reverse().forEach(applyTelegramUndoPayloadUnsafe_);
   } else if (payload.type === 'delete_calendar_event') {
     try {
-      Calendar.Events.remove(payload.calendarId, payload.eventId,
+      dmsCalendarRemove_(payload.calendarId, payload.eventId,
         {sendUpdates: 'none'});
     } catch (error) {
       if (!isCalendarEventMissingError_(error)) throw error;
     }
   } else if (payload.type === 'move_calendar_event') {
-    Calendar.Events.patch({
+    dmsCalendarPatch_({
       start: {dateTime: payload.start, timeZone: payload.timeZone},
       end: {dateTime: payload.end, timeZone: payload.timeZone}
     }, payload.calendarId, payload.eventId, {sendUpdates: 'none'});
@@ -1403,6 +1403,8 @@ function putTelegramOpsState_(userId, chatId, state) {
 }
 
 function getTelegramOpsState_(userId, chatId) {
+  const confirmed = getDmsConfirmedState_('ops', userId, chatId);
+  if (confirmed !== undefined) return confirmed;
   const raw = CacheService.getScriptCache().get(makeTelegramOpsCacheKey_(userId, chatId));
   if (!raw) return null;
   try { return JSON.parse(raw); }

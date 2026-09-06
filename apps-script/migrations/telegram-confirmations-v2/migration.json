@@ -1,0 +1,24 @@
+{
+  "id": "telegram-confirmations-v2",
+  "schemaVersion": 2,
+  "appliesTo": [
+    "Журнал операций Telegram"
+  ],
+  "destructive": false,
+  "productionWritesRequireApproval": true,
+  "preflight": [
+    "Require applied telegram-confirmations-v1 and current private recovery evidence",
+    "Read legacy property counts and operation states; retain unknown and pending evidence",
+    "Require exact 13-column v1 prefix or exact v2 headers, with no data in extension columns"
+  ],
+  "postCheck": [
+    "Read back all 17 headers and unchanged historical rows",
+    "Exercise restart, immutable payload, concurrency and legacy compatibility on isolated workbook",
+    "Record migration digest only after successful live read-back"
+  ],
+  "rollback": [
+    "Retain all ledger columns, ticket payloads and operation events",
+    "Roll forward for cf2 operations; v50 cannot recover cf2 pending operations",
+    "Use fresh private backup and immutable v50 snapshot references; never truncate the ledger"
+  ]
+}

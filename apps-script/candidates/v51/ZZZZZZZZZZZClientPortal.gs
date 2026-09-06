@@ -430,7 +430,7 @@ function writeDmsClientPortalMeasurement_(payload, actorId, correction) {
     throwDmsClientPortalError_('measurement_invalid', 400);
   }
 
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) throwDmsClientPortalError_('operation_busy', 409);
   try {
     const ss = SpreadsheetApp.getActive();
@@ -593,7 +593,7 @@ function getDmsClientPortalAdminState_(clientId) {
 
 function createDmsClientPortalInvite_(clientId) {
   const id = normalizeDmsClientPortalClientId_(clientId);
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) {
     throwDmsClientPortalError_('operation_busy', 409);
   }
@@ -668,7 +668,7 @@ function revokeDmsClientPortalInvite_(clientId, inviteId) {
   if (!/^INV-[A-Za-z0-9_-]+$/.test(requestedInviteId)) {
     throwDmsClientPortalError_('enrollment_invite_invalid', 400);
   }
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) {
     throwDmsClientPortalError_('operation_busy', 409);
   }
@@ -709,7 +709,7 @@ function consumeDmsClientPortalInvite_(telegramUserId, token) {
       !DMS_CLIENT_PORTAL.INVITE_TOKEN_PATTERN.test(String(token || ''))) {
     throwDmsClientPortalError_('enrollment_invite_invalid', 403);
   }
-  const lock = LockService.getDocumentLock();
+  const lock = getDmsMutationLock_();
   if (!lock.tryLock(10000)) {
     throwDmsClientPortalError_('operation_busy', 409);
   }
