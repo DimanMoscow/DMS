@@ -342,7 +342,7 @@
       "baseVersion": "v48",
       "matchesCandidate": "v49",
       "fileCount": 16,
-      "sourceTreeSha256": "cc6facc82befa45d3e69f7d496b779788454e48a011a1212a870120f37538561",
+      "sourceTreeSha256": "dcc15ded6f7dde480f579a58ab77fd4d51e9e7246f00b7b27d0f78240f253c89",
       "expectedChangedFiles": [
         "TelegramBot.gs",
         "ZZZZZZZRuntime.gs",
@@ -352,6 +352,23 @@
         "method": "Apps Script Editor numbered source, production deployment metadata, 17-check live gate, and reconciliation",
         "verifiedAt": "2026-09-04T22:29:08Z",
         "result": "Production deployment reports v49; the queue-source and debt-formula guards passed, the live gate passed 17/17, and reconciliation remained zero after Q-0085"
+      }
+    },
+    "v50": {
+      "numberedVersion": 50,
+      "baseVersion": "v49",
+      "matchesCandidate": "v50",
+      "fileCount": 17,
+      "sourceTreeSha256": "f1c52e3557f33605005dcc8835b61be7c9416a2211d01e641ccb75be97e34bdf",
+      "expectedChangedFiles": [
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZZZZZZZZZZZTelegramConfirmations.gs"
+      ],
+      "liveVerification": {
+        "method": "Official Google APIs for exact HEAD/numbered/deployment read-back, runtime identity, 17-check read-only live gate, and reconciliation",
+        "verifiedAt": "2026-09-06T20:11:59Z",
+        "result": "Production deployment reports v50; the Telegram confirmation module fingerprint and handler marker passed, the live gate passed 17/17, and reconciliation remained zero without payment or Calendar mutations"
       }
     }
   },
@@ -440,7 +457,7 @@
     "v49": {
       "baseVersion": "v48",
       "fileCount": 16,
-      "sourceTreeSha256": "cc6facc82befa45d3e69f7d496b779788454e48a011a1212a870120f37538561",
+      "sourceTreeSha256": "dcc15ded6f7dde480f579a58ab77fd4d51e9e7246f00b7b27d0f78240f253c89",
       "expectedChangedFiles": [
         "TelegramBot.gs",
         "ZZZZZZZRuntime.gs",
@@ -450,7 +467,7 @@
     "v50": {
       "baseVersion": "v49",
       "fileCount": 17,
-      "sourceTreeSha256": "ced403932c8f7a5b079560762d210fa5ce38de7c9e6c5c59ebc27cd6820f2898",
+      "sourceTreeSha256": "f1c52e3557f33605005dcc8835b61be7c9416a2211d01e641ccb75be97e34bdf",
       "expectedChangedFiles": [
         "TelegramBot.gs",
         "TelegramFinal.gs",

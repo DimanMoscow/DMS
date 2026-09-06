@@ -74,6 +74,8 @@ export function buildReleaseCheckpoint({
       routerSha256: String(appsScriptRuntime.routerSha256 || ""),
       clientPortalSha256: String(appsScriptRuntime.clientPortalSha256 || ""),
       clientPortalHandlerLoaded: true,
+      telegramConfirmationsSha256: String(appsScriptRuntime.telegramConfirmationsSha256 || ""),
+      telegramConfirmationsHandlerLoaded: true,
     },
     sheets: {
       schemaVersion,

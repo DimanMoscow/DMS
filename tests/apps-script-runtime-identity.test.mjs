@@ -4,7 +4,7 @@ import fs from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 
-const candidateDirectory = "apps-script/candidates/v49";
+const candidateDirectory = "apps-script/candidates/v50";
 const readSource = (fileName) =>
   fs.readFileSync(`${candidateDirectory}/${fileName}`, "utf8").replace(/\r\n/g, "\n");
 const telegramSource = readSource("TelegramBot.gs");
@@ -16,7 +16,7 @@ function sha256(fileName) {
     .digest("hex");
 }
 
-function createContext({ clientPortalHandlerLoaded = true } = {}) {
+function createContext({ clientPortalHandlerLoaded = true, telegramConfirmationsHandlerLoaded = true } = {}) {
   const context = vm.createContext({
     JSON,
     ContentService: {
@@ -36,6 +36,9 @@ function createContext({ clientPortalHandlerLoaded = true } = {}) {
   if (clientPortalHandlerLoaded) {
     context.handleDmsClientPortalRequest_ = () => {};
   }
+  if (telegramConfirmationsHandlerLoaded) {
+    context.handleTelegramCallback_ = () => {};
+  }
   vm.runInContext(telegramSource, context);
   return context;
 }
@@ -53,6 +56,8 @@ test("runtime identity fingerprints the exact client router sources", () => {
     "release",
     "routerSha256",
     "service",
+    "telegramConfirmationsHandlerLoaded",
+    "telegramConfirmationsSha256",
   ]);
   assert.equal(identity.ok, true);
   assert.equal(identity.service, "dms-fitness-apps-script");
@@ -60,13 +65,22 @@ test("runtime identity fingerprints the exact client router sources", () => {
   assert.equal(identity.routerSha256, sha256("ZZZZZZZZMiniAppApi.gs"));
   assert.equal(identity.clientPortalSha256, sha256("ZZZZZZZZZZZClientPortal.gs"));
   assert.equal(identity.clientPortalHandlerLoaded, true);
+  assert.equal(identity.telegramConfirmationsSha256, sha256("ZZZZZZZZZZZZTelegramConfirmations.gs"));
+  assert.equal(identity.telegramConfirmationsHandlerLoaded, true);
 });
 
-test("server verifier pins the active v49 runtime identity", () => {
+test("server verifier pins the active v50 runtime identity", () => {
   const source = fs.readFileSync("lib/apps-script-runtime-identity.ts", "utf8");
   assert.match(source, /calendar-onboarding-r8-production-guards/);
   assert.match(source, new RegExp(sha256("ZZZZZZZZMiniAppApi.gs")));
   assert.match(source, new RegExp(sha256("ZZZZZZZZZZZClientPortal.gs")));
+  assert.match(source, new RegExp(sha256("ZZZZZZZZZZZZTelegramConfirmations.gs")));
+});
+
+test("runtime identity fails its confirmation marker when the security module is absent", () => {
+  const identity = createContext({ telegramConfirmationsHandlerLoaded: false })
+    .getDmsRuntimeIdentity_();
+  assert.equal(identity.telegramConfirmationsHandlerLoaded, false);
 });
 
 test("runtime identity fails its load marker when the portal module is absent", () => {

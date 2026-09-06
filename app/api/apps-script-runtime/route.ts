@@ -33,7 +33,10 @@ export async function GET() {
       identity.release === EXPECTED_APPS_SCRIPT_RUNTIME.release &&
       identity.routerSha256 === EXPECTED_APPS_SCRIPT_RUNTIME.routerSha256 &&
       identity.clientPortalSha256 === EXPECTED_APPS_SCRIPT_RUNTIME.clientPortalSha256 &&
-      identity.clientPortalHandlerLoaded === true;
+      identity.clientPortalHandlerLoaded === true &&
+      identity.telegramConfirmationsSha256 ===
+        EXPECTED_APPS_SCRIPT_RUNTIME.telegramConfirmationsSha256 &&
+      identity.telegramConfirmationsHandlerLoaded === true;
 
     if (!matches) {
       return jsonNoStore({ ok: false, error: "runtime_identity_mismatch" }, 502);
@@ -46,6 +49,8 @@ export async function GET() {
       routerSha256: identity.routerSha256,
       clientPortalSha256: identity.clientPortalSha256,
       clientPortalHandlerLoaded: true,
+      telegramConfirmationsSha256: identity.telegramConfirmationsSha256,
+      telegramConfirmationsHandlerLoaded: true,
     }, 200);
   } catch {
     return jsonNoStore({ ok: false, error: "runtime_identity_unavailable" }, 503);

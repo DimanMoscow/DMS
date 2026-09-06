@@ -1,4 +1,4 @@
-# Telegram confirmation hardening preflight
+# Telegram confirmation hardening
 
 ## Threat model
 
@@ -13,7 +13,7 @@ The next implementation should defend against stale buttons, forwarded or replay
 callbacks, duplicate Telegram delivery, cache eviction, concurrent clicks, and failure
 between a Sheet/Calendar write and the acknowledgement.
 
-## Implemented candidate contract
+## Implemented contract
 
 - Generate a cryptographically random one-time nonce for every confirmation preview.
 - Store only a nonce hash with flow version, admin user, chat, message ID, action type,
@@ -42,7 +42,7 @@ loss, failure before and after the durable write, Calendar/payment retries, and 
 redaction. Production verification should use read-only inspection of ledger invariants;
 it must not create a payment or Calendar event as a smoke test.
 
-Candidate `v50` implements the contract in
+Production `v50` implements the contract in
 `ZZZZZZZZZZZZTelegramConfirmations.gs`. The callback contains only `cf1`, a random
 confirmation ID, and a one-time random nonce. Document Properties keep the nonce hash,
 salted admin/chat hashes, exact message binding, action, canonical action/payload hash,
@@ -65,6 +65,9 @@ Calendar creation/move/cancel, Queue decisions and day confirmation, block chang
 client archive/restore, undo, management writes, settings changes, and manual internal
 backup creation.
 
-Production remains on `v49`. Before deploying `v50`, apply the non-destructive
-`telegram-confirmations-v1` migration after a verified private v49 backup, read back the
-exact empty ledger schema, then deploy and use only read-only production smoke checks.
+The non-destructive `telegram-confirmations-v1` migration is applied. Official Google
+API read-back proved the exact candidate, HEAD, numbered `v50`, and deployment mapping;
+the runtime module fingerprint and handler marker passed. The read-only live gate passed
+`17/17`, reconciliation remained `0`, and the new ledger had zero data rows. A
+complete 16-sheet backup plus isolated restore comparison passed. No payment or Calendar
+mutation was used as release smoke.

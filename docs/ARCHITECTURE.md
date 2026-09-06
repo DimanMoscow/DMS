@@ -67,7 +67,7 @@ partial mutations are restored if a write or audit append fails.
 | Component | Production runtime | Repository role |
 | --- | --- | --- |
 | MiniApp | Vercel deployment | Canonical source in `app/`, `lib/`, `public/` |
-| Apps Script | Google Apps Script deployment on `v49` | Complete reviewed source in `apps-script/versions/v49` and `apps-script/candidates/v49` |
+| Apps Script | Google Apps Script deployment on `v50` | Complete reviewed source in `apps-script/versions/v50` and `apps-script/candidates/v50` |
 | Saved `v39` | Historical numbered version; not deployed | Reviewable snapshot beside `v38` |
 | Retained `v40` candidate | No runtime effect by itself | Reviewed source matching `versions/v40` byte-for-byte |
 | Numbered `v42` | Historical deployment with a proven runtime/source mismatch; not deployed | Source snapshot matching `candidates/v41` |
@@ -77,7 +77,8 @@ partial mutations are restored if a write or audit append fails.
 | Measurement guard `v46` | Historical production runtime | Adds server-side rejection of no-op corrections without changing the schema or existing data |
 | Calendar onboarding `v47` | Historical production runtime | Introduced registration queue state, debt-formula guard, redacted API failures, and admin resolution |
 | Idempotency guard `v48` | Historical production runtime | Makes matching repeated new-client resolution a no-op and conflicting replay fail closed |
-| Production guards `v49` | Active production runtime | Accepts canonical one-off onboarding conditions, validates Queue resolution sources, and prevents new clients from duplicating the Debt spill formula |
+| Production guards `v49` | Previous production runtime | Accepts canonical one-off onboarding conditions, validates Queue resolution sources, and prevents new clients from duplicating the Debt spill formula |
+| Telegram confirmations `v50` | Active production runtime | Adds one-time, message-bound mutation confirmations and an append-only exactly-once operation ledger |
 | Sheets / Calendar | Live Google services | No production data is stored in Git |
 | Telegram | Telegram API calling Apps Script webhook | Bot behavior is implemented in Apps Script files |
 

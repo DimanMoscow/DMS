@@ -14,7 +14,11 @@ const migrationsRoot = path.join(repositoryRoot, "apps-script", "migrations");
 
 test("production migration ledger matches every versioned migration", () => {
   const result = verifyMigrationRepository({ repositoryRoot, migrationsRoot });
-  assert.deepEqual(result.applied, ["client-portal-v1", "client-portal-enrollment-v1"]);
+  assert.deepEqual(result.applied, [
+    "client-portal-v1",
+    "client-portal-enrollment-v1",
+    "telegram-confirmations-v1",
+  ]);
   assert.match(result.ledgerSha256, /^[0-9a-f]{64}$/);
 });
 

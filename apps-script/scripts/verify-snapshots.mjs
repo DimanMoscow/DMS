@@ -359,6 +359,9 @@ assert.match(production.lastVerified.at,
 verifyRuntimeIdentity(production.runtimeIdentity, {
   routerSha256: sha256(actualSources[production.snapshot]["ZZZZZZZZMiniAppApi.gs"]),
   clientPortalSha256: sha256(actualSources[production.snapshot]["ZZZZZZZZZZZClientPortal.gs"]),
+  telegramConfirmationsSha256: sha256(
+    actualSources[production.snapshot]["ZZZZZZZZZZZZTelegramConfirmations.gs"],
+  ),
 }, { requireOk: false });
 console.log(
   `Production pointer verified: ${production.snapshot}, ` +

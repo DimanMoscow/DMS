@@ -2,58 +2,40 @@
 
 Last audited: 2026-09-06 (Europe/Moscow).
 
-## Source of truth
+Use `origin/main`, `AGENTS.md`, relevant current `docs/*`, and live service state.
+Old chats, old handoffs, and non-main branches are not authoritative.
 
-Use the current `origin/main`, `AGENTS.md`, relevant current files in `docs/`,
-and live service state. Old chats, handoff notes, and non-main branches are not
-authoritative.
+## Checkpoint
 
-## Current checkpoint
-
-- Resolve `main` from current `origin/main`; do not copy a SHA from this document.
-- Vercel Production follows Git-linked `main` automatically. Release `0.2.7` and
-  fingerprint `miniapp-r8-apps-script-runtime-probe` must match the deployed source.
-  `/`, `/client`, `/api/health`, and `/api/apps-script-runtime` return 200;
-  APIs are `no-store` and `dataMode` is `connected`.
-- Apps Script Production: `v49`; live gate `17/17` and reconciliation `0` were
-  reverified read-only on 2026-09-06 at 01:39 Europe/Moscow.
-- Repository gate includes dependency audit, Apps Script source/production identity,
-  migration ledger, tests, lint, TypeScript, and production build; reconciliation: `0`.
-- Production business counts last confirmed in the operational checkpoint: Clients 18,
-  Blocks 15, Journal 109, Payments 21;
-  bindings 2 active; invitations 3 revoked / 2 used / 0 pending; measurements 0.
-- The latest live reconciliation counted Queue 93 and Calendar 103. The increase from
-  Queue 85 / Calendar 95 is matched and produced no Queue ↔ Journal or Calendar
-  inconsistency; Journal remains 109.
-- Calendar-driven onboarding is active. The Debt formula has one canonical anchor
-  at `Клиенты!J5` with no spill errors. `Q-0085` has one Queue row and one
-  linked Journal row and was processed once.
-- Repository candidate `v50` implements Telegram one-time confirmations and exactly-once
-  operation handling. It is not deployed. Its required append-only ledger migration is
-  catalogued but not applied; production therefore remains exactly on `v49` behavior.
-- A private owner-only Drive backup and isolated restore-test copy were verified on
-  2026-09-06 against all 15 production sheets. The non-sensitive private manifest stays
-  outside Git; backup-reference SHA-256 prefix: `bad0040e`. The Apps Script console shows
-  the active production deployment on numbered version `49`; the read-only ledger
-  preflight passed with zero pending operations.
-- GitHub reports no open pull requests or active Dependabot heads. Keep `main`, the two
-  documented backup/archive pointers, and both `recovery/*` pointers. All other heads
-  are merged cleanup candidates, including the security-release and final-checkpoint
-  heads; recount and recheck them immediately before deletion. Cleanup and `main`
-  protection remain blocked only on an authenticated admin path.
+- Resolve the Git SHA from current `origin/main` at session start.
+- MiniApp release `0.2.7`, fingerprint `miniapp-r8-apps-script-runtime-probe`, public
+  routes, connected health, source SHA, `no-store`, and Apps Script identity must pass
+  the production verifier after each approved merge.
+- Apps Script Production is `v50`. Official API read-back proved HEAD, numbered version,
+  deployment mapping, and runtime identity. The read-only live gate passed `17/17` and
+  reconciliation is `0`.
+- Latest production counts: Clients 18; Blocks 15; Queue 94; Journal 115; Calendar 104;
+  Payments 21; bindings 2 active; invitations 3 revoked / 2 used / 0 pending;
+  measurements 0. Queue has 1 waiting, 0 errors, and 0 registration rows.
+- `telegram-confirmations-v1` is applied. `Журнал операций Telegram` exists with the
+  exact 13-column schema and 0 data rows. The v50 rollout performed no payment or
+  Calendar smoke mutations.
+- A complete 16-sheet private Drive backup and an isolated restore copy match exactly.
+  Recovery manifests and all Google identifiers remain outside Git.
+- Official local Google OAuth is split into reader and writer profiles under the private
+  operations directory, conventionally `${DMS_PRIVATE_CHECKPOINTS}/google-auth/`.
+  The profiles use exact scopes and Apps Script release no longer depends on Work or
+  OAuth Playground. The Google app is still in Testing, so periodic official
+  reauthorization may be required until publication prerequisites are completed.
+- Calendar onboarding and the sole Debt formula anchor at `Клиенты!J5` remain healthy;
+  `Q-0085` was processed exactly once.
 
 ## Constraints
 
-- Do not create the pending Hybrid product until a separate confirmed Calendar
-  start and explicit terms exist.
-- Create measurements only through an explicit authenticated admin action.
-- Do not change prices, business rules, or weaken the client/admin access model.
-- The active stage is security hardening only; no prices, business rules, bindings,
-  measurements, or production business rows are changed by the repository candidate.
+- Do not create the pending Hybrid product before a separately confirmed Calendar start.
+- Create measurements only through explicit authenticated admin action.
+- Do not change prices, business rules, or weaken client/admin access.
+- Start no new functional stage without an explicit instruction.
 
-Release policy, rollback references, staging boundaries, and migration discipline are
-defined in `docs/RELEASE_OPERATIONS.md`; private backup recovery is defined in
+Release procedure is in `docs/RELEASE_OPERATIONS.md`; recovery is in
 `docs/DISASTER_RECOVERY.md`.
-
-At session start, fetch `origin/main`, read `AGENTS.md` and
-`docs/PROJECT_STATE.md`, then recheck live state relevant to the requested work.

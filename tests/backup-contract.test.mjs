@@ -10,7 +10,7 @@ const now = new Date("2026-09-05T01:00:00Z");
 test("private Drive-copy recovery manifest covers the complete workbook contract", () => {
   const result = verifyBackupManifest(fixture, { now });
   assert.equal(result.ok, true);
-  assert.equal(result.sheetCount, 15);
+  assert.equal(result.sheetCount, 16);
 });
 
 test("recovery manifest binds the aggregate structure and production version", () => {

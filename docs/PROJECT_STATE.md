@@ -4,109 +4,50 @@ Last verified: 2026-09-06 (Europe/Moscow).
 
 ## Confirmed production
 
-- `main` contains the client-progress/enrollment UX, Calendar-driven onboarding,
-  and the production Apps Script runtime verifier. MiniApp release `0.2.7` can
-  verify the active Apps Script source through its server-only configured URL.
-- MiniApp production follows Git-linked `main`. The release gate requires `/`,
-  `/client`, `/api/health`, and `/api/apps-script-runtime` to return HTTP 200;
-  health must report release `0.2.7`, fingerprint
-  `miniapp-r8-apps-script-runtime-probe`, the exact serving source SHA, and
-  `dataMode: connected`.
-- Apps Script production uses the existing deployment on numbered version `v49`.
-  Its runtime implements signed server-authoritative `admin` / `client` / `unlinked`
-  entry resolution, hashed single-use enrollment, one-to-one bindings, and append-only
-  trainer measurements. `v46` added server-side no-op measurement correction rejection;
-  `v47` added Calendar onboarding, debt-formula integrity, and redacted API errors;
-  `v48` makes matching repeated new-client resolution idempotent; `v49` accepts
-  the canonical one-off conditions written by onboarding, validates Queue sources,
-  and prevents new clients from duplicating the Debt spill formula.
-- The two-client controlled pilot is complete. Production contains exactly two active
-  bindings for the two approved clients, with two distinct Telegram identities. The
-  invitation audit has five rows: three `revoked`, two `used`, and zero `pending`.
-  Measurements remain zero.
-- B-side live evidence contains a successful atomic enrollment and client bootstrap,
-  ordinary linked-client re-entry, and replay denial. A-side ordinary re-entry was
-  already confirmed after the role-routing rollout. Automated gates cover A/B data
-  isolation, unlinked denial, selector rejection, client/admin separation, replay,
-  expired/revoked states, and the document-lock race contract.
-- The 2026-09-06 01:39 Europe/Moscow read-only reconciliation reports zero Calendar ↔
-  Queue ↔ Journal issues across 93 queue rows, 109 journal rows, and 103 Calendar
-  events. The matched eight-row increase since the previous checkpoint reflects normal
-  calendar-driven scheduling and introduced no accounting rows or discrepancies.
-- The Debt `ARRAYFORMULA` is restored at the sole canonical `Клиенты!J5` anchor. The
-  conflicting formula in the spill range was removed without changing payment or block
-  amounts, and the new live guard passes.
-- The approved unknown-client queue case was resolved from an explicit administrator
-  preview as a new one-off client. It produced exactly one payment and one Journal row,
-  preserved the approved Calendar alias, and created no block or future Hybrid product.
-- Production logs use bounded request IDs and allow-listed action/status/error fields.
-  They contain no raw `initData`, invitation tokens, Telegram identities, client IDs,
-  or PII.
+- MiniApp release `0.2.7` follows Git-linked `main`. Before this checkpoint PR,
+  production served source `b7933d01d94478b85d45fbb2281ced3a2fd5c3f6`; `/`, `/client`,
+  `/api/health`, and `/api/apps-script-runtime` returned HTTP 200, health reported
+  `dataMode: connected`, and APIs remained `no-store`.
+- Apps Script Production is numbered `v50`. Official Google API read-back proved
+  candidate → HEAD → numbered version → production deployment identity. The live
+  runtime reported the expected Telegram confirmation module fingerprint and loaded
+  handler. The read-only gate passed `17/17`; reconciliation reported `0` issues.
+- Production has Clients 18, Blocks 15, Payments 21, two active bindings, invitations
+  3 revoked / 2 used / 0 pending, and measurements 0. The latest live check counted
+  Queue 94, Journal 115, and Calendar 104; one queue row was waiting and none had an
+  error or registration state.
+- Calendar-driven onboarding remains active. The Debt formula has one canonical anchor
+  at `Клиенты!J5`, its guard passes, and `Q-0085` remains processed exactly once.
+- `telegram-confirmations-v1` is applied. The empty 13-column append-only
+  `Журнал операций Telegram` is the sixteenth production sheet. The v50 release made
+  no payment or Calendar mutations.
+- A complete private post-migration Drive backup and a separate isolated restore copy
+  were read back through official Google APIs. All 16 sheets, metadata, and cell values
+  matched exactly. Private manifests and identifiers remain outside Git.
 
-## Delivered UX and release hardening
+## Release and access controls
 
-- The read-only Client Portal shows per-metric changes from the previous active
-  measurement, with corrections already collapsed by Apps Script. Empty, loading, and
-  error states remain read-only and mobile-first.
-- Admin enrollment now warns that plaintext links cannot be recovered, offers the
-  native share sheet without persistence, explains revoke-and-recreate, and requires a
-  second confirmation before revoke. No token is written to browser storage.
-- The production verifier now checks release, runtime fingerprint, source SHA,
-  connectivity, public routes, health `no-store`, the allow-listed Apps Script runtime
-  identity, and fail-closed `/api/dms` responses. Every API response in those paths must
-  carry `Cache-Control: no-store`.
-- The full repository gate covers a high-severity dependency audit, lint,
-  TypeScript, production build, Apps Script candidate/snapshot integrity and production
-  pointer, and the applied-migration ledger.
-- GitHub and Vercel release behavior is explicit: pull requests receive Preview
-  deployments and an approved merge to `main` automatically deploys Production. The
-  repository exposes `release:check`, `release:verify`, and an ignored, non-sensitive
-  local release-checkpoint command. Migration packages now carry machine-checked
-  preflight, post-check, rollback, and approval metadata.
-- Vercel Preview is isolated from production data: the audited PR Preview reports
-  `dataMode: not-configured`, and its Apps Script runtime endpoint fails closed because
-  the production backend environment is absent.
-- The existing authenticated admin diagnostics view now combines MiniApp identity,
-  Apps Script runtime identity, queue waiting/error/registration counts, the read-only
-  live gate result, trigger count, and last-check time. It exposes no identifiers or
-  client, medical, or financial records.
-- Next.js and `eslint-config-next` are pinned to `16.3.4`. The upgrade removes the
-  audited Next.js/PostCSS/Sharp findings, including the vendor-published `16.3.3`
-  critical security fixes, without changing application code.
-- Apps Script source verification canonicalizes LF/CRLF while rejecting lone carriage
-  returns, so Windows and Linux prove the same immutable source hashes. Offline release
-  plans remain explicitly non-deployable until separate Google authorization verifies
-  remote state.
-- The repository records two confirmed applied portal migrations by immutable artifact
-  digest. On 2026-09-06 a private owner-only Drive copy of production `v49` and a second
-  isolated restore-test copy were read back successfully. All 15 production sheets,
-  populated-row counts, headers, formulas, validations, and aggregate cell hashes matched.
-  The private manifest is outside Git; its backup-reference SHA-256 starts with `bad0040e`.
-- Candidate `v50` adds one-time Telegram mutation confirmations and a durable append-only
-  operation ledger. It binds a cryptographic nonce to the admin, chat, message, action,
-  canonical payload, TTL, and logical operation ID. Generic pre-v50 mutation callbacks
-  fail closed; concurrent and replayed callbacks cannot run the same operation twice.
-  The candidate and the `telegram-confirmations-v1` migration are repository-only and
-  have not been applied to production.
+- Runtime identity now includes the confirmation-module hash and handler-loaded marker.
+  The repository gate verifies the v50 candidate/snapshot, production pointer, applied
+  migration ledger, dependency audit, tests, lint, TypeScript, and production build.
+- Local Google operations use two official Desktop OAuth clients and two profiles:
+  reader with the exact read-only scopes and writer with the exact release scopes.
+  Credentials, target identifiers, backups, and reports are stored outside Git. OAuth
+  Playground and Work are no longer required for Apps Script releases.
+- The Google Auth Platform app is currently in Testing. Google may expire Testing-mode
+  refresh tokens after about seven days, so an official local reauthorization may be
+  required until the app's branding and publication requirements are completed.
+- GitHub `main` requires a pull request and the `release-gate`, requires the branch to
+  be current, blocks force-push and deletion, and permits zero required approvals for
+  explicitly authorized Codex merges. Merged head branches are deleted automatically.
+- Vercel Preview remains isolated from production data. A merge to `main` automatically
+  creates the Production deployment; no manual promotion is part of the normal flow.
 
-## Calendar onboarding release
+## Constraints and next stage
 
-`apps-script/versions/v46` through `v49` are immutable sanitized snapshots of the
-numbered releases. Production `v49` passed the 17-check read-only gate with zero
-reconciliation issues. Queue validation accepts both `Требует регистрации` and
-`MiniApp` as the resolution source; the Debt guard requires `Клиенты!J5` to remain the
-only formula anchor in its spill range.
-
-## Remaining risks and next step
-
-- Real measurements still require an explicit authenticated trainer action. No real
-  measurement values have been entered.
-- A later confirmed Calendar entry may start Hybrid onboarding, but no Hybrid block
-  exists until that separate entry and its terms are explicitly confirmed.
-- Telegram confirmation hardening is implemented and fixture-tested in candidate `v50`.
-  The Apps Script console confirms that the sole active production deployment maps to
-  numbered version `49`; production rollout still requires the separated writer OAuth
-  profile, application and read-back of the new empty ledger schema, and the normal live
-  gate and reconciliation. The private production-schema preflight reports zero pending
-  operations and is ready to create the 13-column ledger.
-- Continue with read-only invitation history without introducing client-side writes.
+- Create measurements only through an explicit authenticated administrator action.
+- Do not create the pending Hybrid product until a separate confirmed Calendar start
+  and explicit terms exist.
+- Do not change prices, business rules, or weaken the client/admin access model.
+- The v50 security rollout is complete. Start no new functional stage from this
+  checkpoint without a new explicit instruction.

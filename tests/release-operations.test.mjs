@@ -10,9 +10,9 @@ test("release checkpoint keeps only non-sensitive rollback metadata", () => {
   const checkpoint = buildReleaseCheckpoint({
     capturedAt: "2026-09-05T00:00:00.000Z",
     vercelDeployment: "dpl_example",
-    appsScriptVersion: "v49",
+    appsScriptVersion: "v50",
     appsScriptDeployment: "deployment-reference-example",
-    schemaVersion: "client-portal-v1",
+    schemaVersion: "telegram-confirmations-v1",
     migrationLedgerSha256: "c".repeat(64),
     health: {
       ok: true,
@@ -30,7 +30,7 @@ test("release checkpoint keeps only non-sensitive rollback metadata", () => {
 
   const serialized = JSON.stringify(checkpoint);
   assert.equal(checkpoint.miniApp.vercelDeployment, "dpl_example");
-  assert.equal(checkpoint.appsScript.numberedVersion, "v49");
+  assert.equal(checkpoint.appsScript.numberedVersion, "v50");
   assert.equal(checkpoint.appsScript.deploymentReference, "deployment-reference-example");
   assert.equal(checkpoint.sheets.productionDataIncluded, false);
   assert.equal(checkpoint.sheets.migrationLedgerSha256, "c".repeat(64));
@@ -59,9 +59,9 @@ test("release checkpoint fails closed without rollback references", () => {
     () => buildReleaseCheckpoint({
       ...input,
       vercelDeployment: "dpl_example",
-      appsScriptVersion: "v49",
+      appsScriptVersion: "v50",
       appsScriptDeployment: "deployment-reference-example",
-      schemaVersion: "client-portal-v1",
+      schemaVersion: "telegram-confirmations-v1",
     }),
     /ledger SHA-256/,
   );
@@ -91,15 +91,15 @@ test("release checkpoint rejects runtime hash and numbered-version drift", () =>
     },
     appsScriptRuntime: { ok: true, ...production.runtimeIdentity },
     vercelDeployment: "dpl_example",
-    appsScriptVersion: "v49",
+    appsScriptVersion: "v50",
     appsScriptDeployment: "deployment-reference-example",
-    schemaVersion: "client-portal-v1",
+    schemaVersion: "telegram-confirmations-v1",
     migrationLedgerSha256: "c".repeat(64),
   };
   assert.throws(() => buildReleaseCheckpoint({
     ...input,
     appsScriptRuntime: { ...input.appsScriptRuntime, routerSha256: "a".repeat(64) },
   }), /runtime identity/);
-  assert.throws(() => buildReleaseCheckpoint({ ...input, appsScriptVersion: "v48" }),
+  assert.throws(() => buildReleaseCheckpoint({ ...input, appsScriptVersion: "v49" }),
     /production pointer/);
 });

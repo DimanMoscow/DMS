@@ -79,7 +79,8 @@ if (!/no-store/i.test(appsScriptRuntimeResponse.headers.get("cache-control") || 
 }
 if (appsScriptRuntime.ok !== true ||
     appsScriptRuntime.service !== "dms-fitness-apps-script" ||
-    appsScriptRuntime.clientPortalHandlerLoaded !== true) {
+    appsScriptRuntime.clientPortalHandlerLoaded !== true ||
+    appsScriptRuntime.telegramConfirmationsHandlerLoaded !== true) {
   throw new Error("Apps Script runtime identity mismatch");
 }
 
@@ -98,6 +99,7 @@ console.log(JSON.stringify({
   appsScriptRuntime: {
     release: appsScriptRuntime.release,
     clientPortalHandlerLoaded: appsScriptRuntime.clientPortalHandlerLoaded,
+    telegramConfirmationsHandlerLoaded: appsScriptRuntime.telegramConfirmationsHandlerLoaded,
   },
   apiProbe: { status: apiProbe.status, error: apiProbeBody.error, cacheControl: "no-store" },
   methodProbe: {
