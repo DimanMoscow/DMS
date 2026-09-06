@@ -3915,9 +3915,8 @@ function createTelegramClient_(state) {
     DMS_TELEGRAM_MANAGEMENT.CLIENT_FIRST_ROW,
     DMS_TELEGRAM_MANAGEMENT.CLIENT_COLUMNS
   );
-// J5 owns the only Debt ARRAYFORMULA. Copying the template row into a new
-  // client must not create a second spill anchor in the target row.
-  clients.getRange(clientRow, 10).clearContent();
+  // Financial columns are owned by shared anchors and are never copied/cleared
+  // when an entity is created, including the first client at row 5.
   clients.getRange(clientRow, 1, 1, 5).setValues([[
     clientId,
     state.clientName,
@@ -4384,12 +4383,21 @@ function getTelegramBlockRecord_(blockId) {
 }
 
 function prepareTelegramEntityRow_(sheet, targetRow, templateRow, columns) {
+  ensureDmsSheetRowCapacity_(sheet, targetRow);
   if (targetRow === templateRow) return;
   const template = sheet.getRange(templateRow, 1, 1, columns);
   const target = sheet.getRange(targetRow, 1, 1, columns);
   template.copyTo(target, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
   template.copyTo(target, SpreadsheetApp.CopyPasteType.PASTE_DATA_VALIDATION, false);
-  template.copyTo(target, SpreadsheetApp.CopyPasteType.PASTE_FORMULA, false);
+  const sharedColumns = sheet.getName() === 'Клиенты' ? [6, 7, 8, 9, 10] :
+    sheet.getName() === 'Блоки' ? [9, 10, 14, 15] : [];
+  const formulas = template.getFormulas()[0];
+  formulas.forEach(function(formula, index) {
+    if (formula && sharedColumns.indexOf(index + 1) === -1) {
+      sheet.getRange(templateRow, index + 1).copyTo(sheet.getRange(targetRow, index + 1),
+        SpreadsheetApp.CopyPasteType.PASTE_FORMULA, false);
+    }
+  });
 }
 
 function setTelegramBlockStatusLegacyV8_(sheet, row, status) {

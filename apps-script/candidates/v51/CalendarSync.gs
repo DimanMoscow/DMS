@@ -173,6 +173,7 @@ function buildCalendarQueueSyncPlan_() {
 
 function applyCalendarQueueSyncPlan_(plan) {
   plan.writes.forEach(function(write) {
+    ensureDmsSheetRowCapacity_(plan.queue, write.row);
     if (write.copyTemplate) copyQueueTemplate_(plan.queue, write.row);
     plan.queue
       .getRange(write.row, 1, 1, DMS_SYNC.QUEUE_COLUMNS)

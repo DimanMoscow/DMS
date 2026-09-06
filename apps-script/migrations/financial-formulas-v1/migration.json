@@ -1,0 +1,22 @@
+{
+  "id": "financial-formulas-v1",
+  "schemaVersion": 1,
+  "appliesTo": ["Клиенты", "Блоки"],
+  "destructive": false,
+  "productionWritesRequireApproval": true,
+  "preflight": [
+    "Require a fresh verified private recovery manifest and applied migration ledger",
+    "Read values and formulas; validate known client-format formulas and preserve every input column",
+    "Drain old executions before changing formula ownership; verify all P1 isolated gates"
+  ],
+  "postCheck": [
+    "Compare all input cells unchanged; verify nine formula anchors and no competing spill formulas",
+    "Recompute Clients and Blocks expected numbers independently from complete Payments and Journal",
+    "Record the exact migration artifact and private evidence only after live verification"
+  ],
+  "rollback": [
+    "Retain all business records and recovery evidence",
+    "Use the verified pre-migration formula snapshot only while writers are drained",
+    "Do not run v50 entity-template writers against the shared-anchor layout; roll forward after cf2 acceptance"
+  ]
+}

@@ -58,7 +58,13 @@ Last verified: 2026-09-06 (Europe/Moscow).
   v50. PR #50 merged as `b392fb19e082835be7885dae12f13031f14fdaf3`; its automatic
   Vercel deployment passed read-only health/runtime and page checks. Candidate v51
   also has versioned domain undo; 11 full-bundle tests and five actual isolated
-  Sheets scenarios passed. Financial bounds and the combined live release remain.
+  Sheets scenarios passed. PR #51 merged as `4036eec67d681b99d9850ed63d123d88f42b7e0c`;
+  its exact automatic Vercel source passed read-only health/runtime verification.
+  Candidate v51 now removes financial row horizons with nine shared anchors and
+  an independent numeric guard. Native isolated Sheets tests passed old-boundary,
+  distant-row, post-install growth, production-sized and tenfold scenarios.
+  The full financial gate passed 167 tests. Both new migrations remain unapplied
+  in production; the combined Apps Script rollout and live legacy inventory remain.
 
 - Create measurements only through an explicit authenticated administrator action.
 - Do not create the pending Hybrid product until a separate confirmed Calendar start

@@ -36,15 +36,16 @@ function setupDmsFitness() {
   const log = getRequiredSheet_(ss, DMS.LOG);
 
   clients.getRange('L4').setValue('+ Тренировка');
-  clients.getRange('L5:L203').insertCheckboxes().setValue(false);
+  clients.getRange(5, 12, clients.getMaxRows() - 4, 1).insertCheckboxes().setValue(false);
 
   blocks.getRange('Q3').setValue('Закрыть блок');
-  blocks.getRange('Q4:Q203').insertCheckboxes().setValue(false);
+  blocks.getRange(4, 17, blocks.getMaxRows() - 3, 1).insertCheckboxes().setValue(false);
 
   log.getRange('L3').setValue('Отменить запись');
-  log.getRange('L4:L503').insertCheckboxes().setValue(false);
+  log.getRange(4, 12, log.getMaxRows() - 3, 1).insertCheckboxes().setValue(false);
 
   repairBlockFormulas_(blocks);
+  repairClientDebtFormulas_(clients);
   
 
   ss.toast(
@@ -244,6 +245,7 @@ function getSingleTrainingPrice_(conditions) {
 
 function writeTrainingLogRow_(log, data) {
   const newRow = findFirstEmptyRow_(log, 1, DMS.LOG_FIRST_ROW);
+  ensureDmsSheetRowCapacity_(log, newRow);
   const recordId = makeNextId_(log, 1, 'TR');
   const template = log.getRange(DMS.LOG_FIRST_ROW, 1, 1, 12);
   const target = log.getRange(newRow, 1, 1, 12);
@@ -462,27 +464,7 @@ function makeNextId_(sheet, column, prefix) {
 }
 
 function repairBlockFormulas_(blocks) {
-  const rows = 200;
-
-  for (let offset = 0; offset < rows; offset++) {
-    const row = DMS.BLOCK_FIRST_ROW + offset;
-
-    blocks.getRange(row, 9).setFormula(
-      `=IF(A${row}="";"";COUNTIFS('Журнал тренировок'!$D$4:$D$503;A${row};'Журнал тренировок'!$G$4:$G$503;"Проведена"))`
-    );
-
-    blocks.getRange(row, 10).setFormula(
-      `=IF(H${row}="";"";H${row}-I${row})`
-    );
-
-    blocks.getRange(row, 14).setFormula(
-      `=IF(A${row}="";"";SUMIFS('Оплаты'!$G$4:$G$503;'Оплаты'!$D$4:$D$503;A${row};'Оплаты'!$H$4:$H$503;"Подтверждён"))`
-    );
-
-    blocks.getRange(row, 15).setFormula(
-      `=IF(K${row}="";"";K${row}-N${row})`
-    );
-  }
+  installDmsFinancialAnchors_(blocks);
 }
 
 function getRequiredSheet_(spreadsheet, name) {
@@ -510,13 +492,7 @@ function findFirstEmptyRow_(sheet, column, firstRow) {
 }
 
 function repairClientDebtFormulas_(clients) {
-  const rows = 199;
-
-  for (let offset = 0; offset < rows; offset++) {
-    const row = DMS.CLIENT_FIRST_ROW + offset;
-
-    clients.getRange(row, 10).setFormula(
-      `=IF(A${row}="","",IF(D${row}<>"",IFERROR(VLOOKUP(D${row},'Блоки'!$A$4:$O$203,15,FALSE),""),IF(LEFT(K${row},7)="Разовые",MAX(0,SUMIFS('Журнал тренировок'!$H$4:$H$503,'Журнал тренировок'!$C$4:$C$503,A${row},'Журнал тренировок'!$G$4:$G$503,"Проведена",'Журнал тренировок'!$E$4:$E$503,"Разовая")-SUMIFS('Оплаты'!$G$4:$G$503,'Оплаты'!$C$4:$C$503,A${row},'Оплаты'!$D$4:$D$503,"",'Оплаты'!$H$4:$H$503,"Подтверждён")),"")))`
-    );
-  }
+  const repairs = getDmsClientFormatRepairs_(clients);
+  installDmsFinancialAnchors_(clients);
+  repairs.forEach(function(repair) { clients.getRange(repair.row, 5).setFormula(repair.formula); });
 }

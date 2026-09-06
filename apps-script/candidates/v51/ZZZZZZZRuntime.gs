@@ -786,44 +786,9 @@ function runDmsReadOnlySelfTests() {
 }
 
 function getDmsDebtFormulaHealth_() {
-  const clients = getRequiredSheet_(
-    SpreadsheetApp.getActive(),
-    DMS_QUEUE_PROCESSING.CLIENTS
-  );
-  const anchor = clients.getRange('J5');
-  const formula = String(anchor.getFormula() || '');
-  const lastRow = Math.max(5, Math.min(203, clients.getLastRow()));
-  const range = clients.getRange(5, 10, lastRow - 4, 1);
-  const formulas = range.getFormulas();
-  const display = range.getDisplayValues();
-  const extraFormulaRows = [];
-  const errorRows = [];
-
-  formulas.forEach(function(row, index) {
-    if (index > 0 && row[0]) extraFormulaRows.push(index + 5);
-  });
-  display.forEach(function(row, index) {
-    if (/^#(?:REF!|ERROR!|N\/A|VALUE!)/.test(String(row[0] || ''))) {
-      errorRows.push(index + 5);
-    }
-  });
-
-  const canonical =
-    /^=ARRAYFORMULA\(/i.test(formula) &&
-    formula.indexOf('A5:A203') !== -1 &&
-    formula.indexOf("'Блоки'!A4:O203") !== -1;
-  const ok = canonical && extraFormulaRows.length === 0 && errorRows.length === 0;
-  return {
-    ok: ok,
-    anchor: 'Клиенты!J5',
-    extraFormulaRows: extraFormulaRows,
-    errorRows: errorRows,
-    summary: ok
-      ? 'Клиенты!J5: canonical ARRAYFORMULA, spill-range свободен'
-      : 'canonical=' + canonical + '; extra=' +
-        (extraFormulaRows.join(',') || 'нет') + '; errors=' +
-        (errorRows.join(',') || 'нет')
-  };
+  const health = getDmsFinancialHealth_();
+  return {ok: health.ok, anchor: 'Клиенты!J5', extraFormulaRows: [], errorRows: [],
+    issues: health.issues, numericMismatches: health.mismatches, summary: health.summary};
 }
 
 function addDmsSelfTestCheck_(report, name, ok, details) {
