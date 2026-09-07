@@ -26,6 +26,7 @@
     "release:apps-script:authorize": "node apps-script/scripts/authorize-google-profile.mjs",
     "release:apps-script:preflight": "node apps-script/scripts/apps-script-preflight.mjs",
     "release:apps-script:v50": "node apps-script/scripts/release-v50.mjs",
+    "release:apps-script:v52": "node apps-script/scripts/release-v52.mjs",
     "release:backup:verify": "node apps-script/scripts/verify-backup-manifest.mjs",
     "release:migration:readiness": "node scripts/verify-migration-readiness.mjs",
     "audit:dependencies": "npm audit --audit-level=high",

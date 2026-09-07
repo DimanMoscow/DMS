@@ -25,6 +25,10 @@ official Google Apps Script API `projects.getContent` method.
 - `versions/v51` is the current production snapshot. It adds the shared ScriptLock,
   immutable cf2 ledger lifecycle, domain undo, shared financial anchors with an
   independent numeric guard, and the staged release interlock.
+- `candidates/v52` is the scoped scheduled-automation correction. It manages the five
+  owner-bound clock triggers as one set, records their schedule and timezone against
+  trigger UIDs, rejects unmanaged trigger executions, and gates releases on fresh
+  natural successes without generating test notifications or backups.
 - `candidates/v40` is retained as the reviewed release candidate and must remain
   byte-identical to `versions/v40` until it is deliberately retired.
 - `candidates/v41` is retained as the reviewed source of numbered `v42`. It adds one

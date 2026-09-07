@@ -44,7 +44,9 @@ After the approved merge:
 3. Require the MiniApp release, fingerprint, source SHA, connected backend, public routes,
    fail-closed proxy probes, and exact Apps Script runtime identity to pass.
 4. For an Apps Script release, also run its authenticated read-only live gate and require
-   zero reconciliation issues. Do not add production mutations to the generic verifier.
+   zero reconciliation issues. Require scheduled trigger configuration and natural
+   execution freshness to be green. Do not add production mutations to the generic
+   verifier.
 5. Record the Git SHA, Vercel deployment, Apps Script numbered version, schema version,
    and rollback references with `npm run release:checkpoint`. Keep the generated file
    local or in an approved private operations store.
@@ -92,7 +94,17 @@ release sequence is:
 4. `projects.versions.create` creates one numbered version; export it and compare again.
 5. `projects.deployments.update` moves only the approved deployment.
 6. Verify the runtime fingerprint, run the authenticated read-only live gate, require
-   zero reconciliation issues, then store the sanitized numbered snapshot and checkpoint.
+   zero reconciliation issues, then wait for the managed scheduled-automation gate to
+   prove fresh natural successes before storing the final sanitized numbered snapshot
+   and checkpoint.
+
+The maintenance interval must be chosen from the live trigger inventory and must not
+span a daily backup or Telegram window. The managed installer creates the complete
+five-trigger set before removing its predecessor, binds schedule metadata to trigger
+UIDs and owner identity, and clears old success timestamps. Its legacy entry points
+delegate to the same installer and no longer run a backup, Calendar sync, or watchdog
+as an installation side effect. If Google presents a new authorization prompt, stop at
+that step for manual authorization.
 
 Operational authorization uses two different official Google Desktop OAuth clients: a
 read-only audit profile and a separately selected writer profile. Keeping distinct

@@ -1,6 +1,35 @@
 # Current project state
 
-Last verified: 2026-09-07 (Europe/Moscow).
+Last verified: 2026-09-08 (Europe/Moscow).
+
+## Open production blocker
+
+- Apps Script v51 is still serving production, but its release-ready status is
+  revoked for scheduled automation. On 2026-09-07 the v51 maintenance interlock was
+  closed from 02:52:57 until activation at 23:36:21 Europe/Moscow. Installable
+  triggers continued to fire against HEAD and failed with
+  `DMS release maintenance: mutations are paused`.
+- The Apps Script trigger UI, inspected as the production owner account, showed exactly
+  five owner-visible clock triggers: backup daily in the 03:00–04:00 window, morning
+  Telegram daily in 08:00–09:00, evening Telegram daily in 22:00–23:00, Calendar
+  sync hourly, and watchdog every two hours. The project and daily triggers use
+  GMT+03:00 / Europe/Moscow. The current `DMS_TG_FINAL_SETTINGS` has both
+  `morning=true` and `evening=true`.
+- Execution history proves the trigger set existed and fired. Backup failed at
+  03:06:40, morning at 08:34:22, evening at 22:28:23, and every inspected
+  Calendar sync from 03:25:17 through 23:25:17 failed at the release interlock.
+  The prior Calendar run at 02:25:17 completed, and the user-observed MiniApp
+  operation `Q-0094` completed after activation at 23:43 with exactly one `TR-116`.
+  After activation, the next natural Calendar sync at 08.09 00:25:17 and watchdog at
+  00:45:47 both completed, confirming recovery when the interlock opened.
+  There is no evidence of missing triggers, disabled settings, Queue/Journal failure,
+  or Google authorization failure.
+- Candidate v52 is the scoped correction. It installs all five triggers as one
+  owner-bound managed set, records schedule/timezone metadata with trigger UIDs,
+  rejects unmanaged trigger executions, records success only for real trigger events,
+  and makes configuration, notification settings, and last-success freshness separate
+  read-only health checks. Scheduled automation remains release-blocking until those
+  checks pass after natural production runs.
 
 ## Confirmed production
 
@@ -50,10 +79,11 @@ Last verified: 2026-09-07 (Europe/Moscow).
 - P1.6 removes fixed financial history horizons. Shared anchors cover occupied IDs
   and complete Payments/Journal history; the independent numeric guard verifies the
   displayed balances instead of trusting formula text.
-- The final candidate passed 174 repository tests, all fault-injection and isolated
+- The v51 candidate passed 174 repository tests, all fault-injection and isolated
   Sheets scenarios, the high-severity dependency audit, lint, TypeScript, production
   build, snapshot verification, migration integrity, live `17/17`, and zero-issue
-  reconciliation. No unresolved P1 blocker or new security/race ambiguity remains.
+  reconciliation. The scheduled-automation regression above is an open release blocker;
+  it does not reopen the confirmed Queue, Journal, security, race, or financial fixes.
 
 ## Release and access controls
 
@@ -70,8 +100,9 @@ Last verified: 2026-09-07 (Europe/Moscow).
 
 ## Constraints and next stage
 
-- P1 remediation is complete. Preserve the v51 snapshot, migration ledger, private
-  recovery evidence, and append-only operation history.
+- Preserve the immutable v51 snapshot, migration ledger, private recovery evidence,
+  and append-only operation history. Complete the scoped v52 scheduled-automation
+  correction before declaring the P1 production release healthy.
 - Create measurements only through an explicit authenticated administrator action.
 - Do not create the pending Hybrid product until a separate confirmed Calendar start
   and explicit terms exist.
