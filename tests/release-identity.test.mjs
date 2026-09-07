@@ -4,6 +4,7 @@ import test from "node:test";
 import vm from 'node:vm';
 import ts from 'typescript';
 import * as runtime from '../lib/apps-script-runtime-identity.ts';
+import {runtimeSourceHashes} from '../apps-script/scripts/runtime-source-hashes.mjs';
 
 test("health exposes a stable release fingerprint and optional source revision", async () => {
   const [health, identity, packageJson] = await Promise.all([
@@ -59,7 +60,7 @@ test("Apps Script runtime proxy is allow-listed, fail-closed and non-cacheable",
       return {ok: true, json: async () => body};
     }});
   vm.runInContext(compiled, context);
-  for (const identity of [runtime.EXPECTED_APPS_SCRIPT_RUNTIME, runtime.CANDIDATE_APPS_SCRIPT_RUNTIME]) {
+  for (const identity of [runtime.EXPECTED_APPS_SCRIPT_RUNTIME]) {
     body = {...identity, ...markers, privateField: 'must never be returned'};
     const response = await context.exports.GET();
     assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'no-store');
@@ -67,8 +68,10 @@ test("Apps Script runtime proxy is allow-listed, fail-closed and non-cacheable",
     body.clientPortalHandlerLoaded = false;
     assert.equal((await context.exports.GET()).status, 502);
   }
-  body = {...runtime.EXPECTED_APPS_SCRIPT_RUNTIME, ...markers,
-    clientPortalSha256: runtime.CANDIDATE_APPS_SCRIPT_RUNTIME.clientPortalSha256};
+  const legacy = runtimeSourceHashes('apps-script/candidates/v50');
+  body = {...runtime.EXPECTED_APPS_SCRIPT_RUNTIME, ...markers, ...legacy};
+  assert.equal((await context.exports.GET()).status, 502);
+  body = {...runtime.EXPECTED_APPS_SCRIPT_RUNTIME, ...markers, clientPortalSha256: legacy.clientPortalSha256};
   assert.equal((await context.exports.GET()).status, 502);
   fails = true;
   assert.deepEqual(await (await context.exports.GET()).json(), {ok: false, error: 'runtime_identity_unavailable'});

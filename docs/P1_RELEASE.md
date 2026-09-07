@@ -1,11 +1,12 @@
 # P1 combined release procedure
 
-This is the scoped v50 → v51 procedure. Repository readiness does not establish
-that HEAD, migrations or production have changed. Production remains v50 until
-authenticated read-back proves otherwise.
+This is the scoped v50 → v51 procedure that was executed on 2026-09-06/07.
+Repository readiness alone did not establish a production change; the final state
+below is based on authenticated read-back and original-context live checks.
 
-The MiniApp transition verifier accepts exactly the existing v50 fingerprints or
-the final v51 fingerprints. Mixed hashes and unloaded safety modules fail closed.
+During the staged rollout the MiniApp transition verifier accepted exactly the v50
+or v51 fingerprints. The production checkpoint now accepts only v51. Mixed hashes
+and unloaded safety modules fail closed.
 The v51 confirmation fingerprint covers all five safety modules, including undo,
 financial checks and the release interlock. Numbered-source comparison still
 covers every file. Remove the v50 bridge after the successful backend checkpoint.
@@ -50,6 +51,27 @@ covers every file. Remove the v50 bridge after the successful backend checkpoint
    backup/restore evidence and live results. Pin the MiniApp to v51 after the
    checkpoint. A default rollback to v50 is unsafe after shared formula ownership
    or cf2 acceptance; preserve the paused state and evidence on a failed gate.
+
+## Execution record
+
+- The exact 21-file candidate and numbered v51 matched tree
+  `4893e98864e18bd879597ce2f1c32a000e5e04ee2d1f25a324fc22dc0729103b`.
+  Publication began paused; the public runtime probe matched before migration.
+- Original-context inventory found zero legacy tickets and zero ledger rows before
+  migration. The old-execution drain began at `2026-09-06T23:52:57Z`; migration
+  ran only after the 420-second gate. The ledger v2 and financial packages each
+  made one declared schema/formula write while payment, Calendar, measurement, and
+  binding writes remained zero.
+- `activateDmsP1Release` completed with the financial and retention gates true.
+  The final inspection at `2026-09-07T20:42:35Z` reported `mutationReady: true`,
+  no legacy Properties tickets, and both locks available.
+- The read-only gate passed 17/17 and the separate reconciliation reported zero
+  issues across 98 Queue rows, 115 Journal rows, and 101 Calendar events. The two
+  early failed operation outcomes were safe `underlying_state_changed` rejections
+  with `no_mutation`; there was no ambiguous or manual-review result.
+- A final owner-only v51 backup and separate restore copy matched all 16 sheets at
+  `2026-09-07T20:50:01Z`. The private recovery paths and identifiers are omitted
+  from Git by policy.
 
 The runner takes positional arguments `phase privateRoot planPath backupPath
 inventoryPath v51`. Unused path slots must still be supplied. Phases are explicit;

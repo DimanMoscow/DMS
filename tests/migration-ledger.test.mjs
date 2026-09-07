@@ -18,6 +18,8 @@ test("production migration ledger matches every versioned migration", () => {
     "client-portal-v1",
     "client-portal-enrollment-v1",
     "telegram-confirmations-v1",
+    "telegram-confirmations-v2",
+    "financial-formulas-v1",
   ]);
   assert.match(result.ledgerSha256, /^[0-9a-f]{64}$/);
 });
