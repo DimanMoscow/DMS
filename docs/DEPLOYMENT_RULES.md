@@ -56,6 +56,16 @@
 - Before a runtime may emit a new Queue state, extend only the affected validation
   ranges and read them back. For `Требует регистрации`, matching and processing status
   columns must both accept the value.
+- Treat scheduled automation as a release gate. Verify the owner-visible installable
+  trigger inventory, managed trigger UIDs, handler names, clock source, exact recorded
+  cadence, daily hour, script/spreadsheet timezone, notification settings, and freshness
+  of the last successful natural execution. Apps Script's `Trigger` API exposes
+  handler/source/UID but not the original clock-builder cadence, hour, or timezone, so
+  the installer must store that versioned specification and bind it to the created UIDs.
+- Do not keep the release interlock closed across a scheduled backup or notification
+  window. If a scheduled execution is missed, keep release readiness red until a
+  subsequent natural run succeeds. Do not send a synthetic Telegram digest or create a
+  production backup solely as smoke evidence.
 - A Calendar sync rollout must run `previewDmsCalendarQueueSync` first. Its redacted
   write set must be understood before applying `syncCalendarToQueue`.
 - The live gate must include `debt-formula-integrity`: `Клиенты!J5` is the sole canonical

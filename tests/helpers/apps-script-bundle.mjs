@@ -31,7 +31,10 @@ export function loadBundle(candidate = 'v51', overrides = {}, {releaseReady = tr
       remove: key => cache.delete(key),
     })},
     // Google documents that web app executions have no DocumentLock.
-    LockService: {getDocumentLock: () => null},
+    LockService: {
+      getDocumentLock: () => null,
+      getScriptLock: () => ({tryLock: () => true, releaseLock: () => {}}),
+    },
     SpreadsheetApp: {getActive: () => ({
       getSheetByName: () => sheet,
       insertSheet: () => {writes.push({method: 'insertSheet'}); return sheet;},
@@ -58,12 +61,16 @@ export function loadBundle(candidate = 'v51', overrides = {}, {releaseReady = tr
     ContentService: {MimeType: {TEXT: 'text', JSON: 'json'},
       createTextOutput: text => ({text, setMimeType() {return this;}})},
     HtmlService: {createHtmlOutput: text => ({text})},
+    Session: {
+      getScriptTimeZone: () => 'Europe/Moscow',
+      getEffectiveUser: () => ({getEmail: () => 'fixture-owner@example.test'}),
+    },
     ...overrides,
   });
   // Explicit deployment configuration of this test project. Tests for the
   // initial, paused HEAD opt out and exercise the real default-deny behavior.
-  if (candidate === 'v51' && releaseReady) {
-    context.PropertiesService.getScriptProperties().setProperty('DMS_P1_RELEASE_READY', 'v51');
+  if (/^v(?:5[1-9]|[6-9]\d+)$/.test(candidate) && releaseReady) {
+    context.PropertiesService.getScriptProperties().setProperty('DMS_P1_RELEASE_READY', candidate);
   }
   const root = `apps-script/candidates/${candidate}`;
   const files = fs.readdirSync(root).filter(name => name.endsWith('.gs')).sort();

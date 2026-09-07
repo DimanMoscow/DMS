@@ -659,6 +659,18 @@
         "ZZZZZZZZZZZZZZZZReleaseSafety.gs",
         "Код.gs"
       ]
+    },
+    "v52": {
+      "baseVersion": "v51",
+      "fileCount": 21,
+      "sourceTreeSha256": "2cec182a81d68cf49d138e5b3b2a47b20a73a349eff9f8155aea225491d756a2",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZZZZZZZZZReleaseSafety.gs"
+      ]
     }
   }
 }
