@@ -1,80 +1,80 @@
 # Current project state
 
-Last verified: 2026-09-06 (Europe/Moscow).
+Last verified: 2026-09-07 (Europe/Moscow).
 
 ## Confirmed production
 
-- MiniApp release `0.2.7` follows Git-linked `main`. Before this checkpoint PR,
-  production served source `b7933d01d94478b85d45fbb2281ced3a2fd5c3f6`; `/`, `/client`,
-  `/api/health`, and `/api/apps-script-runtime` returned HTTP 200, health reported
-  `dataMode: connected`, and APIs remained `no-store`.
-- Apps Script Production is numbered `v50`. Official Google API read-back proved
-  candidate → HEAD → numbered version → production deployment identity. The live
-  runtime reported the expected Telegram confirmation module fingerprint and loaded
-  handler. The read-only gate passed `17/17`; reconciliation reported `0` issues.
-- Production has Clients 18, Blocks 15, Payments 21, two active bindings, invitations
-  3 revoked / 2 used / 0 pending, and measurements 0. The latest live check counted
-  Queue 94, Journal 115, and Calendar 104; one queue row was waiting and none had an
-  error or registration state.
-- Calendar-driven onboarding remains active. The Debt formula has one canonical anchor
-  at `Клиенты!J5`, its guard passes, and `Q-0085` remains processed exactly once.
-- `telegram-confirmations-v1` is applied. The empty 13-column append-only
-  `Журнал операций Telegram` is the sixteenth production sheet. The v50 release made
-  no payment or Calendar mutations.
-- A complete private post-migration Drive backup and a separate isolated restore copy
-  were read back through official Google APIs. All 16 sheets, metadata, and cell values
-  matched exactly. Private manifests and identifiers remain outside Git.
+- Apps Script Production is numbered `v51`. Official Google API read-back matched all
+  21 snapshot files and candidate tree
+  `4893e98864e18bd879597ce2f1c32a000e5e04ee2d1f25a324fc22dc0729103b`.
+  The original bound-document inspection at `2026-09-07T20:42:35Z` reported the
+  shared ScriptLock and DocumentLock available, zero legacy tickets in Script or
+  Document Properties, no quota warning, and `mutationReady: true`.
+- The public runtime identity matched the v51 router, client portal, and aggregate
+  confirmation-safety fingerprints through the MiniApp proxy at
+  `2026-09-07T20:46:30Z`. The exact Git-linked MiniApp production deployment served
+  connected health, `/`, `/client`, and both JSON probes with HTTP 200; health and
+  runtime responses remained `no-store`. The repository checkpoint removes the
+  temporary v50 runtime bridge and pins the proxy to v51.
+- The original-context read-only live gate passed `17/17` at
+  `2026-09-07T20:40:44Z`. The independent financial guard reported zero formula
+  issues and zero numeric mismatches. The dedicated Calendar ↔ Queue ↔ Journal
+  reconciliation at `2026-09-07T20:41:53Z` reported zero issues across 98 queue
+  rows, 115 journal rows, and 101 Calendar events.
+- Production has 18 Clients, 16 Blocks, and 21 Payments at the migration checkpoint.
+  The 17-column append-only Telegram operation ledger is active. Its first seven
+  post-activation events were three tickets and two accepted operations followed by
+  two safe `underlying_state_changed` rejections for `confirm_day`; both recorded
+  `no_mutation`. There were no `started`, `result`, `committed`, or `manual_review`
+  events in that count-only inspection.
+- `telegram-confirmations-v2` and `financial-formulas-v1` are applied. The ledger
+  migration preserved all historical rows and added four columns. The financial
+  migration installed nine shared anchors, preserved every input cell, and passed
+  the live numeric guard. These migration writes did not create a payment, change a
+  Calendar event, record a measurement, or change a client binding.
+- A final owner-only v51 recovery copy and a separate restore copy were verified at
+  `2026-09-07T20:50:01Z`. All 16 required sheets, metadata, entered values and
+  formulas, formats, validations, and notes matched. Private manifests, credentials,
+  target identifiers, operational URLs, and raw ledger rows remain outside Git.
+
+## P1 result
+
+- P1.1 rejects malformed or oversized ingress before authentication and before any
+  Sheets audit write; platform logs are fixed and redacted.
+- P1.2/P1.4/P1.5 use immutable cf2 tickets and payloads in the append-only ledger,
+  one project-wide ScriptLock, durable ticket → pending → started → result → committed
+  transitions, positive-effect recovery, fail-closed manual review, and bounded
+  legacy-property cleanup with read-back before deletion.
+- P1.3 replaces generic destructive range undo with versioned domain compensations
+  that preserve IDs and history and reject dependency or state drift before writing.
+- P1.6 removes fixed financial history horizons. Shared anchors cover occupied IDs
+  and complete Payments/Journal history; the independent numeric guard verifies the
+  displayed balances instead of trusting formula text.
+- The final candidate passed 174 repository tests, all fault-injection and isolated
+  Sheets scenarios, the high-severity dependency audit, lint, TypeScript, production
+  build, snapshot verification, migration integrity, live `17/17`, and zero-issue
+  reconciliation. No unresolved P1 blocker or new security/race ambiguity remains.
 
 ## Release and access controls
 
-- Runtime identity now includes the confirmation-module hash and handler-loaded marker.
-  The repository gate verifies the v50 candidate/snapshot, production pointer, applied
-  migration ledger, dependency audit, tests, lint, TypeScript, and production build.
-- Local Google operations use two official Desktop OAuth clients and two profiles:
-  reader with the exact read-only scopes and writer with the exact release scopes.
-  Credentials, target identifiers, backups, and reports are stored outside Git. OAuth
-  Playground and Work are no longer required for Apps Script releases.
-- The Google Auth Platform app is currently in Testing. Google may expire Testing-mode
-  refresh tokens after about seven days, so an official local reauthorization may be
-  required until the app's branding and publication requirements are completed.
-- GitHub `main` requires a pull request and the `release-gate`, requires the branch to
-  be current, blocks force-push and deletion, and permits zero required approvals for
-  explicitly authorized Codex merges. Merged head branches are deleted automatically.
-- Vercel Preview remains isolated from production data. A merge to `main` automatically
-  creates the Production deployment; no manual promotion is part of the normal flow.
+- GitHub `main` requires a current pull request and the `release-gate`, blocks force
+  push and deletion, and permits zero required approvals for an explicitly authorized
+  Codex merge. Merged head branches are deleted automatically.
+- Vercel Preview has no production data. A merge to `main` automatically creates the
+  Production deployment; no manual promotion is part of the normal flow.
+- Google operations use separate reader and writer Desktop OAuth profiles with exact
+  scopes. The Google Auth Platform app remains in Testing, so its refresh tokens may
+  require periodic official local reauthorization.
+- Production recovery uses private owner-only Drive copies. At least three copies are
+  retained for at least 30 days; deletion requires separate approval.
 
 ## Constraints and next stage
 
-- P1 remediation is authorized and in progress; see `docs/P1_REMEDIATION.md`.
-  The starting main and READY Vercel Production source were freshly verified as
-  `178a3503a11ed7c02e65fca52010cc0bb0f23007`. Authenticated Google read-back still
-  matched numbered v50 and an empty operation ledger. PR #49 subsequently merged
-  as `7e9218188045b48e3f1904b0c86d70d77c1b27d1`; its exact automatic Vercel Production
-  deployment passed read-only health, runtime, route and no-store checks.
-  Candidate v51 now includes ingress and the cf2 immutable operation/ScriptLock
-  implementation. Six crash/retry cases passed with real writes on a private
-  isolated Sheets copy; production writes were zero. The additive ledger v2
-  migration was applied only to that test copy. Apps Script production remains
-  v50. PR #50 merged as `b392fb19e082835be7885dae12f13031f14fdaf3`; its automatic
-  Vercel deployment passed read-only health/runtime and page checks. Candidate v51
-  also has versioned domain undo; 11 full-bundle tests and five actual isolated
-  Sheets scenarios passed. PR #51 merged as `4036eec67d681b99d9850ed63d123d88f42b7e0c`;
-  its exact automatic Vercel source passed read-only health/runtime verification.
-  Candidate v51 now removes financial row horizons with nine shared anchors and
-  an independent numeric guard. Native isolated Sheets tests passed old-boundary,
-  distant-row, post-install growth, production-sized and tenfold scenarios.
-  The full financial gate passed 167 tests. Both new migrations remain unapplied
-  in production; the combined Apps Script rollout and live legacy inventory remain.
-  PR #52 merged as `3b3e6cd91a673fa292b2940f2a728d37fe6c076a`; its exact automatic
-  Vercel deployment passed read-only health/runtime checks with connected data and
-  no-store responses. The release-readiness candidate adds a default-closed writer
-  interlock, original-context count-only inventory, full safety-module fingerprints
-  and a scoped staged rollout; see `docs/P1_RELEASE.md`. These release phases have
-  not yet changed production.
-
+- P1 remediation is complete. Preserve the v51 snapshot, migration ledger, private
+  recovery evidence, and append-only operation history.
 - Create measurements only through an explicit authenticated administrator action.
 - Do not create the pending Hybrid product until a separate confirmed Calendar start
   and explicit terms exist.
 - Do not change prices, business rules, or weaken the client/admin access model.
-- The v50 security rollout is complete. Start no new functional stage from this
-  checkpoint without a new explicit instruction.
+- P2 and new product work require a separate explicit instruction and should start in
+  a fresh Codex task after recovering this state from Git and live read-only checks.

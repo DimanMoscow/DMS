@@ -3,7 +3,7 @@ import test from 'node:test';
 import {loadBundle} from './helpers/apps-script-bundle.mjs';
 import {memoryWorkbook} from './helpers/memory-workbook.mjs';
 import {runtimeSourceHashes, P1_RUNTIME_MODULES} from '../apps-script/scripts/runtime-source-hashes.mjs';
-import {matchesAppsScriptRuntime, EXPECTED_APPS_SCRIPT_RUNTIME, CANDIDATE_APPS_SCRIPT_RUNTIME}
+import {matchesAppsScriptRuntime, EXPECTED_APPS_SCRIPT_RUNTIME}
   from '../lib/apps-script-runtime-identity.ts';
 import {verifyP1Inventory} from '../apps-script/scripts/release-v51.mjs';
 
@@ -34,14 +34,14 @@ test('v51 identity fingerprints all five safety modules and rejects missing hand
   }
 });
 
-test('transition verifier accepts exact v50/v51 only, never mixed fingerprints', () => {
+test('production verifier accepts exact v51 and rejects v50 or mixed fingerprints', () => {
   const markers = {ok: true, clientPortalHandlerLoaded: true, telegramConfirmationsHandlerLoaded: true};
-  for (const expected of [EXPECTED_APPS_SCRIPT_RUNTIME, CANDIDATE_APPS_SCRIPT_RUNTIME]) {
-    assert.equal(matchesAppsScriptRuntime({...expected, ...markers}), true);
-    assert.equal(matchesAppsScriptRuntime({...expected, ...markers, routerSha256: '0'.repeat(64)}), false);
-  }
+  assert.equal(matchesAppsScriptRuntime({...EXPECTED_APPS_SCRIPT_RUNTIME, ...markers}), true);
+  const legacy = {...EXPECTED_APPS_SCRIPT_RUNTIME, ...runtimeSourceHashes('apps-script/candidates/v50')};
+  assert.equal(matchesAppsScriptRuntime({...legacy, ...markers}), false);
+  assert.equal(matchesAppsScriptRuntime({...EXPECTED_APPS_SCRIPT_RUNTIME, ...markers, routerSha256: '0'.repeat(64)}), false);
   assert.equal(matchesAppsScriptRuntime({...EXPECTED_APPS_SCRIPT_RUNTIME, ...markers,
-    clientPortalSha256: CANDIDATE_APPS_SCRIPT_RUNTIME.clientPortalSha256}), false);
+    clientPortalSha256: legacy.clientPortalSha256}), false);
 });
 
 test('legacy inventory classifies expired/malformed states without any persistent write', () => {

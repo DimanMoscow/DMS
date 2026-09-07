@@ -40,9 +40,9 @@ test("recovery manifest rejects stale and untested backups", () => {
 });
 
 test('verified paused deployment context is scoped and does not weaken ordinary backup checks', async () => {
-  const paused = {...structuredClone(fixture), appsScriptVersion: 'v51'};
+  const paused = {...structuredClone(fixture), appsScriptVersion: 'v52'};
   assert.throws(() => verifyBackupManifest(paused, {now}), /production pointer/);
-  await withBackupProductionPointer({numberedVersion: 51}, async () => {
+  await withBackupProductionPointer({numberedVersion: 52}, async () => {
     await Promise.resolve();
     assert.equal(verifyBackupManifest(paused, {now}).ok, true);
     assert.throws(() => verifyBackupManifest(fixture, {now}), /production pointer/);

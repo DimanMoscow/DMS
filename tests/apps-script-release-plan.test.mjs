@@ -18,8 +18,8 @@ import {
 
 test("Apps Script offline plan is deterministic, redacted, and never deployable", () => {
   const input = {
-    candidate: "v50",
-    baseline: "v50",
+    candidate: "v51",
+    baseline: "v51",
     createdAt: "2026-09-05T00:00:00Z",
     sourceRevision: "1".repeat(40),
   };
@@ -33,7 +33,7 @@ test("Apps Script offline plan is deterministic, redacted, and never deployable"
   assert.equal(first.remoteStateVerified, false);
   assert.equal(first.releaseReady, false);
   assert.equal(first.deployable, false);
-  assert.equal(Object.keys(first.files).length, 17);
+  assert.equal(Object.keys(first.files).length, 21);
   assert.doesNotMatch(JSON.stringify(first), /script\.google\.com|\.vercel\.app|refresh_token/);
 });
 

@@ -7,8 +7,8 @@ An authenticated reader preflight matched production numbered v50, HEAD, and the
 complete Git snapshot. The Telegram operation ledger was present and empty.
 The private recovery manifest passed the 16-sheet contract with approximately
 1.2 hours of age; its isolated restore evidence passed the repository DR policy.
-Production schema remains `telegram-confirmations-v1`. The additive v2 migration
-has been applied only to the private isolated test copy.
+That paragraph records the starting state. The completed rollout below advanced
+production to v51, `telegram-confirmations-v2`, and `financial-formulas-v1`.
 
 ## Ingress (P1.1)
 
@@ -21,8 +21,9 @@ remain separate; valid webhook dispatch and update deduplication are preserved.
 
 The 13 behavioral tests in `tests/apps-script-ingress-safety.test.mjs` load the complete
 server source files, include the old failure, repeat rejected requests 20 times,
-and observe Sheet writes at the service boundary. Candidate v51 is a repository
-candidate only; production remains v50 until the combined remediation release.
+and observe Sheet writes at the service boundary. At this implementation checkpoint
+v51 was a repository candidate. The combined release later promoted the exact tree
+recorded below.
 
 PR #49 was squash-merged as `7e9218188045b48e3f1904b0c86d70d77c1b27d1`.
 GitHub release-gate passed and the automatic Vercel Production deployment at this
@@ -57,8 +58,8 @@ with blocked rows has a durable partial result, not a false success.
 Legacy cf1/cx1 buttons fail closed. The additive migration preserves all v1 rows.
 Bounded legacy cleanup copies and reads back each raw ticket before deleting its
 ephemeral property, preserves unknown/pending evidence, and requires an explicit
-old-execution drain assertion. Live inventory in the original document context
-is still a release prerequisite. Historical ledger and identity bindings have no
+old-execution drain assertion. Live inventory in the original document context was
+completed before publication and again after activation. Historical ledger and identity bindings have no
 automatic deletion. Property diagnostics warn at 400,000 bytes and stop new
 confirmations at 450,000 bytes. The 2,000-lifecycle test leaves property use flat.
 
@@ -131,17 +132,11 @@ write/recalculate/read intervals were 2.0–3.1 seconds; these include API laten
 and are not isolated formula CPU benchmarks. The numeric guard also rejects an
 incorrect result while the correct formula text remains present.
 
-The full financial release gate passed 167 tests and all repository checks.
-Financial formulas and schema have been changed only on the private isolated copy.
+The full financial release gate passed 167 tests and all repository checks. The
+same formula plan was later applied to production under the paused-writer interlock
+and passed the independent live numeric guard.
 
-## Remaining P1 gates
-
-Operation changes remain an undeployed candidate; final combined release checks,
-fresh private recovery, and live legacy inventory are still required.
-Domain undo remains a repository candidate until the combined Apps Script release.
-All six findings now have candidate remediation and behavioral evidence. The
-production rollout still requires fresh recovery, actual legacy-property inventory,
-drain/compatibility checks, updated runtime fingerprints and final live read-only gates.
+## Completed production gates
 
 The final 21-file candidate has 174 tests, including the real MiniApp runtime
 proxy response path and default-closed release entry points. Its 2000 lifecycle
@@ -152,6 +147,25 @@ candidate tree `4893e98864e18bd879597ce2f1c32a000e5e04ee2d1f25a324fc22dc0729103b
 Native financial checks on that same tree passed boundaries, post-install growth,
 production-sized and tenfold data; the latter completed write/recalculation/read-back
 in 2260 ms. See `P1_RELEASE.md` for the reviewed staged release and drain interlock.
+
+The rollout used a fresh 16-sheet private recovery and separate restore copy,
+staged HEAD with mutations paused, verified zero legacy tickets in both Properties
+stores, published numbered v51, and waited more than the required 420-second old
+execution drain. The additive ledger and financial migrations then passed exact
+read-back before `activateDmsP1Release` enabled writers under ScriptLock.
+
+The original-context live gate passed 17/17 at `2026-09-07T20:40:44Z`; the
+independent financial check found zero numeric mismatches. Dedicated reconciliation
+reported zero issues across 98 Queue rows, 115 Journal rows, and 101 Calendar events.
+The public v51 runtime fingerprints matched the immutable snapshot through the
+MiniApp proxy. A final owner-only production backup and separate restore copy were
+verified at `2026-09-07T20:50:01Z`.
+
+The first post-activation operation traffic exercised the fail-closed path: two
+`confirm_day` acceptances were rejected as `underlying_state_changed` and recorded
+`no_mutation`. There were no started, committed, or manual-review events in that
+count-only check, so this evidence does not indicate an ambiguous mutation outcome.
+All six P1 findings are remediated and no P1 production gate remains open.
 
 Google's [LockService contract](https://developers.google.com/apps-script/reference/lock/lock-service)
 returns null for DocumentLock in web app execution. Existing tests that inject an

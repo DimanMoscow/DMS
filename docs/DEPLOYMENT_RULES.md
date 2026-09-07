@@ -75,7 +75,7 @@ After a successful verification, a non-sensitive local rollback record can be ca
 
 ```bash
 DMS_EXPECTED_SOURCE=<main-sha> npm run release:verify -- https://production.example
-DMS_VERCEL_DEPLOYMENT_ID=<deployment-id> DMS_APPS_SCRIPT_VERSION=v50 \
+DMS_VERCEL_DEPLOYMENT_ID=<deployment-id> DMS_APPS_SCRIPT_VERSION=v51 \
   npm run release:checkpoint -- https://production.example
 ```
 

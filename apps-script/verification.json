@@ -370,6 +370,169 @@
         "verifiedAt": "2026-09-06T20:11:59Z",
         "result": "Production deployment reports v50; the Telegram confirmation module fingerprint and handler marker passed, the live gate passed 17/17, and reconciliation remained zero without payment or Calendar mutations"
       }
+    },
+    "v51": {
+      "numberedVersion": 51,
+      "baseVersion": "v50",
+      "matchesCandidate": "v51",
+      "fileCount": 21,
+      "sourceTreeSha256": "4893e98864e18bd879597ce2f1c32a000e5e04ee2d1f25a324fc22dc0729103b",
+      "exactExportSha256": "5cea29b3496438bd1bac380c29f540981d1b4c83b908b436afcc61382a76158f",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "QueueProcessing.gs",
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZTelegramArchive.gs",
+        "ZZZTelegramBlockEdit.gs",
+        "ZZZZZTelegramUpcomingActions.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZZZMiniAppAdmin.gs",
+        "ZZZZZZZZZZZClientPortal.gs",
+        "ZZZZZZZZZZZZTelegramConfirmations.gs",
+        "ZZZZZZZZZZZZZOperationSafety.gs",
+        "ZZZZZZZZZZZZZZUndoSafety.gs",
+        "ZZZZZZZZZZZZZZZFinancialSafety.gs",
+        "ZZZZZZZZZZZZZZZZReleaseSafety.gs",
+        "Код.gs"
+      ],
+      "files": {
+        "appsscript.json": {
+          "type": "JSON",
+          "originalSourceSha256": "343f02a12e80a6b440315bda34f114ba324efc6eb4db8e794ded2166c0567507",
+          "repositorySourceSha256": "343f02a12e80a6b440315bda34f114ba324efc6eb4db8e794ded2166c0567507",
+          "redactions": []
+        },
+        "CalendarSync.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "c4e25ff36f7df046fe4000d3c7439269283d1241c7801b9c5942b169780851de",
+          "repositorySourceSha256": "c4e25ff36f7df046fe4000d3c7439269283d1241c7801b9c5942b169780851de",
+          "redactions": []
+        },
+        "QueueProcessing.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "ca9feb9a6068b17e1e2a0eeadfea31091b795d27212ef0deb4a5caf709ac7753",
+          "repositorySourceSha256": "ca9feb9a6068b17e1e2a0eeadfea31091b795d27212ef0deb4a5caf709ac7753",
+          "redactions": []
+        },
+        "TelegramBot.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "9a0ea335462ab700711bb4ff7b5dc1998eb7e663994e222a69426bf21ce28340",
+          "repositorySourceSha256": "af542f9fa8b44938e794f5925d9c8a61aed5969ed13f6afdfad690ea0744b544",
+          "redactions": [
+            "appsScriptProductionUrl"
+          ]
+        },
+        "TelegramFinal.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "722026b3e7b2184cb0386115b474c90f9ac60d844da3e0b4bf789e4f06f5308b",
+          "repositorySourceSha256": "722026b3e7b2184cb0386115b474c90f9ac60d844da3e0b4bf789e4f06f5308b",
+          "redactions": []
+        },
+        "TelegramScheduling.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "7dbe65947915f1cd307751b517ae0014b113d592cde88a331840f22202714581",
+          "repositorySourceSha256": "7dbe65947915f1cd307751b517ae0014b113d592cde88a331840f22202714581",
+          "redactions": []
+        },
+        "ZZTelegramArchive.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "d3558682b5147dfd47e0dddb2f20d4cefa8388292dbb22f920ce87f8feca5c90",
+          "repositorySourceSha256": "d3558682b5147dfd47e0dddb2f20d4cefa8388292dbb22f920ce87f8feca5c90",
+          "redactions": []
+        },
+        "ZZZTelegramBlockEdit.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "1c642a38d56ca25602fb7b30183a46d3b68914ef2bd5701f5911ea8680a404c8",
+          "repositorySourceSha256": "1c642a38d56ca25602fb7b30183a46d3b68914ef2bd5701f5911ea8680a404c8",
+          "redactions": []
+        },
+        "ZZZZTelegramUpcoming.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "f52a284faa2efdbf807495663c808c7c7420addf20489d4e3a230f0565cf54e1",
+          "repositorySourceSha256": "f52a284faa2efdbf807495663c808c7c7420addf20489d4e3a230f0565cf54e1",
+          "redactions": []
+        },
+        "ZZZZZTelegramUpcomingActions.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "e3412ac7bd2ec342cae4a694918cc22720f794d8a6c755f2fcfea7f1727f28d7",
+          "repositorySourceSha256": "e3412ac7bd2ec342cae4a694918cc22720f794d8a6c755f2fcfea7f1727f28d7",
+          "redactions": []
+        },
+        "ZZZZZZZRuntime.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "2062d0d02eba1939bab34909d4e707c43b2eebc84cd6e6ae9cd8030ddc443921",
+          "repositorySourceSha256": "2062d0d02eba1939bab34909d4e707c43b2eebc84cd6e6ae9cd8030ddc443921",
+          "redactions": []
+        },
+        "ZZZZZZZZMiniAppApi.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "fe206783b972575e9265cb1c5fc172661814b83662e0603d88c8b8a93000783f",
+          "repositorySourceSha256": "fe206783b972575e9265cb1c5fc172661814b83662e0603d88c8b8a93000783f",
+          "redactions": []
+        },
+        "ZZZZZZZZZMiniAppTelegram.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "c12ce1ffadf0319ae59a68d25a119f35b5dbf28e34edf664d5baafe69eb16b0a",
+          "repositorySourceSha256": "a71f27d23139d06664316152b648227bc470269cc19fea28c0f46739175e19c4",
+          "redactions": [
+            "miniAppProductionUrl"
+          ]
+        },
+        "ZZZZZZZZZZMiniAppAdmin.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "fe2c05f2cabb9198a476b212321cf2ecf93e53c8ec8cf5e715a19c54147eab83",
+          "repositorySourceSha256": "fe2c05f2cabb9198a476b212321cf2ecf93e53c8ec8cf5e715a19c54147eab83",
+          "redactions": []
+        },
+        "ZZZZZZZZZZZClientPortal.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "8175d6dc221392814d284d209720d0a65b25f704e32818cdf8e3103ee05935ec",
+          "repositorySourceSha256": "8175d6dc221392814d284d209720d0a65b25f704e32818cdf8e3103ee05935ec",
+          "redactions": []
+        },
+        "ZZZZZZZZZZZZTelegramConfirmations.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "a6592f56c747cb1671cf81b226bb7bf642c799cdf9821180eedb2243d8c7e699",
+          "repositorySourceSha256": "a6592f56c747cb1671cf81b226bb7bf642c799cdf9821180eedb2243d8c7e699",
+          "redactions": []
+        },
+        "ZZZZZZZZZZZZZOperationSafety.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "9fdff2ff6f73b243a3ac7f884f5b8bd839f2501d13a00071c3e92b2daeab58c1",
+          "repositorySourceSha256": "9fdff2ff6f73b243a3ac7f884f5b8bd839f2501d13a00071c3e92b2daeab58c1",
+          "redactions": []
+        },
+        "ZZZZZZZZZZZZZZUndoSafety.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "d4dbab5f43b296f22b9152ec72a35aaeb46a85db69851d824aa92fe9a136b2f8",
+          "repositorySourceSha256": "d4dbab5f43b296f22b9152ec72a35aaeb46a85db69851d824aa92fe9a136b2f8",
+          "redactions": []
+        },
+        "ZZZZZZZZZZZZZZZFinancialSafety.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "31c8ea0b50153e9380c5fe04003706fb3dc66e759ff88cb2fd6c9efda2b4c722",
+          "repositorySourceSha256": "31c8ea0b50153e9380c5fe04003706fb3dc66e759ff88cb2fd6c9efda2b4c722",
+          "redactions": []
+        },
+        "ZZZZZZZZZZZZZZZZReleaseSafety.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "8d81851e0cf7f4ce1df2687d373f6c86399657cc2beccd8f1cdeb4bf5edff6ba",
+          "repositorySourceSha256": "8d81851e0cf7f4ce1df2687d373f6c86399657cc2beccd8f1cdeb4bf5edff6ba",
+          "redactions": []
+        },
+        "Код.gs": {
+          "type": "SERVER_JS",
+          "originalSourceSha256": "69982812c6d73718a45020ce361d27bba679b6624100a7f33140e258f4157c89",
+          "repositorySourceSha256": "69982812c6d73718a45020ce361d27bba679b6624100a7f33140e258f4157c89",
+          "redactions": []
+        }
+      },
+      "liveVerification": {
+        "method": "Official Google API numbered source read-back, original-context release inspection, live read-only gate and Vercel runtime proxy",
+        "verifiedAt": "2026-09-07T20:46:30Z",
+        "result": "Numbered v51 matches all 21 candidate files; the release interlock is active; the live gate passed 17/17, reconciliation remained zero, and both safe state-change rejections performed no mutation"
+      }
     }
   },
   "candidates": {

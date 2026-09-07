@@ -69,12 +69,12 @@ test("runtime identity fingerprints the exact client router sources", () => {
   assert.equal(identity.telegramConfirmationsHandlerLoaded, true);
 });
 
-test("server verifier pins the active v50 runtime identity", () => {
+test("server verifier pins the verified production runtime identity", () => {
   const source = fs.readFileSync("lib/apps-script-runtime-identity.ts", "utf8");
-  assert.match(source, /calendar-onboarding-r8-production-guards/);
-  assert.match(source, new RegExp(sha256("ZZZZZZZZMiniAppApi.gs")));
-  assert.match(source, new RegExp(sha256("ZZZZZZZZZZZClientPortal.gs")));
-  assert.match(source, new RegExp(sha256("ZZZZZZZZZZZZTelegramConfirmations.gs")));
+  const identity = JSON.parse(fs.readFileSync('apps-script/production.json')).runtimeIdentity;
+  for (const key of ['release', 'routerSha256', 'clientPortalSha256', 'telegramConfirmationsSha256']) {
+    assert.ok(source.includes(identity[key]));
+  }
 });
 
 test("runtime identity fails its confirmation marker when the security module is absent", () => {

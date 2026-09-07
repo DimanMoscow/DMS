@@ -62,12 +62,28 @@
       "verifiedOn": "2026-09-06",
       "sourceSnapshot": "v50",
       "evidence": "docs/TELEGRAM_CONFIRMATION_HARDENING.md"
+    },
+    {
+      "id": "telegram-confirmations-v2",
+      "artifactSha256": "bef8c9b97acc555ec76b311663fbc76d88655a76140d673dffcc7e280f89f89b",
+      "verifiedOn": "2026-09-07",
+      "sourceSnapshot": "v51",
+      "evidence": "docs/P1_REMEDIATION.md"
+    },
+    {
+      "id": "financial-formulas-v1",
+      "artifactSha256": "232bdc6a814621d214459950a0a3eb8bfae0aed858af3ea94192e45ccec3877d",
+      "verifiedOn": "2026-09-07",
+      "sourceSnapshot": "v51",
+      "evidence": "docs/P1_REMEDIATION.md"
     }
   ],
   "currentSchemaVersions": {
     "Доступ клиентов": 1,
     "Замеры": 1,
     "Приглашения Client Portal": 1,
-    "Журнал операций Telegram": 1
+    "Журнал операций Telegram": 2,
+    "Клиенты": 1,
+    "Блоки": 1
   }
 }

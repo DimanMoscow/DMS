@@ -19,9 +19,12 @@ official Google Apps Script API `projects.getContent` method.
 - `versions/v49` is the previous production snapshot. It closes the Calendar one-off
   accounting parser gap and prevents new-client row templates from duplicating the
   canonical Debt spill formula.
-- `versions/v50` is the current production snapshot. It adds the isolated Telegram
+- `versions/v50` is the previous production snapshot. It adds the isolated Telegram
   confirmation module, message-bound one-time confirmations, and durable exactly-once
   operation handling.
+- `versions/v51` is the current production snapshot. It adds the shared ScriptLock,
+  immutable cf2 ledger lifecycle, domain undo, shared financial anchors with an
+  independent numeric guard, and the staged release interlock.
 - `candidates/v40` is retained as the reviewed release candidate and must remain
   byte-identical to `versions/v40` until it is deliberately retired.
 - `candidates/v41` is retained as the reviewed source of numbered `v42`. It adds one
@@ -40,7 +43,8 @@ official Google Apps Script API `projects.getContent` method.
 - Numbered versions through `v40` contain 15 Apps Script project files. Versions `v42`
   through `v49` contain 16 files because they include the isolated client portal
   server module. `v50` contains 17 files because it also includes the isolated
-  Telegram confirmation module.
+  Telegram confirmation module. `v51` contains 21 files, including the operation,
+  undo, financial, and release safety modules.
 
 ## Deliberate sanitization
 
@@ -80,7 +84,7 @@ not be committed because they contain the real deployment URL and project ID.
 `verification.json` records original and sanitized SHA-256 values for retained exact
 exports, source-tree hashes, changed-file sets, and required candidate/snapshot
 identities. The verifier proves recorded numbered snapshots against their declared
-candidates, including `v50 == candidates/v50`,
+candidates, including `v51 == candidates/v51`,
 after exactly the two documented URL replacements above. When a retained local exact
 export is present, it also repeats the per-file export comparison.
 
@@ -105,5 +109,5 @@ DMS_APPS_SCRIPT_URL=<active-web-app-url> npm run smoke:apps-script-runtime
 The script never prints the configured URL.
 
 Importing or merging these files does not change the Apps Script project. Production is
-on numbered `v50`, whose reviewed source remains in `candidates/v50`; any future
+on numbered `v51`, whose reviewed source remains in `candidates/v51`; any future
 HEAD, version, or deployment write remains a separately approved operation.
