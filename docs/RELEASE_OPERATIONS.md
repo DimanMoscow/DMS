@@ -106,6 +106,11 @@ delegate to the same installer and no longer run a backup, Calendar sync, or wat
 as an installation side effect. If Google presents a new authorization prompt, stop at
 that step for manual authorization.
 
+If that authorization pause makes the pre-stage recovery older than one hour, run the
+v52 `refresh-backup` phase after a fresh paused original-context inventory. The phase
+requires production to remain on numbered v51 and HEAD to match the exact materialized
+v52 candidate before it creates and verifies a replacement recovery copy.
+
 Operational authorization uses two different official Google Desktop OAuth clients: a
 read-only audit profile and a separately selected writer profile. Keeping distinct
 client IDs prevents a reader grant from inheriting writer scopes. OAuth Playground is

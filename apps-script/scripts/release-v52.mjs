@@ -48,7 +48,8 @@ export async function runScheduledReleasePhase({
   inventoryPath,
   fetchImpl = fetch,
 }) {
-  assert.ok(['backup', 'stage', 'publish'].includes(phase), 'unknown v52 release phase');
+  assert.ok(['backup', 'refresh-backup', 'stage', 'publish'].includes(phase),
+    'unknown v52 release phase');
   assertPrivateRegularFile(path.join(privateRoot, 'target.json'), process.cwd(), 'private target');
   const sourceRevision = execFileSync('git', [
     '-c', 'safe.directory=' + process.cwd().replaceAll('\\', '/'), 'rev-parse', 'HEAD',
@@ -105,10 +106,17 @@ export async function runScheduledReleasePhase({
     return report;
   };
 
-  if (phase === 'backup') {
+  if (phase === 'backup' || phase === 'refresh-backup') {
     assert.equal(deployedVersion, 51, 'pre-v52 recovery requires production v51');
-    assert.deepEqual(headFiles, normalizeRemoteFiles(numbered.files),
-      'Apps Script HEAD changed since numbered v51');
+    if (phase === 'backup') {
+      assert.deepEqual(headFiles, normalizeRemoteFiles(numbered.files),
+        'Apps Script HEAD changed since numbered v51');
+    } else {
+      assert.deepEqual(headFiles, materialized,
+        'staged Apps Script HEAD must equal candidate v52');
+      assertPrivateRegularFile(inventoryPath, process.cwd(), 'v52 original-context inventory');
+      verifyScheduledReleaseInventory(read(inventoryPath));
+    }
     const recovery = await createP1PrivateRecovery({
       accessToken: token,
       sourceSpreadsheetId: spreadsheet,
