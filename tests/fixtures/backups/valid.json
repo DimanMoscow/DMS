@@ -7,7 +7,7 @@
   "backupFileRefSha256": "2222222222222222222222222222222222222222222222222222222222222222",
   "sheetStructureSha256": "32845805a7083de72cabfe7b4194c3d5dcda31f151717077cc20d38c2f8ae2fe",
   "migrationLedgerSha256": "4444444444444444444444444444444444444444444444444444444444444444",
-  "appsScriptVersion": "v52",
+  "appsScriptVersion": "v53",
   "sheets": [
     {
       "name": "Клиенты",

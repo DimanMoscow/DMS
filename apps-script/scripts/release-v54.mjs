@@ -22,7 +22,7 @@ const sourceMap = directory => new Map(fs.readdirSync(directory).sort().map(name
 
 export function verifyScheduledReleaseInventory(inventory, {now = Date.now()} = {}) {
   assert.equal(inventory.originalDocumentContext, true);
-  assert.equal(inventory.mutationReady, false, 'v53 must remain paused before activation');
+  assert.equal(inventory.mutationReady, false, 'v54 must remain paused before activation');
   assert.equal(inventory.scriptLockAvailable, true);
   assert.equal(inventory.documentLockAvailable, true);
   assert.equal(inventory.scheduledAutomation?.configOk, true,
@@ -58,15 +58,15 @@ export async function runScheduledReleasePhase({
   fetchImpl = fetch,
 }) {
   assert.ok(['backup', 'refresh-backup', 'stage', 'publish'].includes(phase),
-    'unknown v53 release phase');
+    'unknown v54 release phase');
   assertPrivateRegularFile(path.join(privateRoot, 'target.json'), process.cwd(), 'private target');
   const sourceRevision = execFileSync('git', [
     '-c', 'safe.directory=' + process.cwd().replaceAll('\\', '/'), 'rev-parse', 'HEAD',
   ], {encoding: 'utf8'}).trim();
   const plan = read(planPath);
   verifyOfflineReleasePlan(plan, {sourceRevision});
-  assert.equal(plan.candidate, 'v53');
-  assert.equal(plan.baseline, 'v52');
+  assert.equal(plan.candidate, 'v54');
+  assert.equal(plan.baseline, 'v53');
 
   loadAuthorizationProfile(path.join(privateRoot, 'reader-profile.json'), 'reader');
   const profile = loadAuthorizationProfile(path.join(privateRoot, 'writer-profile.json'), 'writer');
@@ -74,19 +74,19 @@ export async function runScheduledReleasePhase({
   const target = read(path.join(privateRoot, 'target.json'));
   const spreadsheet = read(path.join(privateRoot, 'p1-isolated-target.json')).sourceSpreadsheetId;
   const verification = read('apps-script/verification.json');
-  const candidateDirectory = 'apps-script/candidates/v53';
+  const candidateDirectory = 'apps-script/candidates/v54';
   const candidateFiles = sourceMap(candidateDirectory);
   const candidateTree = sourceTreeSha256(candidateDirectory, [...candidateFiles.keys()]);
-  assert.equal(candidateTree, verification.candidates.v53.sourceTreeSha256);
+  assert.equal(candidateTree, verification.candidates.v54.sourceTreeSha256);
   const base = SCRIPT_API + '/projects/' + encodeURIComponent(target.script_id);
   const [numbered, head, deployments] = await Promise.all([
-    googleJson(token, base + '/content?versionNumber=52', {}, fetchImpl),
+    googleJson(token, base + '/content?versionNumber=53', {}, fetchImpl),
     googleJson(token, base + '/content', {}, fetchImpl),
     googleJson(token, base + '/deployments', {}, fetchImpl),
   ]);
   const substitutions = verifyRemoteBaseline({
     remoteFiles: normalizeRemoteFiles(numbered.files),
-    baselineFiles: sourceMap('apps-script/versions/v52'),
+    baselineFiles: sourceMap('apps-script/versions/v53'),
     sanitizations: verification.repositorySanitizations,
   });
   const materialized = materializeCandidate(
@@ -100,8 +100,8 @@ export async function runScheduledReleasePhase({
   assert.equal(matching.length, 1, 'production web-app URL must resolve exactly once');
   const deployment = matching[0];
   const deployedVersion = Number(deployment.deploymentConfig.versionNumber);
-  assert.ok(deployedVersion === 52 || deployedVersion === 53,
-    'production deployment is not on v52/v53');
+  assert.ok(deployedVersion === 53 || deployedVersion === 54,
+    'production deployment is not on v53/v54');
   const headFiles = normalizeRemoteFiles(head.files);
   const save = (name, result) => {
     const report = {
@@ -116,25 +116,25 @@ export async function runScheduledReleasePhase({
   };
 
   if (phase === 'backup' || phase === 'refresh-backup') {
-    assert.equal(deployedVersion, 52, 'pre-v53 recovery requires production v52');
+    assert.equal(deployedVersion, 53, 'pre-v54 recovery requires production v53');
     if (phase === 'backup') {
       assert.deepEqual(headFiles, normalizeRemoteFiles(numbered.files),
-        'Apps Script HEAD changed since numbered v52');
+        'Apps Script HEAD changed since numbered v53');
     } else {
       assert.deepEqual(headFiles, materialized,
-        'staged Apps Script HEAD must equal candidate v53');
-      assertPrivateRegularFile(inventoryPath, process.cwd(), 'v53 original-context inventory');
+        'staged Apps Script HEAD must equal candidate v54');
+      assertPrivateRegularFile(inventoryPath, process.cwd(), 'v54 original-context inventory');
       verifyScheduledReleaseInventory(read(inventoryPath));
     }
     const recovery = await createP1PrivateRecovery({
       accessToken: token,
       sourceSpreadsheetId: spreadsheet,
       privateRoot,
-      label: 'pre-v53-scheduled-health',
-      appsScriptVersion: 'v52',
+      label: 'pre-v54-scheduled-health',
+      appsScriptVersion: 'v53',
       fetchImpl,
     });
-    return save('v53-current-recovery.json', recovery);
+    return save('v54-current-recovery.json', recovery);
   }
 
   assertPrivateRegularFile(backupPath, process.cwd(), 'fresh recovery manifest');
@@ -142,11 +142,11 @@ export async function runScheduledReleasePhase({
   verifyBackupManifest(backup);
   assert.equal(sha256(spreadsheet), backup.sourceSpreadsheetRefSha256);
   assert.ok(Date.now() - Date.parse(backup.copyVerifiedAt) < 3600000,
-    'v53 release requires a verified backup less than one hour old');
+    'v54 release requires a verified backup less than one hour old');
   if (phase === 'stage') {
-    assert.equal(deployedVersion, 52, 'v53 is already deployed');
+    assert.equal(deployedVersion, 53, 'v54 is already deployed');
     assert.deepEqual(headFiles, normalizeRemoteFiles(numbered.files),
-      'Apps Script HEAD changed since numbered v52');
+      'Apps Script HEAD changed since numbered v53');
     const files = [...materialized].map(([name, source]) => name === 'appsscript.json'
       ? {name: 'appsscript', type: 'JSON', source}
       : {name: name.slice(0, -3), type: 'SERVER_JS', source});
@@ -157,49 +157,49 @@ export async function runScheduledReleasePhase({
     assert.deepEqual(
       normalizeRemoteFiles((await googleJson(token, base + '/content', {}, fetchImpl)).files),
       materialized,
-      'v53 HEAD read-back differs',
+      'v54 HEAD read-back differs',
     );
-    return save('v53-staged-paused.json', {
+    return save('v54-staged-paused.json', {
       headVerified: true,
-      productionVersion: 52,
+      productionVersion: 53,
       mutationsEnabled: false,
     });
   }
 
-  assert.deepEqual(headFiles, materialized, 'Apps Script HEAD must equal candidate v53');
-  assertPrivateRegularFile(inventoryPath, process.cwd(), 'v53 original-context inventory');
+  assert.deepEqual(headFiles, materialized, 'Apps Script HEAD must equal candidate v54');
+  assertPrivateRegularFile(inventoryPath, process.cwd(), 'v54 original-context inventory');
   const inventory = read(inventoryPath);
   verifyScheduledReleaseInventory(inventory);
-  const staged = read(path.join(privateRoot, 'v53-staged-paused.json'));
+  const staged = read(path.join(privateRoot, 'v54-staged-paused.json'));
   assert.equal(staged.candidateTreeSha256, candidateTree);
   assert.ok(Date.parse(inventory.drainStartedAt) >= Date.parse(staged.checkedAt),
-    'drain must start after v53 HEAD staging');
+    'drain must start after v54 HEAD staging');
 
   const versions = await googleJson(token, base + '/versions?pageSize=200', {}, fetchImpl);
   const maximum = Math.max(...versions.versions.map(version => Number(version.versionNumber)));
-  assert.ok(maximum === 52 || maximum === 53, 'unexpected latest Apps Script version');
-  if (maximum === 52) {
+  assert.ok(maximum === 53 || maximum === 54, 'unexpected latest Apps Script version');
+  if (maximum === 53) {
     const created = await googleJson(token, base + '/versions', {
       method: 'POST',
-      body: JSON.stringify({description: 'DMS v53 scheduled automation stabilization'}),
+      body: JSON.stringify({description: 'DMS v54 Calendar ingestion stabilization'}),
     }, fetchImpl);
-    assert.equal(Number(created.versionNumber), 53);
+    assert.equal(Number(created.versionNumber), 54);
   }
   assert.deepEqual(
     normalizeRemoteFiles((await googleJson(
       token,
-      base + '/content?versionNumber=53',
+      base + '/content?versionNumber=54',
       {},
       fetchImpl,
     )).files),
     materialized,
-    'numbered v53 read-back differs',
+    'numbered v54 read-back differs',
   );
-  if (deployedVersion === 52) {
+  if (deployedVersion === 53) {
     await googleJson(token, base + '/deployments/' + encodeURIComponent(deployment.deploymentId), {
       method: 'PUT',
       body: JSON.stringify({deploymentConfig: {
-        versionNumber: 53,
+        versionNumber: 54,
         manifestFileName: deployment.deploymentConfig.manifestFileName,
         description: deployment.deploymentConfig.description,
       }}),
@@ -213,14 +213,14 @@ export async function runScheduledReleasePhase({
       {},
       fetchImpl,
     );
-    if (Number(deployed.deploymentConfig.versionNumber) === 53) break;
+    if (Number(deployed.deploymentConfig.versionNumber) === 54) break;
     if (attempt < 4) await new Promise(resolve => setTimeout(resolve, 1000));
   }
-  assert.equal(Number(deployed.deploymentConfig.versionNumber), 53);
-  return save('v53-published-paused.json', {
+  assert.equal(Number(deployed.deploymentConfig.versionNumber), 54);
+  return save('v54-published-paused.json', {
     numberedSnapshotVerified: true,
     deploymentVerified: true,
-    productionVersion: 53,
+    productionVersion: 54,
     mutationsEnabled: false,
     scheduledConfigurationVerified: true,
     scheduledFreshnessVerified: false,
@@ -230,7 +230,7 @@ export async function runScheduledReleasePhase({
 async function runCli() {
   const [phase, privateRoot, planPath, backupPath, inventoryPath, confirm] =
     process.argv.slice(2);
-  assert.equal(confirm, 'v53', 'explicit final argument v53 required');
+  assert.equal(confirm, 'v54', 'explicit final argument v54 required');
   const result = await runScheduledReleasePhase({
     phase,
     privateRoot: path.resolve(privateRoot),
@@ -251,7 +251,7 @@ async function runCli() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   runCli().catch(error => {
-    process.stderr.write((error instanceof Error ? error.message : 'v53 release failed') + '\n');
+    process.stderr.write((error instanceof Error ? error.message : 'v54 release failed') + '\n');
     process.exitCode = 1;
   });
 }

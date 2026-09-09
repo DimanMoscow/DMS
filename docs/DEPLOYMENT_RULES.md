@@ -66,6 +66,10 @@
   window. If a scheduled execution is missed, keep release readiness red until a
   subsequent natural run succeeds. Do not send a synthetic Telegram digest or create a
   production backup solely as smoke evidence.
+- Calendar ingestion owns its durable generation and post-sync reconciliation. The
+  watchdog never repairs Calendar or Queue and never promotes a new mismatch until
+  matching revision evidence survives a successful sync. Raw zero reconciliation
+  alone is insufficient for the v54 live gate: a completed post-sync result is required.
 - A Calendar sync rollout must run `previewDmsCalendarQueueSync` first. Its redacted
   write set must be understood before applying `syncCalendarToQueue`.
 - The live gate must include `debt-formula-integrity`: `Клиенты!J5` is the sole canonical
