@@ -18,8 +18,8 @@ import {
 
 test("Apps Script offline plan is deterministic, redacted, and never deployable", () => {
   const input = {
-    candidate: "v53",
-    baseline: "v53",
+    candidate: "v54",
+    baseline: "v54",
     createdAt: "2026-09-05T00:00:00Z",
     sourceRevision: "1".repeat(40),
   };
@@ -91,7 +91,7 @@ test("Apps Script production identity rejects a well-formed wrong hash", () => {
   const identity = {
     ok: true,
     service: "dms-fitness-apps-script",
-    release: "scheduled-automation-stabilization",
+    release: "calendar-ingestion-stabilization",
     clientPortalHandlerLoaded: true,
     telegramConfirmationsHandlerLoaded: true,
     ...expected,

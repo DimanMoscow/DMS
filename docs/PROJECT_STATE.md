@@ -4,101 +4,89 @@ Last verified: 2026-09-09 (Europe/Moscow).
 
 ## Current release checkpoint
 
-- Apps Script Production is immutable numbered v53. Independent official Google API
-  read-back verified all 21 source files, production mapping and runtime identity
-  scheduled-automation-stabilization at 2026-09-09T17:04:09Z.
-- The live read-only gate passed 19/19 at 2026-09-09T17:48:37.888Z after natural
-  Calendar ingestion; reconciliation was zero. All five original owner-bound
-  triggers remain present and fresh in Europe/Moscow. No trigger was reinstalled.
-- v53 is an intermediate stabilization release. Its independent watchdog can
-  report a new Calendar event as drift before ingestion had a chance to process it.
-  This is a release blocker for final stabilization, even though the current
-  snapshot reconciles. Source correction is candidate v54; v53 cannot be reissued.
-- Candidate v54 binds drift to matching revision evidence before and after a
-  successful Calendar sync under the existing ScriptLock. One bounded durable
-  generation records start/completion, result and at most 64 hashed issue keys.
-  Independent watchdog observations are read-only and awaiting_sync until proven;
-  sync failure/delay is reported as such. Working trigger schedules are unchanged.
-- The MiniApp runtime pointer is advanced to the verified v53 baseline in this PR.
-  The merge automatically deploys Vercel; after v54 rollout a separate verified
-  production checkpoint will advance that pointer again. No manual Vercel deploy.
-- v54 is not production-ready until full gates, fresh private recovery, source
-  read-back, deployment identity and natural post-sync reconciliation are verified.
+- Apps Script Production is immutable numbered v54. Official Google API read-back
+  matched all 21 candidate files, the deployment mapping, and runtime identity
+  `calendar-ingestion-stabilization`.
+- The final owner-context read-only gate passed 19/19 at `2026-09-09T21:12:57.203Z` after
+  the natural post-activation Calendar sync at `2026-09-09T20:21:19.759Z`; reconciliation
+  was zero. No manual Calendar repair or business mutation was used.
+- A live mismatch observed before that sync was classified as `awaiting_sync` with
+  one pending issue and zero drift. The watchdog performed no repair and emitted no
+  reconciliation alarm.
+- The MiniApp production pointer in this checkpoint expects v54. Merging this
+  checkpoint uses the normal Git integration to deploy Vercel; no manual Vercel
+  deployment is part of the release.
 
-## Scheduled automation findings
+## Calendar ingestion and watchdog model
 
-- The 2026-09-07 missed backup, morning, evening, and Calendar runs were caused by
-  the v51 release maintenance interlock remaining closed through their execution
-  windows. Execution history disproved the original missing-trigger hypothesis.
-- v52 restored the managed five-trigger inventory and natural execution evidence.
-  Its health monitor still evaluated daily freshness by elapsed age alone, so a
-  04:10 watchdog run could report the 08:00 morning job as stale and could report
-  backup stale before the backup window closed.
-- v53 evaluates each job against its own schedule. It reports
-  `trigger_missing`, `trigger_misconfigured`, `not_due_yet`,
-  `within_expected_window`, `delayed`, `last_run_failed`,
-  `last_run_succeeded`, or `stale`. Daily jobs have a 75-minute expected window
-  and are not stale until a further bounded delay threshold expires. Hourly jobs
-  retain their recorded cadence and grace.
-- Health records contain expected schedule, last start, last success, last safe
-  error class, duration, current expected window, and next expected window. Raw
-  error messages, trigger identifiers, PII, and business rows are excluded from
-  administrator health output.
-- The watchdog deduplicates an unchanged failed state for 12 hours. State or error
-  class changes produce a new signature, and a later success clears the warning
-  state. Backup age is deferred only while the scheduled backup is not due or
-  inside its expected window; structural backup failures remain blocking.
+- v53's watchdog treated a mismatch observed after an earlier successful sync as
+  actionable even when the affected Calendar revision appeared only after that sync.
+  Trigger timing therefore created a false drift report during normal pending ingestion.
+- v54 makes Calendar sync the ingestion owner. Under the shared ScriptLock it records
+  a bounded generation with start/completion, safe result metadata, and at most 64
+  hashed issue revisions, then publishes post-sync reconciliation evidence.
+- Watchdog reconciliation is read-only. A mismatch without evidence that the same
+  revision survived a completed sync is `awaiting_sync`; it becomes
+  `drift_after_successful_sync` only after matching pre/post generation evidence.
+  A missed or failed sync is reported as `sync_delayed` or `sync_failed`.
+- Correctness depends on causal generation evidence rather than the relative minute
+  chosen by independent time triggers, so Apps Script trigger jitter cannot promote
+  pending ingestion to drift.
 
-## P1 security and data integrity
+## Scheduled automation health
 
-- P1.1 rejects malformed or oversized ingress before authentication and before any
-  Sheets audit write; platform logs are fixed and redacted.
-- P1.2/P1.4/P1.5 use immutable cf2 tickets and payloads in the append-only ledger,
-  one project-wide ScriptLock, durable ticket to pending to started to result to
-  committed transitions, positive-effect recovery, fail-closed manual review, and
-  bounded legacy-property cleanup with read-back before deletion.
-- P1.3 uses versioned domain compensations that preserve IDs and history and reject
-  dependency or state drift before writing.
-- P1.6 uses shared financial anchors for occupied IDs and complete Payments/Journal
-  history. The independent numeric guard verifies displayed balances.
-- `telegram-confirmations-v2` and `financial-formulas-v1` are applied. Production
-  has 18 Clients, 16 Blocks, and 21 Payments at the migration checkpoint. The
-  17-column append-only Telegram operation ledger remains active.
-- The v51 rollout and migrations performed no payment, Calendar, measurement, or
-  client-binding smoke mutation. The observed MiniApp flow continued to process
-  its queue operation exactly once.
+- Exactly five owner-bound installable clock triggers remain configured in
+  `Europe/Moscow`: backup, morning Telegram, evening Telegram, Calendar sync, and
+  watchdog. No healthy trigger was reinstalled.
+- Morning completed naturally at 08:10:54 (12.854 s). Evening completed naturally at
+  22:52:23 (`22.109 s`). Backup completed naturally inside the
+  03:00 window and its integrity check is green. Calendar completed naturally at
+  `2026-09-09T20:21:19.759Z` (`7.852 s`).
+- The release drain intentionally blocked watchdog at 22:10 and Calendar sync at
+  22:21. Both failures were the maintenance interlock working as designed; activation
+  completed at 22:22. The subsequent natural jobs provide recovery evidence.
+- Daily freshness is schedule-aware: morning cannot be stale before its 08:00 window,
+  and backup cannot be stale before its execution window and grace close. Health keeps
+  expected schedule, last start, last success, safe last error class, duration, and
+  next expected window. Unchanged warnings are deduplicated without hiding a new error
+  class.
 
 ## Verification and recovery
 
-- The v53 repository suite passed 190/190 tests, including ten schedule-aware
-  regression and release-inventory tests. The full release gate remains required
-  immediately before each merge or deployment.
-- A final owner-only v51 recovery copy and separate restore copy matched all 16
-  required sheets at `2026-09-07T20:50:01Z`. Private manifests, credentials,
-  identifiers, operational URLs, and raw rows remain outside Git.
-- The v53 release requires a new verified private recovery copy less than one hour
-  old before Apps Script HEAD is staged. The reader and writer OAuth profile formats
-  are validated separately; that format check is not authentication.
+- The repository release suite passes 212/212 tests, including 12 fake-clock causal
+  reconciliation tests and 10 scheduled freshness tests. Dependency audit reports
+  zero vulnerabilities; lint, typecheck, production build, snapshots, and migration
+  gates pass.
+- Numbered v54 and candidate v54 have identical 21-file repository snapshots. Runtime
+  router, client portal, and Telegram confirmation fingerprints match production.
+- A fresh owner-only Drive recovery copy and separate restore verification covered all
+  16 required sheets before staging. Its manifest, credentials, identifiers,
+  operational URLs, and raw business data remain outside Git.
+- The v54 publication diff was scanned before push for secrets, credentials, Telegram
+  IDs, PII, and private operational identifiers; no prohibited value was found.
+
+## P1 security and data integrity
+
+- The v51 confirmation ledger, shared mutation lock, compensation-based undo, financial
+  anchors, migration evidence, and fail-closed release interlock remain active.
+- Telegram, MiniApp, and scheduled entry points retain the shared domain-operation
+  boundary. v54 adds no product feature and performs no payment, measurement, client
+  binding, or artificial Calendar mutation for smoke verification.
 
 ## Release and access controls
 
-- GitHub `main` requires a current pull request and the `release-gate`, blocks force
-  push and deletion, and permits zero required approvals for an explicitly
-  authorized Codex merge. Merged head branches are deleted automatically.
-- Vercel Preview has no production data. Merging `main` automatically creates the
-  Production deployment; no duplicate manual deployment is part of this release.
-- Google operations use separate reader and writer Desktop OAuth profiles with exact
-  scopes. If Google requires a new interactive authorization, the release stops at
-  that step.
-- Production recovery uses private owner-only Drive copies. At least three copies are
-  retained for at least 30 days; deletion requires separate approval.
+- GitHub `main` requires a current pull request and green `release-gate`; merges trigger
+  the only Vercel Production deployment for that commit.
+- Google release operations use separate reader and writer authorization profiles with
+  exact scopes. Production recovery evidence is owner-only and retained under the
+  existing recovery policy.
 
-## Constraints
+## Constraints and remaining risks
 
-- Preserve immutable numbered snapshots, migration evidence, private recovery
-  evidence, and append-only operation history.
-- Do not create measurements without an explicit authenticated administrator action.
-- Do not create the pending Hybrid product without a separately confirmed Calendar
-  start and explicit terms.
-- Do not change prices, business rules, or client/admin access. P2 and broader
-  Telegram/MiniApp/domain unification remain outside v53.
+- The current operational risk is an Apps Script scheduled execution overlapping a
+  future release drain. Such a run fails closed and is visible as maintenance; release
+  timing should continue to leave room for a later natural recovery execution.
+- Durable Calendar evidence is deliberately bounded to 64 hashed revisions. Overflow
+  fails closed as actionable rather than silently discarding drift.
+- Preserve immutable snapshots and ledgers. Do not change prices, business rules,
+  access boundaries, or begin P2 without a separate milestone.

@@ -571,6 +571,24 @@
         "verifiedAt": "2026-09-09T17:04:09Z",
         "result": "All 21 v53 files match candidate. Intermediate stabilization release; subsequent live gate found pending Calendar ingestion classified as drift. Superseding v54 candidate fixes causal reconciliation."
       }
+    },
+    "v54": {
+      "numberedVersion": 54,
+      "baseVersion": "v53",
+      "fileCount": 21,
+      "sourceTreeSha256": "9a8fbfb78eb9051b7b7e31042dffbd365bd25fee80837479bc147c6875d611e0",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "TelegramBot.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZZZZZZZZZReleaseSafety.gs"
+      ],
+      "matchesCandidate": "v54",
+      "liveVerification": {
+        "method": "Official Google API numbered source, deployment mapping, runtime identity, owner execution history, and read-only live gate",
+        "verifiedAt": "2026-09-09T21:12:57.203Z",
+        "result": "All 21 numbered v54 files match candidate; production mapping and runtime identity match. Live pending Calendar ingestion was classified awaiting_sync with no alarm or repair; the next natural sync cleared it, post-sync reconciliation was zero, the next natural watchdog cleared maintenance delay, and the final read-only gate passed 19/19."
+      }
     }
   },
   "candidates": {
