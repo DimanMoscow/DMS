@@ -1,54 +1,42 @@
 # DMS Fitness handoff
 
-Last audited: 2026-09-09 (Europe/Moscow).
+Last verified: 2026-09-09 (Europe/Moscow).
 
 Use `origin/main`, `AGENTS.md`, current `docs/*`, and live service state. Old
 conversations and non-main branches are not authoritative.
 
-## Checkpoint
+## Production checkpoint
 
-- Resolve the exact `origin/main` SHA at session start.
-- Apps Script Production is numbered `v52`; official API read-back verified the
-  21-file source, deployment mapping, and runtime identity. Do not infer production
-  state from a version label alone.
-- Vercel currently fails its Apps Script proxy probe closed with
-  `runtime_identity_mismatch` because the deployed MiniApp still expects v51. Merge
-  the reviewed v52 pointer update and verify the automatic Production deployment
-  before staging Apps Script v53.
-- Exactly five owner-visible clock triggers exist with zero reported error rate:
-  backup at 03:00, morning Telegram at 08:00, evening Telegram at 22:00, Calendar
-  hourly, and watchdog every two hours. Project and spreadsheet timezone is
-  `Europe/Moscow`; morning/evening settings are enabled. Do not reinstall this
-  healthy set without new evidence.
-- Natural 2026-09-09 backup, morning, Calendar, and watchdog executions completed;
-  the latest evening execution completed. The natural backup in the 03:00 window
-  passed integrity checks.
-- Candidate `v53` fixes v52's age-only freshness regression. At 04:10 the 08:00
-  morning job is `not_due_yet`, and backup remains healthy until its expected window
-  closes. Health also distinguishes missing/misconfigured trigger, execution window,
-  delay, safe error class, success, and stale state, with last start/success/error,
-  duration, and next window.
-- The natural 19:21 Calendar sync resolved the transient gap. The owner-context gate
-  passed 19/19 at `2026-09-09T16:25:44.841Z` and reconciliation reported zero issues.
-  No production mutation, Telegram digest, or backup was used to force it green.
-- The v53 code suite passes 190/190 tests. Run the full `release:check` after updating
-  the verified v52 production pointer and before the implementation merge.
-- Stage v53 only from a clean merged Git checkpoint and verified offline plan. Require
-  exact reader/writer credential-profile formats, a fresh private owner-only recovery,
-  exact HEAD read-back, a seven-minute execution drain, fresh original-context
-  inventory, numbered v53 read-back, deployment mapping, activation, runtime identity,
-  live read-only gate, and reconciliation.
-- Preserve the v51/v52 evidence, migration ledger, confirmation ledger, and private
-  recovery manifests. No payment, Calendar, measurement, or binding smoke mutation is
-  authorized for this stabilization.
+- Apps Script Production is immutable numbered `v54`; all 21 files, deployment mapping,
+  and runtime identity `calendar-ingestion-stabilization` matched the reviewed candidate.
+- The final live gate passed 19/19 at `2026-09-09T21:12:57.203Z`; reconciliation was zero after
+  the natural Calendar sync at `2026-09-09T20:21:19.759Z`.
+- A Calendar event arriving between successful sync windows was observed live as
+  `awaiting_sync`, with zero actionable drift, alarm, or repair. The next successful
+  sync cleared it. Watchdog decisions use durable sync generations and revision evidence,
+  so they do not depend on relative cron timing.
+- Five owner-bound triggers remain configured in `Europe/Moscow`. Natural backup,
+  morning, evening, and post-activation Calendar runs are healthy. Evening completed at
+  22:52:23; Calendar completed at `2026-09-09T20:21:19.759Z`. No trigger was reinstalled.
+- The release drain caused expected maintenance failures for the 22:10 watchdog and
+  22:21 Calendar run; activation finished at 22:22 and later natural runs recovered.
+- The repository gate passes 212/212 tests, dependency audit zero, production build,
+  exact snapshot verification, and migration checks.
+- The fresh private pre-v54 recovery copy and isolated restore verification cover all
+  16 required sheets. Private manifests and production identifiers remain outside Git.
+- The MiniApp pointer expects v54. The checkpoint merge's automatic Vercel Production
+  deployment is the only deployment for that commit and must match final `origin/main`.
 
-## Constraints
+## Operating constraints
 
-- Do not create the pending Hybrid product before a separately confirmed Calendar start.
-- Create measurements only through an explicit authenticated administrator action.
-- Do not change prices, business rules, or access boundaries.
-- Stop if Google presents a new interactive authorization prompt. Otherwise finish the
-  v53 stabilization and record the exact final `main` SHA, then start no new milestone.
+- Do not manually repair Calendar or mutate business data merely to make a health gate
+  green. Let Calendar sync own ingestion and post-sync reconciliation.
+- Treat `awaiting_sync` as non-actionable. Alert reconciliation only for
+  `drift_after_successful_sync`; report missing/delayed/failed sync with its own class.
+- Preserve immutable versions v53/v54, confirmation and migration ledgers, and private
+  recovery evidence. Do not change product behavior, pricing, or access boundaries.
+- If a new security or race ambiguity appears, stop and escalate to Astra. Otherwise
+  start no new milestone from this checkpoint.
 
 Release procedure is in `docs/RELEASE_OPERATIONS.md`; recovery is in
 `docs/DISASTER_RECOVERY.md`.
