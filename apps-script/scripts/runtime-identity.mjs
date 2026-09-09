@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 export const EXPECTED_RUNTIME_SERVICE = "dms-fitness-apps-script";
-export const EXPECTED_RUNTIME_RELEASE = "calendar-onboarding-r8-production-guards";
+export const EXPECTED_RUNTIME_RELEASE = "p1-scheduled-automation-health";
 
 export function verifyRuntimeIdentity(identity, expectedHashes, { requireOk = true } = {}) {
   const keys = [

@@ -533,6 +533,25 @@
         "verifiedAt": "2026-09-07T20:46:30Z",
         "result": "Numbered v51 matches all 21 candidate files; the release interlock is active; the live gate passed 17/17, reconciliation remained zero, and both safe state-change rejections performed no mutation"
       }
+    },
+    "v52": {
+      "numberedVersion": 52,
+      "baseVersion": "v51",
+      "matchesCandidate": "v52",
+      "fileCount": 21,
+      "sourceTreeSha256": "2cec182a81d68cf49d138e5b3b2a47b20a73a349eff9f8155aea225491d756a2",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZZZZZZZZZReleaseSafety.gs"
+      ],
+      "liveVerification": {
+        "method": "Official Google API numbered source read-back, owner trigger inventory, live read-only gate and Vercel runtime proxy",
+        "verifiedAt": "2026-09-09T16:26:03Z",
+        "result": "Numbered v52 matched all 21 candidate files; five owner-bound triggers remained present, natural scheduled executions were fresh, live gate passed 19/19, and reconciliation had zero issues"
+      }
     }
   },
   "candidates": {
@@ -664,6 +683,18 @@
       "baseVersion": "v51",
       "fileCount": 21,
       "sourceTreeSha256": "2cec182a81d68cf49d138e5b3b2a47b20a73a349eff9f8155aea225491d756a2",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZZZZZZZZZReleaseSafety.gs"
+      ]
+    },
+    "v53": {
+      "baseVersion": "v52",
+      "fileCount": 21,
+      "sourceTreeSha256": "c5c7b429e52d7de67b67da7b7ff9876375fa7f11ebf197830303ffb221cfc52f",
       "expectedChangedFiles": [
         "CalendarSync.gs",
         "TelegramBot.gs",

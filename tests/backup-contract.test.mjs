@@ -5,6 +5,7 @@ import test from "node:test";
 import { verifyBackupManifest, withBackupProductionPointer } from "../apps-script/scripts/verify-backup-manifest.mjs";
 
 const fixture = JSON.parse(fs.readFileSync("tests/fixtures/backups/valid.json", "utf8"));
+const production = JSON.parse(fs.readFileSync("apps-script/production.json", "utf8"));
 const now = new Date("2026-09-05T01:00:00Z");
 
 test("private Drive-copy recovery manifest covers the complete workbook contract", () => {
@@ -40,9 +41,10 @@ test("recovery manifest rejects stale and untested backups", () => {
 });
 
 test('verified paused deployment context is scoped and does not weaken ordinary backup checks', async () => {
-  const paused = {...structuredClone(fixture), appsScriptVersion: 'v52'};
+  const nextVersion = production.numberedVersion + 1;
+  const paused = {...structuredClone(fixture), appsScriptVersion: 'v' + nextVersion};
   assert.throws(() => verifyBackupManifest(paused, {now}), /production pointer/);
-  await withBackupProductionPointer({numberedVersion: 52}, async () => {
+  await withBackupProductionPointer({numberedVersion: nextVersion}, async () => {
     await Promise.resolve();
     assert.equal(verifyBackupManifest(paused, {now}).ok, true);
     assert.throws(() => verifyBackupManifest(fixture, {now}), /production pointer/);
