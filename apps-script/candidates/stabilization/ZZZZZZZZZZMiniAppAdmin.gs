@@ -122,47 +122,28 @@ function confirmDmsMiniAppDayMeasured_(payload, metrics) {
   addDmsOperationDuration_(metrics, 'lockWaitMs', Date.now() - lockStartedAt);
 
   try {
-    const date = parseTelegramDateKey_(dateKey);
-    const syncPlan = buildCalendarQueueSyncPlan_(metrics);
-    const preflight = measureDmsOperationPhase_(metrics, 'sheetsReadMs', function() {
-      return processQueueDate_(date, 'MiniApp', true, {
-        lockHeld: true,
-        projectPlannedActivations: true,
-        queueRows: syncPlan.queueRows
-      });
-    });
-
-    if (preflight.blocked > 0 || (preflight.blockers || []).length > 0) {
-      throwDmsMiniAppError_(
-        'day_not_ready',
-        409,
-        (preflight.blockers || []).join('; ') || 'Не все события дня готовы.'
-      );
+    const acceptedRevision = String(payload && payload.revision || '');
+    const current = getDmsMiniAppBootstrap_();
+    if (!/^[a-f0-9]{64}$/.test(acceptedRevision) || current.today.revision !== acceptedRevision) {
+      throwDmsMiniAppError_('underlying_state_changed', 409, 'Состояние дня изменилось.');
     }
-
-    let result;
-    let calendarResult;
-    measureDmsOperationPhase_(metrics, 'sheetsWriteMs', function() {
-      applyCalendarQueueSyncPlan_(syncPlan, metrics);
-      result = processQueueDate_(date, 'MiniApp', false, {lockHeld: true});
-      calendarResult = applyTelegramCalendarCancellationsForDate_(date);
-    });
-
-    if (result.blocked > 0 || (result.blockers || []).length > 0) {
-      throw new Error('Инвариант preflight нарушен: обработка дня вернула блокировки.');
+    const calendarPayload = {legacyData: 'qp:' + dateKey, state: {}};
+    const calendarTargets = getDmsConfirmationCalendarTargets_(calendarPayload);
+    const result = executeDmsDayConfirmation_({
+      dateKey: dateKey,
+      source: 'MiniApp',
+      acceptedRows: payload && payload.acceptedRows,
+      calendarTargets: calendarTargets,
+      operationId: 'MOP-' + hashTelegramConfirmationHex_('confirm_day|' + dateKey + '|' + acceptedRevision)
+    }, metrics);
+    if (result.status === 'failed') {
+      throwDmsMiniAppError_(result.code, 409,
+        (result.blockers || []).join('; ') || 'Состояние дня изменилось или не готово.');
     }
 
     return {
       bootstrap: getDmsMiniAppBootstrap_(),
-      confirmation: {
-        changed: Boolean(result.added || result.skipped || result.alreadyLogged),
-        added: Number(result.added || 0),
-        skipped: Number(result.skipped || 0),
-        alreadyLogged: Number(result.alreadyLogged || 0),
-        calendarDeleted: Number(calendarResult.deleted || 0),
-        calendarAlreadyMissing: Number(calendarResult.alreadyMissing || 0),
-        calendarFailed: Number(calendarResult.failed || 0)
-      }
+      confirmation: result
     };
   } finally {
     lock.releaseLock();

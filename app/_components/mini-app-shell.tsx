@@ -58,7 +58,7 @@ type WaitingTraining = {
 };
 type Bootstrap = {
   generatedAt: string;
-  today: { title: string; dateKey: string; waiting: WaitingTraining[] };
+  today: { title: string; dateKey: string; waiting: WaitingTraining[]; revision: string };
   summary: {
     activeClients: number; openBlocks: number; lowBlocks: number; debtClients: number;
     queueWaiting: number; queueErrors: number; queueRegistrations: number;
@@ -114,7 +114,8 @@ type ApiResponse<T> = { ok: boolean; error?: string; data?: T };
 type DecisionCode = "done" | "free" | "charge";
 type Confirmation =
   | { kind: "decision"; item: WaitingTraining; decision: DecisionCode }
-  | { kind: "day"; count: number };
+  | { kind: "day"; count: number; revision: string;
+      acceptedRows: { queueId: string; decision: string; status: string }[] };
 type MutationResponse = {
   bootstrap: Bootstrap;
   mutation?: { notice?: string };
@@ -171,6 +172,7 @@ function readableError(error: unknown) {
     not_today: "Событие уже не относится к текущему дню. Обновите Mini App.",
     operation_busy: "Другое действие ещё выполняется. Повторите через несколько секунд.",
     day_not_ready: "Не все события дня готовы к обработке. Проверьте решения и блоки.",
+    underlying_state_changed: "Состояние дня изменилось. Данные обновлены — проверьте решения ещё раз.",
     invalid_decision: "Такое решение для события недоступно.",
     mini_app_api_failed: "Не удалось записать действие. Состояние учёта перечитано.",
     client_already_linked: "Клиент уже привязан к Client Portal.",
@@ -306,7 +308,8 @@ export function MiniAppShell() {
     const key = activeConfirmation.kind === "day" ? "day" : activeConfirmation.item.queueId;
     const action = activeConfirmation.kind === "day" ? "confirm_day" : "set_queue_decision";
     const payload = activeConfirmation.kind === "day"
-      ? { dateKey: data?.today.dateKey }
+      ? { dateKey: data?.today.dateKey, revision: activeConfirmation.revision,
+          acceptedRows: activeConfirmation.acceptedRows }
       : { queueId: activeConfirmation.item.queueId, decision: activeConfirmation.decision };
 
     setBusyKey(key);
@@ -414,6 +417,10 @@ export function MiniAppShell() {
         onConfirmDay={() => setConfirmation({
           kind: "day",
           count: data.today.waiting.filter((item) => !item.processed).length,
+          revision: data.today.revision,
+          acceptedRows: data.today.waiting.filter((item) => !item.processed).map((item) => ({
+            queueId: item.queueId, decision: item.decision, status: item.status,
+          })),
         })} />}
       {view === "clients" && data && (
         clientDetail || clientLoading
