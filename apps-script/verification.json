@@ -552,6 +552,25 @@
         "verifiedAt": "2026-09-09T16:26:03Z",
         "result": "Numbered v52 matched all 21 candidate files; five owner-bound triggers remained present, natural scheduled executions were fresh, live gate passed 19/19, and reconciliation had zero issues"
       }
+    },
+    "v53": {
+      "numberedVersion": 53,
+      "baseVersion": "v52",
+      "fileCount": 21,
+      "sourceTreeSha256": "c5c7b429e52d7de67b67da7b7ff9876375fa7f11ebf197830303ffb221cfc52f",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZZZZZZZZZReleaseSafety.gs"
+      ],
+      "matchesCandidate": "v53",
+      "liveVerification": {
+        "method": "Official Google API numbered source, deployment mapping and runtime read-back",
+        "verifiedAt": "2026-09-09T17:04:09Z",
+        "result": "All 21 v53 files match candidate. Intermediate stabilization release; subsequent live gate found pending Calendar ingestion classified as drift. Superseding v54 candidate fixes causal reconciliation."
+      }
     }
   },
   "candidates": {
@@ -699,6 +718,17 @@
         "CalendarSync.gs",
         "TelegramBot.gs",
         "TelegramFinal.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZZZZZZZZZReleaseSafety.gs"
+      ]
+    },
+    "v54": {
+      "baseVersion": "v53",
+      "fileCount": 21,
+      "sourceTreeSha256": "9a8fbfb78eb9051b7b7e31042dffbd365bd25fee80837479bc147c6875d611e0",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "TelegramBot.gs",
         "ZZZZZZZRuntime.gs",
         "ZZZZZZZZZZZZZZZZReleaseSafety.gs"
       ]

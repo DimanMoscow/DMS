@@ -4,30 +4,26 @@ Last verified: 2026-09-09 (Europe/Moscow).
 
 ## Current release checkpoint
 
-- Apps Script Production is numbered `v52`. Official Google API read-back matched
-  all 21 snapshot files, the production deployment mapping, and runtime identity
-  `p1-scheduled-automation-health`.
-- The current Vercel build still pins its proxy verifier to v51, so its public
-  Apps Script runtime probe fails closed with `runtime_identity_mismatch`. The v53
-  implementation PR first records the verified v52 pointer so the automatic `main`
-  deployment restores a connected, exact runtime check before Apps Script v53 is staged.
-- The owner-visible installable trigger inventory contains exactly five clock
-  triggers: backup daily at 03:00, morning Telegram daily at 08:00, evening
-  Telegram daily at 22:00, Calendar sync hourly, and watchdog every two hours.
-  The project, spreadsheet, manifest, and daily trigger schedules use
-  `Europe/Moscow`. Both morning and evening notification settings are enabled.
-- Natural executions on 2026-09-09 completed for backup, morning Telegram,
-  Calendar sync, and watchdog; the most recent evening execution also completed.
-  No trigger is missing or reporting an execution error. The verified natural
-  backup was created in its 03:00 window.
-- After the natural 19:21 Calendar sync, the owner-context read-only gate passed
-  19/19 at `2026-09-09T16:25:44.841Z`; reconciliation reported zero issues.
-  Scheduled configuration, settings, freshness, backup integrity, queue, financial,
-  and security checks are green. No production mutation was used to force the gate.
-- Candidate `v53` is a scoped stabilization release. It fixes the false pre-window
-  stale model, records safe execution timing/outcomes, exposes compact operational
-  health, and preserves the existing owner-bound triggers. It adds no product
-  behavior and does not reinstall a healthy trigger set.
+- Apps Script Production is immutable numbered v53. Independent official Google API
+  read-back verified all 21 source files, production mapping and runtime identity
+  scheduled-automation-stabilization at 2026-09-09T17:04:09Z.
+- The live read-only gate passed 19/19 at 2026-09-09T17:48:37.888Z after natural
+  Calendar ingestion; reconciliation was zero. All five original owner-bound
+  triggers remain present and fresh in Europe/Moscow. No trigger was reinstalled.
+- v53 is an intermediate stabilization release. Its independent watchdog can
+  report a new Calendar event as drift before ingestion had a chance to process it.
+  This is a release blocker for final stabilization, even though the current
+  snapshot reconciles. Source correction is candidate v54; v53 cannot be reissued.
+- Candidate v54 binds drift to matching revision evidence before and after a
+  successful Calendar sync under the existing ScriptLock. One bounded durable
+  generation records start/completion, result and at most 64 hashed issue keys.
+  Independent watchdog observations are read-only and awaiting_sync until proven;
+  sync failure/delay is reported as such. Working trigger schedules are unchanged.
+- The MiniApp runtime pointer is advanced to the verified v53 baseline in this PR.
+  The merge automatically deploys Vercel; after v54 rollout a separate verified
+  production checkpoint will advance that pointer again. No manual Vercel deploy.
+- v54 is not production-ready until full gates, fresh private recovery, source
+  read-back, deployment identity and natural post-sync reconciliation are verified.
 
 ## Scheduled automation findings
 
@@ -74,7 +70,7 @@ Last verified: 2026-09-09 (Europe/Moscow).
 
 ## Verification and recovery
 
-- The v53 repository suite passes 190/190 tests, including ten schedule-aware
+- The v53 repository suite passed 190/190 tests, including ten schedule-aware
   regression and release-inventory tests. The full release gate remains required
   immediately before each merge or deployment.
 - A final owner-only v51 recovery copy and separate restore copy matched all 16

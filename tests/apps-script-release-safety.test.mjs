@@ -21,9 +21,9 @@ test('v51 fresh HEAD denies entry points and domain writes without deployment ac
 });
 
 test('current production identity fingerprints all five safety modules and rejects missing handlers', () => {
-  const f = loadBundle('v52'); const identity = JSON.parse(JSON.stringify(f.context.getDmsRuntimeIdentity_()));
+  const f = loadBundle('v53'); const identity = JSON.parse(JSON.stringify(f.context.getDmsRuntimeIdentity_()));
   assert.equal(P1_RUNTIME_MODULES.length, 5);
-  const hashes = runtimeSourceHashes('apps-script/candidates/v52');
+  const hashes = runtimeSourceHashes('apps-script/candidates/v53');
   for (const [key, hash] of Object.entries(hashes)) assert.equal(identity[key], hash);
   assert.equal(matchesAppsScriptRuntime(identity), true);
   for (const name of ['processTelegramSecureCallback_', 'getDmsMutationLock_',
@@ -34,7 +34,7 @@ test('current production identity fingerprints all five safety modules and rejec
   }
 });
 
-test('production verifier accepts exact v52 and rejects older or mixed fingerprints', () => {
+test('production verifier accepts exact v53 and rejects older or mixed fingerprints', () => {
   const markers = {ok: true, clientPortalHandlerLoaded: true, telegramConfirmationsHandlerLoaded: true};
   assert.equal(matchesAppsScriptRuntime({...EXPECTED_APPS_SCRIPT_RUNTIME, ...markers}), true);
   const legacy = {...EXPECTED_APPS_SCRIPT_RUNTIME, ...runtimeSourceHashes('apps-script/candidates/v50')};
