@@ -469,16 +469,26 @@ function performTelegramDayConfirmationSecure_(dateKey, chatId, messageId, opera
   // The accepted queue is immutable for this execution. A sync here could add
   // trainings that were never included in the confirmed operation.
   const date = parseTelegramDateKey_(dateKey);
-  activateStartedPlannedBlocksForDate_(date);
-  const result = processQueueDate_(date, 'Telegram', false);
-  const calendarResult = applyTelegramCalendarCancellationsForDate_(date);
-  const incomplete = Number(result.blocked || 0) + Number(calendarResult.failed || 0) > 0;
+  const acceptedRows = DMS_CONFIRMED_EXECUTION.payload.acceptedRows || getDmsDayAcceptanceRows_(dateKey);
+  const result = executeDmsDayConfirmation_({
+    dateKey: dateKey, source: 'Telegram', acceptedRows: acceptedRows
+  }, DMS_ACTIVE_OPERATION_METRICS);
+  const incomplete = result.code === 'day_partial' || result.status === 'failed';
   telegramAuditAction_('confirm_day', dateKey,
     (incomplete ? 'День обработан частично' : 'День подтверждён') + ' через Telegram [' + operationId + ']', null);
-  telegramEditMessage_(chatId, messageId,
-    buildTelegramDayConfirmationText_(date, result, calendarResult) + buildTelegramWarningsText_(), null);
-  return {code: incomplete ? 'day_partial' : 'day_confirmed', ref: dateKey,
-    added: result.added, blocked: result.blocked, calendarFailed: calendarResult.failed || 0};
+  if (result.status === 'failed') {
+    telegramEditMessage_(chatId, messageId,
+      '<b>День не подтверждён</b>\nСостояние изменилось или не все события готовы. Обнови экран.', null);
+  } else {
+    telegramEditMessage_(chatId, messageId,
+      buildTelegramDayConfirmationText_(date, result, {
+        deleted: result.calendarDeleted,
+        alreadyMissing: result.calendarAlreadyMissing,
+        failed: result.calendarFailed,
+        errors: []
+      }) + buildTelegramWarningsText_(), null);
+  }
+  return result;
 }
 
 function recoverTelegramSecureMutation_(context) {
@@ -606,12 +616,14 @@ function upgradeTelegramLegacyMutation_(query, descriptor, data) {
   const chatId = message.chat && message.chat.id;
   const userId = query.from && query.from.id;
   let original = String(message.text || 'Подтверди выбранное действие.').substring(0, 3400);
+  const payload = {legacyData: data, sourceMessageId: String(message.message_id)};
   if (descriptor.action === 'confirm_day') {
     original = buildDmsExactDayConfirmationText_(data.substring(3));
+    payload.acceptedRows = getDmsDayAcceptanceRows_(data.substring(3));
   }
   sendTelegramSecureConfirmation_(userId, chatId, message.message_id,
     original + '\n\n<b>Защищённое одноразовое подтверждение</b>',
-    descriptor.action, {legacyData: data, sourceMessageId: String(message.message_id)}, descriptor.button);
+    descriptor.action, payload, descriptor.button);
   telegramAnswerCallback_(query.id, 'Требуется одноразовое подтверждение', false);
   });
 }

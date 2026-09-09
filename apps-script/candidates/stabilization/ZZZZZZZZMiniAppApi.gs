@@ -148,6 +148,33 @@ function validateDmsMiniAppInitData_(initData, now) {
   if (!user || user.id === undefined || user.id === null) {
     return {ok: false, error: 'invalid_user'};
   }
+  const waiting = queue.items.map(function(item) {
+    return {
+      queueId: item.queueId,
+      start: dmsMiniAppDateValue_(item.start),
+      end: dmsMiniAppDateValue_(item.end),
+      time: item.start instanceof Date
+        ? Utilities.formatDate(item.start, timeZone, 'HH:mm')
+        : '',
+      endTime: item.end instanceof Date
+        ? Utilities.formatDate(item.end, timeZone, 'HH:mm')
+        : '',
+      client: item.client,
+      blockId: item.blockId,
+      matching: item.matching,
+      decision: item.decision,
+      status: item.status,
+      calendarTitle: item.calendarTitle,
+      needsRegistration: item.needsRegistration,
+      processed: item.processed
+    };
+  });
+  const dayRevision = hashTelegramConfirmationValue_(canonicalTelegramConfirmationJson_({
+    dateKey: queue.dateKey,
+    waiting: waiting,
+    clients: clients
+  }));
+
   return {
     ok: true,
     user: user,
@@ -224,27 +251,8 @@ function getDmsMiniAppBootstrap_() {
     today: {
       dateKey: queue.dateKey,
       title: queue.title,
-      waiting: queue.items.map(function(item) {
-        return {
-          queueId: item.queueId,
-          start: dmsMiniAppDateValue_(item.start),
-          end: dmsMiniAppDateValue_(item.end),
-          time: item.start instanceof Date
-            ? Utilities.formatDate(item.start, timeZone, 'HH:mm')
-            : '',
-          endTime: item.end instanceof Date
-            ? Utilities.formatDate(item.end, timeZone, 'HH:mm')
-            : '',
-          client: item.client,
-          blockId: item.blockId,
-          matching: item.matching,
-          decision: item.decision,
-          status: item.status,
-          calendarTitle: item.calendarTitle,
-          needsRegistration: item.needsRegistration,
-          processed: item.processed
-        };
-      })
+      waiting: waiting,
+      revision: dayRevision
     },
     summary: {
       activeClients: operational.activeClients,
