@@ -99,17 +99,18 @@ release sequence is:
    and checkpoint.
 
 The maintenance interval must be chosen from the live trigger inventory and must not
-span a daily backup or Telegram window. The managed installer creates the complete
-five-trigger set before removing its predecessor, binds schedule metadata to trigger
-UIDs and owner identity, and clears old success timestamps. Its legacy entry points
-delegate to the same installer and no longer run a backup, Calendar sync, or watchdog
-as an installation side effect. If Google presents a new authorization prompt, stop at
-that step for manual authorization.
+span a daily backup or Telegram window. v53 preserves the verified owner-bound five-
+trigger set and its manifest; it must not call the installer when configuration and
+owner checks are already green. Reinstall only when a trigger is proved missing or
+misconfigured. Legacy installation entry points must not run a backup, Calendar sync,
+or watchdog as an installation side effect. If Google presents a new authorization
+prompt, stop at that step for manual authorization.
 
-If that authorization pause makes the pre-stage recovery older than one hour, run the
-v52 `refresh-backup` phase after a fresh paused original-context inventory. The phase
-requires production to remain on numbered v51 and HEAD to match the exact materialized
-v52 candidate before it creates and verifies a replacement recovery copy.
+If an authorization pause makes the pre-stage recovery older than one hour, run the
+current release runner's `refresh-backup` phase after a fresh paused original-context
+inventory. For v53, the phase requires production to remain on numbered v52 and HEAD
+to match the exact materialized v53 candidate before it creates and verifies a
+replacement recovery copy.
 
 Operational authorization uses two different official Google Desktop OAuth clients: a
 read-only audit profile and a separately selected writer profile. Keeping distinct

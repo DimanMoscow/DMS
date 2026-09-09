@@ -20,10 +20,10 @@ test('v51 fresh HEAD denies entry points and domain writes without deployment ac
   assert.equal(JSON.parse(f.context.doGet({parameter: {dms_runtime_identity: '1'}}).text).ok, true);
 });
 
-test('v51 identity fingerprints all five safety modules and rejects missing handlers', () => {
-  const f = loadBundle(); const identity = JSON.parse(JSON.stringify(f.context.getDmsRuntimeIdentity_()));
+test('current production identity fingerprints all five safety modules and rejects missing handlers', () => {
+  const f = loadBundle('v52'); const identity = JSON.parse(JSON.stringify(f.context.getDmsRuntimeIdentity_()));
   assert.equal(P1_RUNTIME_MODULES.length, 5);
-  const hashes = runtimeSourceHashes('apps-script/candidates/v51');
+  const hashes = runtimeSourceHashes('apps-script/candidates/v52');
   for (const [key, hash] of Object.entries(hashes)) assert.equal(identity[key], hash);
   assert.equal(matchesAppsScriptRuntime(identity), true);
   for (const name of ['processTelegramSecureCallback_', 'getDmsMutationLock_',
@@ -34,7 +34,7 @@ test('v51 identity fingerprints all five safety modules and rejects missing hand
   }
 });
 
-test('production verifier accepts exact v51 and rejects v50 or mixed fingerprints', () => {
+test('production verifier accepts exact v52 and rejects older or mixed fingerprints', () => {
   const markers = {ok: true, clientPortalHandlerLoaded: true, telegramConfirmationsHandlerLoaded: true};
   assert.equal(matchesAppsScriptRuntime({...EXPECTED_APPS_SCRIPT_RUNTIME, ...markers}), true);
   const legacy = {...EXPECTED_APPS_SCRIPT_RUNTIME, ...runtimeSourceHashes('apps-script/candidates/v50')};
