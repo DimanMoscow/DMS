@@ -59,8 +59,8 @@ function handleDmsMiniAppRequest_(body) {
     else if (action === 'resolve_calendar_onboarding') {
       data = resolveDmsCalendarOnboarding_(payload, String(auth.user.id));
     }
-    else if (action === 'set_queue_decision') data = setDmsMiniAppQueueDecision_(payload);
-    else if (action === 'confirm_day') data = confirmDmsMiniAppDay_(payload);
+    else if (action === 'set_queue_decision') data = setDmsMiniAppQueueDecision_(payload, String(auth.user.id));
+    else if (action === 'confirm_day') data = confirmDmsMiniAppDay_(payload, String(auth.user.id));
     else return dmsMiniAppJsonResponse_({ok: false, error: 'unknown_action'}, 400);
 
     return dmsMiniAppJsonResponse_({

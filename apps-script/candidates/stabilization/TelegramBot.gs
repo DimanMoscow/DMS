@@ -967,6 +967,14 @@ function setTelegramQueueDecision_(queueId, decisionCode, options) {
 
   const values = queue.getRange(row, 1, 1, DMS_TELEGRAM.QUEUE_COLUMNS).getValues()[0];
 
+  if (settings.expected && (
+      String(values[12] || '') !== String(settings.expected.decision || '') ||
+      String(values[13] || '') !== String(settings.expected.status || ''))) {
+    const changed = new Error('Состояние события изменилось.');
+    changed.dmsDomainCode = 'underlying_state_changed';
+    throw changed;
+  }
+
   if (String(values[13] || '') === 'Обработано') {
     throw new Error('Событие уже обработано.');
   }

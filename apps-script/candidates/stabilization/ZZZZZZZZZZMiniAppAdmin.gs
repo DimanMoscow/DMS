@@ -1,11 +1,11 @@
 // DMS Fitness Mini App administrative actions v40 candidate.
 // Business operations delegate to the same queue functions used by Telegram.
 
-function setDmsMiniAppQueueDecision_(payload) {
+function setDmsMiniAppQueueDecision_(payload, actorId) {
   const metrics = beginDmsOperationMetrics_('miniapp_queue_decision');
   try {
     const result = withDmsOperationMetrics_(metrics, function() {
-      return setDmsMiniAppQueueDecisionMeasured_(payload, metrics);
+      return setDmsMiniAppQueueDecisionMeasured_(payload, actorId, metrics);
     });
     finishDmsOperationMetricsSafely_(metrics, 'success');
     return result;
@@ -15,7 +15,7 @@ function setDmsMiniAppQueueDecision_(payload) {
   }
 }
 
-function setDmsMiniAppQueueDecisionMeasured_(payload, metrics) {
+function setDmsMiniAppQueueDecisionMeasured_(payload, actorId, metrics) {
   const queueId = String(payload && payload.queueId || '').trim();
   const decisionCode = String(payload && payload.decision || '').trim();
   const decisions = {
@@ -30,6 +30,13 @@ function setDmsMiniAppQueueDecisionMeasured_(payload, metrics) {
   if (!decisions[decisionCode]) {
     throwDmsMiniAppError_('invalid_decision', 400, 'Неизвестное решение очереди.');
   }
+  const requestId = String(payload && payload.operationId || '').toLowerCase();
+  const expectedDecision = String(payload && payload.expectedDecision || '');
+  const expectedStatus = String(payload && payload.expectedStatus || '');
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(requestId) ||
+      expectedDecision.length > 80 || expectedStatus.length > 80) {
+    throwDmsMiniAppError_('invalid_operation', 400, 'Некорректный идентификатор операции.');
+  }
 
   const lock = getDmsMutationLock_();
   const lockStartedAt = Date.now();
@@ -40,45 +47,36 @@ function setDmsMiniAppQueueDecisionMeasured_(payload, metrics) {
   addDmsOperationDuration_(metrics, 'lockWaitMs', Date.now() - lockStartedAt);
 
   try {
-    const ss = SpreadsheetApp.getActive();
-    const queue = getRequiredSheet_(ss, DMS_TELEGRAM.QUEUE);
-    const row = findRowByValue_(
-      queue,
-      1,
-      queueId,
-      DMS_TELEGRAM.QUEUE_FIRST_ROW
-    );
-    if (!row) {
-      throwDmsMiniAppError_('queue_not_found', 404, 'Строка очереди не найдена.');
-    }
-
-    const values = measureDmsOperationPhase_(metrics, 'sheetsReadMs', function() {
-      addDmsOperationCount_(metrics, 'rowsRead', 1);
-      return queue.getRange(
-        row,
-        1,
-        1,
-        DMS_TELEGRAM.QUEUE_COLUMNS
-      ).getValues()[0];
+    const accepted = {queueId: queueId, decision: decisionCode,
+      expectedDecision: expectedDecision, expectedStatus: expectedStatus};
+    const mutation = runDmsDurableOperation_({
+      action: 'queue_decision', actorId: actorId, requestId: requestId, payload: accepted
+    }, {
+      execute: function(command, operationId) {
+        try {
+          const changed = measureDmsOperationPhase_(metrics, 'sheetsWriteMs', function() {
+            return setTelegramQueueDecision_(command.queueId, command.decision, {
+              source: 'MiniApp', dateScope: 'today',
+              expected: {decision: command.expectedDecision, status: command.expectedStatus}
+            });
+          });
+          if (changed.changed) addDmsOperationCount_(metrics, 'rowsWritten', 1);
+          markDmsDomainQueueOperation_(changed.queueId, operationId);
+          return changed;
+        } catch (error) {
+          const failure = getDmsMiniAppFailure_(error);
+          if (error && error.dmsDomainCode) failure.code = error.dmsDomainCode;
+          if (['underlying_state_changed', 'already_processed', 'queue_not_found', 'not_today'].indexOf(failure.code) !== -1) {
+            return {status: 'failed', code: failure.code, ref: command.queueId, changed: false};
+          }
+          throw error;
+        }
+      },
+      recover: recoverDmsDomainQueueDecision_
     });
-    const status = String(values[13] || '');
-    if (status === 'Обработано') {
-      throwDmsMiniAppError_('already_processed', 409, 'Событие уже обработано.');
+    if (mutation.status === 'manual_review' || mutation.status === 'failed') {
+      throwDmsMiniAppError_(mutation.code, 409, 'Операция отклонена или требует сверки.');
     }
-    const timeZone = ss.getSpreadsheetTimeZone() || 'Europe/Moscow';
-    if (!(values[1] instanceof Date) ||
-        makeDateKey_(values[1], timeZone) !== makeDateKey_(new Date(), timeZone)) {
-      throwDmsMiniAppError_('not_today', 409, 'Событие не относится к текущему дню.');
-    }
-
-    const mutation = measureDmsOperationPhase_(metrics, 'sheetsWriteMs', function() {
-      const changed = setTelegramQueueDecision_(queueId, decisionCode, {
-        source: 'MiniApp', dateScope: 'today'
-      });
-      SpreadsheetApp.flush();
-      if (changed.changed) addDmsOperationCount_(metrics, 'rowsWritten', 1);
-      return changed;
-    });
 
     return {
       bootstrap: getDmsMiniAppBootstrap_(),
@@ -89,11 +87,11 @@ function setDmsMiniAppQueueDecisionMeasured_(payload, metrics) {
   }
 }
 
-function confirmDmsMiniAppDay_(payload) {
+function confirmDmsMiniAppDay_(payload, actorId) {
   const metrics = beginDmsOperationMetrics_('miniapp_confirm_day');
   try {
     const result = withDmsOperationMetrics_(metrics, function() {
-      return confirmDmsMiniAppDayMeasured_(payload, metrics);
+      return confirmDmsMiniAppDayMeasured_(payload, actorId, metrics);
     });
     finishDmsOperationMetricsSafely_(metrics, 'success');
     return result;
@@ -103,7 +101,7 @@ function confirmDmsMiniAppDay_(payload) {
   }
 }
 
-function confirmDmsMiniAppDayMeasured_(payload, metrics) {
+function confirmDmsMiniAppDayMeasured_(payload, actorId, metrics) {
   const ss = SpreadsheetApp.getActive();
   const timeZone = ss.getSpreadsheetTimeZone() || 'Europe/Moscow';
   const todayKey = makeDateKey_(new Date(), timeZone);
@@ -111,6 +109,10 @@ function confirmDmsMiniAppDayMeasured_(payload, metrics) {
 
   if (!dateKey || dateKey !== todayKey) {
     throwDmsMiniAppError_('not_today', 409, 'Подтвердить можно только текущий день.');
+  }
+  const requestId = String(payload && payload.operationId || '').toLowerCase();
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(requestId)) {
+    throwDmsMiniAppError_('invalid_operation', 400, 'Некорректный идентификатор операции.');
   }
 
   const lock = getDmsMutationLock_();
@@ -123,22 +125,27 @@ function confirmDmsMiniAppDayMeasured_(payload, metrics) {
 
   try {
     const acceptedRevision = String(payload && payload.revision || '');
-    const current = getDmsMiniAppBootstrap_();
-    if (!/^[a-f0-9]{64}$/.test(acceptedRevision) || current.today.revision !== acceptedRevision) {
-      throwDmsMiniAppError_('underlying_state_changed', 409, 'Состояние дня изменилось.');
-    }
-    const calendarPayload = {legacyData: 'qp:' + dateKey, state: {}};
-    const calendarTargets = getDmsConfirmationCalendarTargets_(calendarPayload);
-    const result = executeDmsDayConfirmation_({
-      dateKey: dateKey,
-      source: 'MiniApp',
-      acceptedRows: payload && payload.acceptedRows,
-      calendarTargets: calendarTargets,
-      operationId: 'MOP-' + hashTelegramConfirmationHex_('confirm_day|' + dateKey + '|' + acceptedRevision)
-    }, metrics);
+    const accepted = {dateKey: dateKey, revision: acceptedRevision,
+      acceptedRows: normalizeDmsDayAcceptanceRows_(payload && payload.acceptedRows)};
+    const result = runDmsDurableOperation_({
+      action: 'confirm_day', actorId: actorId, requestId: requestId, payload: accepted
+    }, {execute: function(command, operationId) {
+      const current = getDmsMiniAppBootstrap_();
+      if (!/^[a-f0-9]{64}$/.test(command.revision) || current.today.revision !== command.revision) {
+        return {status: 'failed', code: 'underlying_state_changed', ref: command.dateKey, changed: false};
+      }
+      const calendarPayload = {legacyData: 'qp:' + command.dateKey, state: {}};
+      return executeDmsDayConfirmation_({
+        dateKey: command.dateKey, source: 'MiniApp', acceptedRows: command.acceptedRows,
+        calendarTargets: getDmsConfirmationCalendarTargets_(calendarPayload), operationId: operationId
+      }, metrics);
+    }});
     if (result.status === 'failed') {
       throwDmsMiniAppError_(result.code, 409,
         (result.blockers || []).join('; ') || 'Состояние дня изменилось или не готово.');
+    }
+    if (result.status === 'manual_review') {
+      throwDmsMiniAppError_('operation_manual_review', 409, 'Операция требует ручной сверки.');
     }
 
     return {
@@ -174,6 +181,9 @@ function getDmsMiniAppFailure_(error) {
   }
   if (/не найдена/i.test(message)) {
     return {code: 'queue_not_found', status: 404};
+  }
+  if (error && error.dmsDomainCode) {
+    return {code: String(error.dmsDomainCode), status: 409};
   }
   return {code: 'mini_app_api_failed', status: 500};
 }

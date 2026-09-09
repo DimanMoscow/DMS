@@ -103,6 +103,40 @@ test('Telegram and MiniApp day transports expose the same canonical domain resul
   mc.getDmsMiniAppBootstrap_ = () => ({today: {revision}});
   mc.getDmsConfirmationCalendarTargets_ = () => [];
   const miniAppResult = mc.confirmDmsMiniAppDay_({dateKey: miniApp.dateKey,
-    revision, acceptedRows: miniApp.acceptedRows}).confirmation;
+    revision, acceptedRows: miniApp.acceptedRows,
+    operationId: '44444444-4444-4444-8444-444444444444'}, '1001').confirmation;
   assert.deepEqual(domain(telegramResult), domain(miniAppResult));
+});
+
+test('MiniApp day retry returns the exact durable result and changed request payload is rejected', () => {
+  const f = fixture(); const c = f.context; const revision = 'b'.repeat(64);
+  c.getDmsMiniAppBootstrap_ = () => ({today: {revision}});
+  c.getDmsConfirmationCalendarTargets_ = () => [];
+  const payload = {dateKey: f.dateKey, revision, acceptedRows: f.acceptedRows,
+    operationId: '55555555-5555-4555-8555-555555555555'};
+  const first = c.confirmDmsMiniAppDay_(payload, '1001').confirmation;
+  const calls = f.calls.length;
+  const replay = c.confirmDmsMiniAppDay_(payload, '1001').confirmation;
+  assert.deepEqual(first, replay);
+  assert.equal(f.calls.length, calls);
+  assert.throws(() => c.confirmDmsMiniAppDay_({...payload, revision: 'c'.repeat(64)}, '1001'),
+    /another operation/);
+});
+
+test('MiniApp day process death after durable start becomes manual review without execution replay', () => {
+  const f = fixture(); const c = f.context; const revision = 'd'.repeat(64); let crashed = false;
+  c.getDmsMiniAppBootstrap_ = () => ({today: {revision}});
+  c.getDmsConfirmationCalendarTargets_ = () => [];
+  const payload = {dateKey: f.dateKey, revision, acceptedRows: f.acceptedRows,
+    operationId: '88888888-8888-4888-8888-888888888888'};
+  f.book.hooks.after = event => {
+    if (!crashed && event.sheet === 'Журнал операций Telegram' && event.values[0][4] === 'started') {
+      crashed = true; throw new Error('injected process death');
+    }
+  };
+  assert.throws(() => c.confirmDmsMiniAppDay_(payload, '1001'), /injected/);
+  f.book.hooks.after = null;
+  assert.throws(() => c.confirmDmsMiniAppDay_(payload, '1001'),
+    error => error.dmsCode === 'operation_manual_review');
+  assert.deepEqual(f.calls, []);
 });
