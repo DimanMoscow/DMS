@@ -420,18 +420,23 @@ function beginTelegramSecureOperation_(parsed, query, nowMs) {
   return {validated: context, previous: {status: 'pending'}};
 }
 
-function processTelegramSecureCallback_(query, parsed) {
+function processTelegramSecureCallback_(query, parsed, nowMs) {
   const metrics = beginDmsOperationMetrics_('telegram_secure_mutation');
   try {
   const result = withDmsOperationMetrics_(metrics, function() {
     return withTelegramDocumentLock_(function() {
-    const started = beginTelegramSecureOperation_(parsed, query);
+    const started = beginTelegramSecureOperation_(parsed, query, nowMs);
     const context = started.validated; const previous = started.previous;
     if (previous.status === 'committed' || previous.status === 'result') {
       if (!previous.result) throw new Error('Durable result missing.');
       if (previous.status === 'result') {
         context.state.status = 'consumed';
         appendTelegramOperationEvent_(context.state, 'committed', previous.result.code, '', 'finalized', null, previous.result);
+      } else if (context.state.status === 'pending') {
+        // Immediate row callbacks mint a fresh bound ticket on every delivery.
+        // Consume a replay ticket as well so no pending lifecycle is left behind.
+        context.state.status = 'consumed';
+        putTelegramConfirmationState_(context.state);
       }
       return previous.result;
     }

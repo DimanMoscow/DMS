@@ -942,7 +942,8 @@ function handleTelegramCallbackLegacyV4_(query) {
   telegramAnswerCallback_(query.id, 'Команда устарела', false);
 }
 
-function setTelegramQueueDecision_(queueId, decisionCode) {
+function setTelegramQueueDecision_(queueId, decisionCode, options) {
+  const settings = options || {};
   const decisions = {
     done: 'Проведена',
     charge: 'Отмена со списанием',
@@ -970,13 +971,36 @@ function setTelegramQueueDecision_(queueId, decisionCode) {
     throw new Error('Событие уже обработано.');
   }
 
+  if (settings.dateScope) {
+    const timeZone = ss.getSpreadsheetTimeZone() || 'Europe/Moscow';
+    const rowDate = values[1] instanceof Date ? makeDateKey_(values[1], timeZone) : '';
+    const today = makeDateKey_(new Date(), timeZone);
+    const yesterday = makeDateKey_(new Date(Date.now() - 86400000), timeZone);
+    const allowed = settings.dateScope === 'today' ? rowDate === today :
+      settings.dateScope === 'yesterday_today' && (rowDate === today || rowDate === yesterday);
+    if (!allowed) throw new Error('Кнопка устарела. Обнови экран Вчера/Сегодня.');
+  }
+
+  const source = String(settings.source || 'Telegram');
+  if (String(values[12] || '') === decision && String(values[13] || '') === 'Ожидает') {
+    return {
+      code: 'queue_decision_saved', ref: queueId, changed: false,
+      date: values[1], notice: decision, decision: decisionCode, queueId: queueId,
+      client: String(values[9] || values[7] || 'Не распознано'), start: values[5], end: values[6]
+    };
+  }
+
   queue.getRange(row, 13).setValue(decision);
   queue.getRange(row, 14).setValue('Ожидает');
-  queue.getRange(row, 16).setValue('Telegram');
+  queue.getRange(row, 16).setValue(source);
 
   return {
+    code: 'queue_decision_saved',
+    ref: queueId,
+    changed: true,
     date: values[1],
     notice: decision,
+    decision: decisionCode,
     queueId: queueId,
     client: String(values[9] || values[7] || 'Не распознано'),
     start: values[5],

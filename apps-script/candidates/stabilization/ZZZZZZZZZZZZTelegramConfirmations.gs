@@ -448,11 +448,13 @@ function executeTelegramSecureMutation_(context) {
 
 function performTelegramQueueDecisionSecure_(data, userId, chatId, messageId, operationId) {
   const parts = data.split(':');
-  const result = setTelegramQueueDecision_(parts[1], parts[2]);
+  const result = setTelegramQueueDecision_(parts[1], parts[2], {
+    source: 'Telegram', dateScope: 'yesterday_today'
+  });
   markTelegramQueueOperation_(result.queueId, operationId);
   if (parts[2] === 'move') startTelegramMove_(userId, chatId, messageId, result);
   else refreshTelegramQueueMessage_(chatId, messageId, result.date);
-  return {code: parts[2] === 'move' ? 'queue_move_started' : 'queue_decision_saved', ref: result.queueId};
+  return result;
 }
 
 function markTelegramQueueOperation_(queueId, operationId) {
@@ -577,21 +579,23 @@ function describeTelegramLegacyMutation_(data) {
   };
   if (exactStateActions[data]) return {blockedLegacyState: true, action: exactStateActions[data]};
   const patterns = [
-    [/^qd:[^:]{1,32}:(done|charge|free|move)$/, 'queue_decision', '✅ Подтвердить решение'],
+    [/^qd:[^:]{1,32}:(done|charge|free|move)$/, 'queue_decision', '✅ Подтвердить решение', true],
     [/^qp:\d{4}-\d{2}-\d{2}$/, 'confirm_day', '✅ Подтвердить день'],
-    [/^mgc:[^:]{1,32}:[^:]{1,32}:\d+$/, 'gift_training', '🎁 Добавить'],
-    [/^mpc:[^:]{1,32}:[^:]{1,32}$/, 'block_pause', '⏸ Приостановить'],
-    [/^mrc:[^:]{1,32}:[^:]{1,32}$/, 'block_resume', '▶️ Возобновить'],
-    [/^mclc:[^:]{1,32}:[^:]{1,32}$/, 'block_close', '✅ Закрыть блок'],
-    [/^ops:undoYes:[^:]{1,64}$/, 'undo', '↩️ Выполнить откат'],
-    [/^ops:archiveYes:[^:]{1,32}$/, 'client_archive', '🗄 В архив'],
-    [/^ops:restoreYes:[^:]{1,32}$/, 'client_restore', '♻️ Восстановить'],
-    [/^ops:voidPaymentYes:[^:]{1,64}$/, 'payment_void', '↩️ Отменить оплату'],
+    [/^mgc:[^:]{1,32}:[^:]{1,32}:\d+$/, 'gift_training', '🎁 Добавить', true],
+    [/^mpc:[^:]{1,32}:[^:]{1,32}$/, 'block_pause', '⏸ Приостановить', true],
+    [/^mrc:[^:]{1,32}:[^:]{1,32}$/, 'block_resume', '▶️ Возобновить', true],
+    [/^mclc:[^:]{1,32}:[^:]{1,32}$/, 'block_close', '✅ Закрыть блок', true],
+    [/^ops:undoYes:[^:]{1,64}$/, 'undo', '↩️ Выполнить откат', true],
+    [/^ops:archiveYes:[^:]{1,32}$/, 'client_archive', '🗄 В архив', true],
+    [/^ops:restoreYes:[^:]{1,32}$/, 'client_restore', '♻️ Восстановить', true],
+    [/^ops:voidPaymentYes:[^:]{1,64}$/, 'payment_void', '↩️ Отменить оплату', true],
     [/^ops:toggle:[A-Za-z0-9_-]{1,40}$/, 'setting_toggle', '✅ Изменить настройку'],
     [/^ops:backup$/, 'internal_backup', '✅ Создать копию']
   ];
   for (let index = 0; index < patterns.length; index++) {
-    if (patterns[index][0].test(data)) return {action: patterns[index][1], button: patterns[index][2]};
+    if (patterns[index][0].test(data)) return {
+      action: patterns[index][1], button: patterns[index][2], acceptOnCallback: patterns[index][3] === true
+    };
   }
   return null;
 }
@@ -610,6 +614,34 @@ function upgradeTelegramLegacyMutation_(query, descriptor, data) {
     descriptor.action, {legacyData: data, sourceMessageId: String(message.message_id)}, descriptor.button);
   telegramAnswerCallback_(query.id, 'Требуется одноразовое подтверждение', false);
   });
+}
+
+// Explicit row buttons and buttons rendered by a dedicated preview already
+// carry final user intent. Accept that click while retaining the same immutable
+// cf2 ticket and operation lifecycle used by the visible confirmation screen.
+function acceptTelegramMutationOnOriginalCallback_(query, descriptor, data, nowMs) {
+  if (!descriptor || descriptor.acceptOnCallback !== true) {
+    throw new Error('Immediate acceptance is not allowed for this action.');
+  }
+  const message = query.message || {};
+  const chatId = message.chat && message.chat.id;
+  const userId = query.from && query.from.id;
+  const sourceMessageId = String(message.message_id);
+  const now = Number(nowMs === undefined ? Date.now() : nowMs);
+  const sourceSeconds = Number(message.edit_date || message.date);
+  const sourceMs = sourceSeconds * 1000;
+  if (!Number.isFinite(now) || !Number.isFinite(sourceMs) || sourceMs <= 0 ||
+      sourceMs > now + 300000 || now - sourceMs >= DMS_TELEGRAM_CONFIRMATION.TTL_SECONDS * 1000) {
+    throw new Error('Кнопка устарела. Открой действие заново.');
+  }
+  const ticket = createTelegramConfirmation_(userId, chatId, sourceMessageId, descriptor.action, {
+    legacyData: data,
+    sourceMessageId: sourceMessageId,
+    // Stable across a replay even though the accepted business snapshot changes
+    // after the first effect. Admin/chat remain part of the operation identity.
+    state: {secureFlowId: 'explicit_callback|' + sourceMessageId + '|' + data}
+  }, now);
+  return processTelegramSecureCallback_(query, parseTelegramConfirmationCallback_(ticket.callbackData), now);
 }
 
 function handleTelegramCallback_(query) {
@@ -640,6 +672,13 @@ function handleTelegramCallback_(query) {
       telegramAnswerCallback_(query.id, 'Старая кнопка недействительна', true);
       telegramEditMessage_(chatId, message.message_id,
         'Эта кнопка создана до обновления защиты. Открой действие заново.', null);
+    } else if (legacy.acceptOnCallback) {
+      try {
+        acceptTelegramMutationOnOriginalCallback_(query, legacy, data);
+      } catch (error) {
+        telegramAnswerCallback_(query.id,
+          ('Действие отклонено: ' + (error.message || String(error))).substring(0, 180), true);
+      }
     } else {
       upgradeTelegramLegacyMutation_(query, legacy, data);
     }

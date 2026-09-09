@@ -65,40 +65,24 @@ function setDmsMiniAppQueueDecisionMeasured_(payload, metrics) {
     if (status === 'Обработано') {
       throwDmsMiniAppError_('already_processed', 409, 'Событие уже обработано.');
     }
-
     const timeZone = ss.getSpreadsheetTimeZone() || 'Europe/Moscow';
     if (!(values[1] instanceof Date) ||
         makeDateKey_(values[1], timeZone) !== makeDateKey_(new Date(), timeZone)) {
       throwDmsMiniAppError_('not_today', 409, 'Событие не относится к текущему дню.');
     }
 
-    const decision = decisions[decisionCode];
-    if (String(values[12] || '') === decision && status === 'Ожидает') {
-      return {
-        bootstrap: getDmsMiniAppBootstrap_(),
-        mutation: {
-          changed: false,
-          queueId: queueId,
-          notice: 'решение уже сохранено'
-        }
-      };
-    }
-
     const mutation = measureDmsOperationPhase_(metrics, 'sheetsWriteMs', function() {
-      const changed = setTelegramQueueDecision_(queueId, decisionCode);
-      queue.getRange(row, 16).setValue('MiniApp');
+      const changed = setTelegramQueueDecision_(queueId, decisionCode, {
+        source: 'MiniApp', dateScope: 'today'
+      });
       SpreadsheetApp.flush();
-      addDmsOperationCount_(metrics, 'rowsWritten', 1);
+      if (changed.changed) addDmsOperationCount_(metrics, 'rowsWritten', 1);
       return changed;
     });
 
     return {
       bootstrap: getDmsMiniAppBootstrap_(),
-      mutation: {
-        changed: true,
-        queueId: queueId,
-        notice: mutation.notice
-      }
+      mutation: mutation
     };
   } finally {
     lock.releaseLock();
