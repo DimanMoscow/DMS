@@ -11,10 +11,19 @@ Last verified: 2026-09-11 (Europe/Moscow). Emergency recovery is in progress.
 - Do not invoke triggers manually to manufacture recovery evidence. The next natural morning window is September 11, 08:00–09:15 Moscow.
 - Latest inspected durable operations: no pending, stale or manual-review operations; historical failed validations retained. Script Properties usage was 5,606 bytes; Document Properties and legacy confirmation counts were zero.
 
-## Recovery work pending
+## Recovery release checkpoint
 
-- Confirm-day rejects the Base64URL revision produced by its own bootstrap; the old whole-day precondition also conflates unrelated changes with selected training intent. Per-training semantic acceptance is under isolated testing.
-- Explicit Telegram row and day callbacks require transport integration with the existing immutable operation lifecycle, without redundant confirmation UI.
+- Recovery PR #76 was squash-merged as `77a176763756519e978d71b65b883f50c0ac119a`; its 312-test full repository gate and the new main release-gate passed. Candidate `stabilization` contains the reviewed semantic/one-click fixes and owner recovery tooling. These fixes are not yet deployed.
+- The minimized private approved plan was uploaded and read back exactly in the owner's Google Drive; permissions were verified owner-only, with no public or third-party access. Fresh private backup and isolated restore verified all 16 sheets at `2026-09-10T23:33:47.991Z`. No plan payload or private identifiers are stored in Git.
+- Candidate HEAD was staged/read back, but Google required owner OAuth approval before the drain function could execute. The waiting execution was cancelled. HEAD was restored exactly to numbered v55 at `2026-09-10T23:43:28.193Z`; deployment remained v55. No recovery patches, new version or deployment update occurred.
+- Owner inspection at `2026-09-10T23:45:17.812Z` proved `mutationReady: true`, original document context, available locks and all five correctly configured owner triggers. The drain timestamp remained the earlier September 10 value. Natural Calendar sync and watchdog successes were fresh; morning remained stale. Do not leave candidate HEAD staged while waiting for OAuth approval.
+- Read-only Vercel smoke passed on production source `2882f526622e348be7e785572423f807c8c44bd7`, release 0.2.7, connected mode and v55 runtime. This observed production source differs from the recovery merge SHA; do not claim the new main has been deployed. Resolve the Git integration status during resumed release verification without a duplicate manual deployment.
+- Resume after owner OAuth approval: refresh backup/restore and the private plan's evidence; update only that verified owner-only Drive file, re-run fixture proof, stage exact merged source, drain, owner preview/apply/read-back, publish numbered version, record exact snapshot/runtime pointer, activate, and verify the next natural scheduled executions. Never reuse the expired plan or stale staged/inventory reports.
+
+## Recovery acceptance pending
+
+- Confirm-day rejects the Base64URL revision produced by its own bootstrap; the old whole-day precondition also conflates unrelated changes with selected training intent. Per-training semantic acceptance is implemented and passed isolated tests in PR #76; production acceptance remains pending.
+- Explicit Telegram row and day callback integration with the existing immutable lifecycle passed isolated tests in PR #76; production rollout remains pending.
 - Confirmed ledger inconsistencies and a next-block advance are being corrected through an approved private recovery plan. Personal and financial details stay outside Git. None of those corrections is claimed applied by this checkpoint.
 - A fresh owner-only backup and independent restore comparison covered all 16 sheets. Private evidence, credentials, operational URLs and identifiers remain outside Git. Refresh this evidence before staging or data recovery writes.
 
