@@ -14,6 +14,7 @@ import {
   materializeCandidate,
   normalizeRemoteFiles,
   verifyRemoteBaseline,
+  verifyCandidateRuntimeMarkers,
 } from "../apps-script/scripts/apps-script-preflight.mjs";
 
 test("Apps Script offline plan is deterministic, redacted, and never deployable", () => {
@@ -158,4 +159,11 @@ test("v50 runtime identity carries the exact confirmation module fingerprint", a
     .digest("hex");
   assert.match(bot, new RegExp(`TELEGRAM_CONFIRMATIONS_SHA256: '${digest}'`));
   assert.match(bot, /telegramConfirmationsHandlerLoaded: typeof handleTelegramCallback_ === 'function'/);
+});
+
+test("current preflight verifies every stabilization runtime marker", () => {
+  const hashes = verifyCandidateRuntimeMarkers("apps-script/candidates/stabilization");
+  assert.deepEqual(Object.keys(hashes).sort(), [
+    "clientPortalSha256", "routerSha256", "telegramConfirmationsSha256",
+  ]);
 });

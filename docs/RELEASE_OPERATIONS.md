@@ -131,6 +131,10 @@ ignored artifact with the same command and `--verify <plan-path>`. It records on
 digests and always remains `OFFLINE_READY`, `authenticated:false`,
 `remoteStateVerified:false`, and `deployable:false`.
 
+Pass the candidate explicitly to authenticated preflight. For the current milestone,
+use `--candidate stabilization`; the resulting report binds all 23 materialized files
+and all three public runtime identity hashes to the authenticated v54 baseline.
+
 The credential-profile format check is
 `npm run release:apps-script:credential-check -- --mode reader|writer`. It accepts only an
 absolute credential-profile path outside the repository through
@@ -149,7 +153,7 @@ Create each profile through the official loopback flow with
 `npm run release:apps-script:authorize -- --mode reader|writer --client <absolute-client-json> --output <absolute-profile-json> --request-output <absolute-request-json>`.
 The command writes the consent URL to the private request file and never prints tokens.
 After consent, prove read-only readiness with
-`npm run release:apps-script:preflight -- --mode reader|writer --target <absolute-target-json> --backup <absolute-backup-manifest> --output <absolute-report-json>` while
+`npm run release:apps-script:preflight -- --mode reader|writer --candidate <candidate> --target <absolute-target-json> --backup <absolute-backup-manifest> --output <absolute-report-json>` while
 `DMS_APPS_SCRIPT_AUTH_FILE` points to the selected profile. Both modes perform GET-only
 remote verification. The writer invocation is a dry run and must report zero production
 writes before release tooling is allowed to mutate Apps Script or Sheets.

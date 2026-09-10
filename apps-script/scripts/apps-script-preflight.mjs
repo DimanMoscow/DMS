@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { googleJson, loadAuthorizationProfile, refreshGoogleAccessToken } from "./google-auth.mjs";
 import { canonicalSource, sha256, sourceTreeSha256 } from "./source-integrity.mjs";
+import { runtimeSourceHashes } from "./runtime-source-hashes.mjs";
 import { verifyBackupManifest } from "./verify-backup-manifest.mjs";
 import { assertPrivateRegularFile, isOutsidePath } from "../../scripts/path-policy.mjs";
 
@@ -31,11 +32,14 @@ function parseArguments(argv) {
   for (let index = 0; index < argv.length; index += 2) {
     const key = argv[index];
     const value = argv[index + 1];
-    assert.ok(["--mode", "--target", "--backup", "--output"].includes(key), `unknown argument: ${key}`);
+    assert.ok(["--mode", "--target", "--backup", "--output", "--candidate"].includes(key),
+      `unknown argument: ${key}`);
     assert.ok(value, `${key} requires a value`);
     result[key.slice(2)] = value;
   }
   assert.ok(["reader", "writer"].includes(result.mode), "--mode must be reader or writer");
+  assert.match(String(result.candidate || ""), /^(?:v\d+|stabilization)$/,
+    "--candidate must be a version or stabilization");
   for (const name of ["target", "backup", "output"]) assert.ok(result[name], `--${name} is required`);
   return result;
 }
@@ -133,6 +137,24 @@ function assertCandidateIntegrity(verification, candidateName, candidateRoot) {
     `${candidateName}: candidate source tree differs`);
 }
 
+export function verifyCandidateRuntimeMarkers(candidateRoot) {
+  const hashes = runtimeSourceHashes(candidateRoot);
+  const bot = canonicalSource(
+    fs.readFileSync(path.join(candidateRoot, "TelegramBot.gs")),
+    "TelegramBot.gs",
+  );
+  const markers = {
+    routerSha256: "ROUTER_SHA256",
+    clientPortalSha256: "CLIENT_PORTAL_SHA256",
+    telegramConfirmationsSha256: "TELEGRAM_CONFIRMATIONS_SHA256",
+  };
+  for (const [key, constant] of Object.entries(markers)) {
+    assert.ok(bot.includes(`${constant}: '${hashes[key]}'`),
+      `${constant} does not fingerprint the selected candidate`);
+  }
+  return hashes;
+}
+
 async function listSpreadsheets(accessToken, fetchImpl) {
   const files = [];
   let pageToken = "";
@@ -161,12 +183,14 @@ export async function runAppsScriptPreflight({
   profile,
   target,
   backupManifest,
+  candidateName = "v50",
   fetchImpl = fetch,
 }) {
   const production = readJson(path.join(appsScriptRoot, "production.json"));
   const verification = readJson(path.join(appsScriptRoot, "verification.json"));
   const baselineName = production.snapshot;
-  const candidateName = "v50";
+  assert.match(candidateName, /^(?:v\d+|stabilization)$/,
+    "candidate must be a version or stabilization");
   const baselineRoot = path.join(appsScriptRoot, "versions", baselineName);
   const candidateRoot = path.join(appsScriptRoot, "candidates", candidateName);
   assertCandidateIntegrity(verification, candidateName, candidateRoot);
@@ -229,10 +253,7 @@ export async function runAppsScriptPreflight({
   );
   assert.equal(materialized.size, verification.candidates[candidateName].fileCount,
     "materialized candidate file count differs");
-  const moduleName = "ZZZZZZZZZZZZTelegramConfirmations.gs";
-  const moduleHash = sha256(localSources(candidateRoot).get(moduleName));
-  assert.equal(moduleHash, "3122547e3eb8631756071eae2b1e62fb43acb6c2c698bb2eb4471e7fd58a7584",
-    "Telegram confirmation runtime marker differs from the module source");
+  const runtimeIdentityHashes = verifyCandidateRuntimeMarkers(candidateRoot);
 
   return {
     formatVersion: 1,
@@ -250,7 +271,8 @@ export async function runAppsScriptPreflight({
     candidate: candidateName,
     candidateTreeSha256: verification.candidates[candidateName].sourceTreeSha256,
     candidateMaterialized: true,
-    runtimeMarkerSha256: moduleHash,
+    runtimeMarkerSha256: runtimeIdentityHashes.telegramConfirmationsSha256,
+    runtimeIdentityHashes,
     dryRun: mode === "writer",
     releaseReady: true,
     productionWrites: 0,
@@ -270,6 +292,7 @@ async function runCli() {
     profile: loadAuthorizationProfile(profilePath, args.mode),
     target: loadTarget(targetPath),
     backupManifest: readJson(backupPath),
+    candidateName: args.candidate,
   });
   const outputPath = path.resolve(args.output);
   assertPrivateOutput(outputPath);
