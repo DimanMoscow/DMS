@@ -53,3 +53,42 @@ test('P1.6 migration refuses unknown format formula or missing recovery evidence
   assert.equal(planFinancialMigration(input).inputColumnsPreserved, true);
   assert.throws(() => planFinancialMigration({...input, recoveryVerified: false}));
 });
+
+test('semantic reconciliation detects cross-client Journal and Payment block ownership', () => {
+  const {data} = financialFixture(1, false);
+  const journal = data['Журнал тренировок'].slice(3);
+  const payments = data['Оплаты'].slice(3);
+  journal.find(row => row[0] === 'TR-F1')[3] = 'BL-F2';
+  payments.find(row => row[0] === 'PAY-F1')[3] = 'BL-F2';
+
+  const context = loadBundle('stabilization').context;
+  const result = context.computeDmsFinancialExpected_(
+    data['Клиенты'].slice(4), data['Блоки'].slice(3), payments, journal);
+  assert.equal(result.issues.filter(issue => /block\/client mismatch$/.test(issue)).length, 2);
+
+  const health = context.buildDmsSemanticReconciliationHealth_({
+    issues: result.issues,
+    numericMismatches: [],
+  });
+  assert.equal(health.state, 'failed');
+  assert.equal(health.issueClasses.ownershipMismatch, 2);
+  assert.doesNotMatch(JSON.stringify(health), /CL-F|BL-F|TR-F|PAY-F/);
+});
+
+test('semantic reconciliation reports duplicate accounting record IDs without mutation', () => {
+  const {data} = financialFixture(1, false);
+  const journal = data['Журнал тренировок'].slice(3);
+  const first = journal.find(row => row[0] === 'TR-F0');
+  const second = journal.find(row => row[0] === 'TR-F1');
+  second[0] = first[0];
+  const before = JSON.stringify(journal);
+  const context = loadBundle('stabilization').context;
+  const result = context.computeDmsFinancialExpected_(
+    data['Клиенты'].slice(4), data['Блоки'].slice(3), data['Оплаты'].slice(3), journal);
+  const health = context.buildDmsSemanticReconciliationHealth_({
+    issues: result.issues,
+    numericMismatches: [],
+  });
+  assert.equal(health.issueClasses.duplicateId, 1);
+  assert.equal(JSON.stringify(journal), before);
+});

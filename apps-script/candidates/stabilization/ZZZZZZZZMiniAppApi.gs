@@ -400,6 +400,7 @@ function getDmsMiniAppHealth_() {
     durableOperations: operational.durableOperations,
     metrics: operational.metrics,
     measurements: operational.measurements,
+    semanticReconciliation: operational.semanticReconciliation,
     latestErrorClasses: operational.latestErrorClasses
   };
 }
