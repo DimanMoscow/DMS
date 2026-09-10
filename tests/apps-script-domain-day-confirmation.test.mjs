@@ -10,7 +10,10 @@ const ledgerHeaders = JSON.parse(fs.readFileSync('apps-script/migrations/telegra
 
 function fixture() {
   const now = new Date();
-  const date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10);
+  const moscow = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(now).map(part => [part.type, part.value]));
+  const date = new Date(`${moscow.year}-${moscow.month}-${moscow.day}T10:00:00+03:00`);
   const row = ['Q-DAY', date, '', '', '', date, new Date(date.getTime() + 3600000),
     'Fixture A ПТ', 'CL-A', 'Fixture A', '', 'Распознано', 'Проведена', 'Ожидает', '', '', ''];
   const book = memoryWorkbook({
