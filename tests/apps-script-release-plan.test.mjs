@@ -15,6 +15,7 @@ import {
   normalizeRemoteFiles,
   verifyRemoteBaseline,
   verifyCandidateRuntimeMarkers,
+  loadCurrentTelegramLedgerSchema,
 } from "../apps-script/scripts/apps-script-preflight.mjs";
 
 test("Apps Script offline plan is deterministic, redacted, and never deployable", () => {
@@ -166,4 +167,11 @@ test("current preflight verifies every stabilization runtime marker", () => {
   assert.deepEqual(Object.keys(hashes).sort(), [
     "clientPortalSha256", "routerSha256", "telegramConfirmationsSha256",
   ]);
+});
+
+test("current preflight follows the applied append-only Telegram ledger schema", () => {
+  const schema = loadCurrentTelegramLedgerSchema();
+  assert.equal(schema.schemaVersion, 2);
+  assert.equal(schema.sheet.columns.length, 17);
+  assert.equal(schema.sheet.appendOnly, true);
 });

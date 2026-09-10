@@ -134,6 +134,9 @@ digests and always remains `OFFLINE_READY`, `authenticated:false`,
 Pass the candidate explicitly to authenticated preflight. For the current milestone,
 use `--candidate stabilization`; the resulting report binds all 23 materialized files
 and all three public runtime identity hashes to the authenticated v54 baseline.
+The same preflight resolves the current Telegram operation-ledger schema from the
+append-only migration ledger, verifies only its exact header and frozen-row contract,
+and never requires legitimate historical operation rows to be empty.
 
 The credential-profile format check is
 `npm run release:apps-script:credential-check -- --mode reader|writer`. It accepts only an
