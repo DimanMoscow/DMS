@@ -750,6 +750,26 @@
         "ZZZZZZZRuntime.gs",
         "ZZZZZZZZZZZZZZZZReleaseSafety.gs"
       ]
+    },
+    "stabilization": {
+      "baseVersion": "v54",
+      "fileCount": 23,
+      "sourceTreeSha256": "16a4d270960a649f1cae9f3170efb87ae73da6d1000a91e3ec37e23c4467040e",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZMiniAppAdmin.gs",
+        "ZZZZZZZZZZZClientPortal.gs",
+        "ZZZZZZZZZZZZTelegramConfirmations.gs",
+        "ZZZZZZZZZZZZZOperationSafety.gs",
+        "ZZZZZZZZZZZZZZZFinancialSafety.gs",
+        "ZZZZZZZZZZZZZZZZReleaseSafety.gs",
+        "ZZZZZZZZZZZZZZZZZOperationMetrics.gs",
+        "ZZZZZZZZZZZZZZZZZZDomainOperations.gs"
+      ]
     }
   }
 }

@@ -58,7 +58,7 @@ type WaitingTraining = {
 };
 type Bootstrap = {
   generatedAt: string;
-  today: { title: string; dateKey: string; waiting: WaitingTraining[] };
+  today: { title: string; dateKey: string; waiting: WaitingTraining[]; revision: string };
   summary: {
     activeClients: number; openBlocks: number; lowBlocks: number; debtClients: number;
     queueWaiting: number; queueErrors: number; queueRegistrations: number;
@@ -91,9 +91,17 @@ type ClientPortalAdminResponse = {
 };
 type MeasurementAdminResponse = { measurements: AdminMeasurements };
 type SystemHealth = {
-  ok: boolean; checkedAt: string; durationMs: number; passed: number; total: number;
+  ok: boolean; state?: string; checkedAt: string; durationMs: number; passed: number; total: number;
   failures: { name: string; details: string }[]; queueWaiting: number; queueErrors: number;
   queueRegistrations: number; exhaustedOpenBlocks: number; triggerCount: number;
+  durableOperations?: { state: string; pending: number; stale: number; manualReview: number };
+  calendarIngestion?: { state: string };
+  reconciliation?: { state: string; issueCount?: number };
+  backup?: { state: string };
+  metrics?: { state: string; contentionAnomalies: number };
+  measurements?: { state: string; issueCount: number; affectedClients: number };
+  semanticReconciliation?: { state: string; issueCount: number };
+  latestErrorClasses?: Record<string, number>;
 };
 type CalendarOnboardingMode = "new" | "link" | "ignore";
 type CalendarOnboardingState = { item: WaitingTraining; mode: CalendarOnboardingMode };
@@ -113,8 +121,9 @@ type CalendarOnboardingPreview = {
 type ApiResponse<T> = { ok: boolean; error?: string; data?: T };
 type DecisionCode = "done" | "free" | "charge";
 type Confirmation =
-  | { kind: "decision"; item: WaitingTraining; decision: DecisionCode }
-  | { kind: "day"; count: number };
+  | { kind: "decision"; item: WaitingTraining; decision: DecisionCode; operationId: string }
+  | { kind: "day"; count: number; revision: string;
+      acceptedRows: { queueId: string; decision: string; status: string }[]; operationId: string };
 type MutationResponse = {
   bootstrap: Bootstrap;
   mutation?: { notice?: string };
@@ -171,7 +180,10 @@ function readableError(error: unknown) {
     not_today: "Событие уже не относится к текущему дню. Обновите Mini App.",
     operation_busy: "Другое действие ещё выполняется. Повторите через несколько секунд.",
     day_not_ready: "Не все события дня готовы к обработке. Проверьте решения и блоки.",
+    underlying_state_changed: "Состояние дня изменилось. Данные обновлены — проверьте решения ещё раз.",
     invalid_decision: "Такое решение для события недоступно.",
+    invalid_operation: "Идентификатор действия недействителен. Откройте подтверждение заново.",
+    operation_manual_review: "Исход операции неоднозначен. Повторная запись заблокирована до сверки.",
     mini_app_api_failed: "Не удалось записать действие. Состояние учёта перечитано.",
     client_already_linked: "Клиент уже привязан к Client Portal.",
     enrollment_invite_active: "У клиента уже есть активное приглашение.",
@@ -206,6 +218,10 @@ function moscowTimestamp(dateKey: string, time: string) {
   const [, year, month, day] = dateMatch;
   const [, hour, minute] = timeMatch;
   return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour) - 3, Number(minute));
+}
+
+function newOperationId() {
+  return crypto.randomUUID();
 }
 
 export function MiniAppShell() {
@@ -306,8 +322,11 @@ export function MiniAppShell() {
     const key = activeConfirmation.kind === "day" ? "day" : activeConfirmation.item.queueId;
     const action = activeConfirmation.kind === "day" ? "confirm_day" : "set_queue_decision";
     const payload = activeConfirmation.kind === "day"
-      ? { dateKey: data?.today.dateKey }
-      : { queueId: activeConfirmation.item.queueId, decision: activeConfirmation.decision };
+      ? { dateKey: data?.today.dateKey, revision: activeConfirmation.revision,
+          acceptedRows: activeConfirmation.acceptedRows, operationId: activeConfirmation.operationId }
+      : { queueId: activeConfirmation.item.queueId, decision: activeConfirmation.decision,
+          expectedDecision: activeConfirmation.item.decision,
+          expectedStatus: activeConfirmation.item.status, operationId: activeConfirmation.operationId };
 
     setBusyKey(key);
     setConfirmation(null);
@@ -409,11 +428,18 @@ export function MiniAppShell() {
       )}
 
       {view === "today" && data && <TodayView data={data} busyKey={busyKey}
-        onDecision={(item, decision) => setConfirmation({ kind: "decision", item, decision })}
+        onDecision={(item, decision) => setConfirmation({
+          kind: "decision", item, decision, operationId: newOperationId(),
+        })}
         onOnboard={(item, mode) => setOnboarding({ item, mode })}
         onConfirmDay={() => setConfirmation({
           kind: "day",
           count: data.today.waiting.filter((item) => !item.processed).length,
+          revision: data.today.revision,
+          acceptedRows: data.today.waiting.filter((item) => !item.processed).map((item) => ({
+            queueId: item.queueId, decision: item.decision, status: item.status,
+          })),
+          operationId: newOperationId(),
         })} />}
       {view === "clients" && data && (
         clientDetail || clientLoading
@@ -1027,10 +1053,13 @@ function SystemView({ service, health, appsScriptRuntime, onRefresh }: {
   appsScriptRuntime: AppsScriptRuntimeHealth | null;
   onRefresh: () => void;
 }) {
+  const headline = !health ? "Проверяю систему" : health.ok
+    ? "Все проверки пройдены"
+    : `Требует внимания: ${health.state || "failed"}`;
   return <Page title="Состояние системы" subtitle="Диагностика">
     <section className="system-hero">
-      <span className={health?.ok ? "system-indicator ok" : "system-indicator"}>{health?.ok ? "✓" : "…"}</span>
-      <div><strong>{health?.ok ? "Все проверки пройдены" : "Проверяю систему"}</strong><p>{health
+      <span className={health?.ok ? "system-indicator ok" : "system-indicator"}>{health ? health.ok ? "✓" : "!" : "…"}</span>
+      <div><strong>{headline}</strong><p>{health
         ? `${health.passed} из ${health.total} · ${health.durationMs} мс`
         : "Без изменения данных"}</p></div>
     </section>
@@ -1041,6 +1070,24 @@ function SystemView({ service, health, appsScriptRuntime, onRefresh }: {
         ? "не указан"
         : service?.sourceRevision?.slice(0, 12) || "—"} />
       <Detail label="Apps Script" value={appsScriptRuntime?.release || "—"} />
+      <Detail label="Backend" value={service?.dataMode || "—"} />
+      <Detail label="Calendar sync" value={health?.calendarIngestion?.state || "—"} />
+      <Detail label="Сверка" value={health?.reconciliation
+        ? `${health.reconciliation.state} · ${health.reconciliation.issueCount || 0}`
+        : "—"} />
+      <Detail label="Backup" value={health?.backup?.state || "—"} />
+      <Detail label="Durable operations" value={health?.durableOperations
+        ? `${health.durableOperations.state} · pending ${health.durableOperations.pending}`
+        : "—"} />
+      <Detail label="Lock contention" value={health?.metrics
+        ? String(health.metrics.contentionAnomalies)
+        : "—"} />
+      <Detail label="Целостность замеров" value={health?.measurements
+        ? `${health.measurements.state} · ${health.measurements.issueCount}`
+        : "—"} />
+      <Detail label="Финансовые связи" value={health?.semanticReconciliation
+        ? `${health.semanticReconciliation.state} · ${health.semanticReconciliation.issueCount}`
+        : "—"} />
       <Detail label="Очередь" value={health ? `${health.queueWaiting} ожидает · ${health.queueErrors} ошибок` : "—"} />
       <Detail label="Регистрация" value={health ? String(health.queueRegistrations) : "—"} />
       <Detail label="Исчерпанные блоки" value={health ? String(health.exhaustedOpenBlocks) : "—"} />

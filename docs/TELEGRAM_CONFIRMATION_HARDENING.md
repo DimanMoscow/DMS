@@ -58,12 +58,39 @@ sees `committed` and returns the recorded result without a second mutation. Paym
 Calendar-create operations carry a private operation marker so an ambiguous Telegram
 transport failure can be reconciled after the durable write.
 
-All pre-v50 generic mutation confirmations fail closed. Payload-specific legacy buttons
-are converted into a new one-time confirmation before they can mutate. Read-only
+All pre-v50 generic mutation confirmations fail closed. Payload-specific mutation
+buttons enter the same one-time confirmation lifecycle before they can mutate. The
+transport may accept an already explicit callback without drawing another screen; it
+still creates and consumes the immutable durable ticket internally. Read-only
 navigation remains compatible. The secured surface includes payment creation/void,
 Calendar creation/move/cancel, Queue decisions and day confirmation, block changes,
 client archive/restore, undo, management writes, settings changes, and manual internal
 backup creation.
+
+## Callback UX classification
+
+The stabilization candidate treats the following callbacks as the final explicit user
+intent and accepts them on that click:
+
+- `qd:<queueId>:done|charge|free|move`, because the day screen names the exact row and
+  exact decision;
+- `mgc`, block pause/resume/close, undo, archive, restore, and payment-void confirmation
+  callbacks, because each button is already rendered on a dedicated impact preview with
+  its own cancel action.
+
+These callbacks do not bypass `cf2`. The transport creates an immutable ticket bound to
+admin, chat, source message, action, nonce, TTL, accepted business snapshot, and a stable
+message/action flow ID, then executes it under ScriptLock. Duplicate or concurrent
+delivery resolves through the durable result; changed state and stale source messages
+fail closed. Queue row callbacks additionally accept only rows from Yesterday/Today.
+
+The separate screen remains for `qp:<date>` because it freezes and displays the exact
+multi-row day batch before Journal/Block/Calendar effects. It also remains for scheduled
+setting toggles and manual backup creation, which start control-plane work directly from
+an operations menu. Payment, schedule, management, rename, price, block-edit, and
+upcoming Calendar flows already construct a single `cf2` preview from immutable state;
+their old generic confirmation buttons remain invalid rather than gaining an immediate
+legacy execution path.
 
 The non-destructive `telegram-confirmations-v1` migration is applied. Official Google
 API read-back proved the exact candidate, HEAD, numbered `v50`, and deployment mapping;
