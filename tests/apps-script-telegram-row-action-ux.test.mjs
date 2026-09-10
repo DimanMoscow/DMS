@@ -178,10 +178,71 @@ test('Telegram and MiniApp receive the same queue-decision domain result', () =>
     telegram.query('charge'), telegram.context.describeTelegramLegacyMutation_('qd:Q-2:charge'), 'qd:Q-2:charge'
   );
   const miniApp = fixture();
-  const miniAppResult = miniApp.context.setDmsMiniAppQueueDecision_({queueId: 'Q-2', decision: 'charge'}).mutation;
+  const miniAppResult = miniApp.context.setDmsMiniAppQueueDecision_({
+    queueId: 'Q-2', decision: 'charge', expectedDecision: '', expectedStatus: 'Ожидает',
+    operationId: '11111111-1111-4111-8111-111111111111'
+  }, '1001').mutation;
   const domainKeys = ['code', 'ref', 'changed', 'queueId', 'decision', 'notice'];
   assert.deepEqual(Object.fromEntries(domainKeys.map(key => [key, telegramResult[key]])),
     Object.fromEntries(domainKeys.map(key => [key, miniAppResult[key]])));
+});
+
+test('MiniApp queue retry returns its durable result without a second effect', () => {
+  const f = fixture();
+  const payload = {queueId: 'Q-2', decision: 'free', expectedDecision: '', expectedStatus: 'Ожидает',
+    operationId: '22222222-2222-4222-8222-222222222222'};
+  const first = f.context.setDmsMiniAppQueueDecision_(payload, '1001').mutation;
+  const queueWrites = () => f.book.writes.filter(write => write.sheet === 'Очередь подтверждения').length;
+  const before = queueWrites();
+  const replay = f.context.setDmsMiniAppQueueDecision_(payload, '1001').mutation;
+  assert.deepEqual(first, replay);
+  assert.equal(queueWrites(), before);
+  assert.throws(() => f.context.setDmsMiniAppQueueDecision_({...payload, decision: 'charge'}, '1001'),
+    /another operation/);
+});
+
+test('MiniApp queue crash after its durable row marker recovers without replaying the write', () => {
+  const f = fixture(); let crashed = false;
+  const payload = {queueId: 'Q-2', decision: 'free', expectedDecision: '', expectedStatus: 'Ожидает',
+    operationId: '33333333-3333-4333-8333-333333333333'};
+  f.book.hooks.after = event => {
+    if (!crashed && event.sheet === 'Очередь подтверждения' && event.col === 17) {
+      crashed = true; throw new Error('injected process death');
+    }
+  };
+  assert.throws(() => f.context.setDmsMiniAppQueueDecision_(payload, '1001'), /injected/);
+  f.book.hooks.after = null;
+  const decisionWrites = () => f.book.writes.filter(write =>
+    write.sheet === 'Очередь подтверждения' && write.col === 13).length;
+  const before = decisionWrites();
+  const recovered = f.context.setDmsMiniAppQueueDecision_(payload, '1001').mutation;
+  assert.equal(recovered.code, 'queue_decision_saved');
+  assert.equal(decisionWrites(), before);
+});
+
+test('MiniApp queue accepted state change and concurrent delivery fail closed', () => {
+  const changed = fixture();
+  changed.queue.getRange(5, 13).setValue('Проведена');
+  const changedPayload = {queueId: 'Q-2', decision: 'free', expectedDecision: '', expectedStatus: 'Ожидает',
+    operationId: '66666666-6666-4666-8666-666666666666'};
+  assert.throws(() => changed.context.setDmsMiniAppQueueDecision_(changedPayload, '1001'),
+    error => error.dmsCode === 'underlying_state_changed');
+  assert.equal(changed.queue.getRange(5, 13).getValue(), 'Проведена');
+
+  const concurrent = fixture(); const other = concurrent.newExecution(); let attempted = false;
+  const payload = {queueId: 'Q-2', decision: 'free', expectedDecision: '', expectedStatus: 'Ожидает',
+    operationId: '77777777-7777-4777-8777-777777777777'};
+  concurrent.book.hooks.after = event => {
+    if (!attempted && event.sheet === 'Журнал операций Telegram' && event.values[0][4] === 'started') {
+      attempted = true;
+      assert.throws(() => other.setDmsMiniAppQueueDecision_(payload, '1001'),
+        error => error.dmsCode === 'operation_busy');
+    }
+  };
+  concurrent.context.setDmsMiniAppQueueDecision_(payload, '1001');
+  assert.equal(attempted, true);
+  assert.equal(concurrent.book.writes.filter(write =>
+    write.sheet === 'Очередь подтверждения' && write.col === 13).length, 1);
 });
 
 test('only final explicit-intent callbacks bypass a visible second confirmation', () => {

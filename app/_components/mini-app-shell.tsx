@@ -113,9 +113,9 @@ type CalendarOnboardingPreview = {
 type ApiResponse<T> = { ok: boolean; error?: string; data?: T };
 type DecisionCode = "done" | "free" | "charge";
 type Confirmation =
-  | { kind: "decision"; item: WaitingTraining; decision: DecisionCode }
+  | { kind: "decision"; item: WaitingTraining; decision: DecisionCode; operationId: string }
   | { kind: "day"; count: number; revision: string;
-      acceptedRows: { queueId: string; decision: string; status: string }[] };
+      acceptedRows: { queueId: string; decision: string; status: string }[]; operationId: string };
 type MutationResponse = {
   bootstrap: Bootstrap;
   mutation?: { notice?: string };
@@ -174,6 +174,8 @@ function readableError(error: unknown) {
     day_not_ready: "Не все события дня готовы к обработке. Проверьте решения и блоки.",
     underlying_state_changed: "Состояние дня изменилось. Данные обновлены — проверьте решения ещё раз.",
     invalid_decision: "Такое решение для события недоступно.",
+    invalid_operation: "Идентификатор действия недействителен. Откройте подтверждение заново.",
+    operation_manual_review: "Исход операции неоднозначен. Повторная запись заблокирована до сверки.",
     mini_app_api_failed: "Не удалось записать действие. Состояние учёта перечитано.",
     client_already_linked: "Клиент уже привязан к Client Portal.",
     enrollment_invite_active: "У клиента уже есть активное приглашение.",
@@ -208,6 +210,10 @@ function moscowTimestamp(dateKey: string, time: string) {
   const [, year, month, day] = dateMatch;
   const [, hour, minute] = timeMatch;
   return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour) - 3, Number(minute));
+}
+
+function newOperationId() {
+  return crypto.randomUUID();
 }
 
 export function MiniAppShell() {
@@ -309,8 +315,10 @@ export function MiniAppShell() {
     const action = activeConfirmation.kind === "day" ? "confirm_day" : "set_queue_decision";
     const payload = activeConfirmation.kind === "day"
       ? { dateKey: data?.today.dateKey, revision: activeConfirmation.revision,
-          acceptedRows: activeConfirmation.acceptedRows }
-      : { queueId: activeConfirmation.item.queueId, decision: activeConfirmation.decision };
+          acceptedRows: activeConfirmation.acceptedRows, operationId: activeConfirmation.operationId }
+      : { queueId: activeConfirmation.item.queueId, decision: activeConfirmation.decision,
+          expectedDecision: activeConfirmation.item.decision,
+          expectedStatus: activeConfirmation.item.status, operationId: activeConfirmation.operationId };
 
     setBusyKey(key);
     setConfirmation(null);
@@ -412,7 +420,9 @@ export function MiniAppShell() {
       )}
 
       {view === "today" && data && <TodayView data={data} busyKey={busyKey}
-        onDecision={(item, decision) => setConfirmation({ kind: "decision", item, decision })}
+        onDecision={(item, decision) => setConfirmation({
+          kind: "decision", item, decision, operationId: newOperationId(),
+        })}
         onOnboard={(item, mode) => setOnboarding({ item, mode })}
         onConfirmDay={() => setConfirmation({
           kind: "day",
@@ -421,6 +431,7 @@ export function MiniAppShell() {
           acceptedRows: data.today.waiting.filter((item) => !item.processed).map((item) => ({
             queueId: item.queueId, decision: item.decision, status: item.status,
           })),
+          operationId: newOperationId(),
         })} />}
       {view === "clients" && data && (
         clientDetail || clientLoading
