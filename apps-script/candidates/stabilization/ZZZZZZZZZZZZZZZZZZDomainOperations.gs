@@ -257,7 +257,8 @@ function getDmsOperationalHealth_() {
   const componentStates = [normalizedCalendar.state, scheduled.state,
     report.backup && report.backup.state, report.reconciliation && report.reconciliation.state,
     report.durableOperations && report.durableOperations.state,
-    report.operationMetrics && report.operationMetrics.state];
+    report.operationMetrics && report.operationMetrics.state,
+    report.measurements && report.measurements.state];
   const componentChecks = {
     'scheduled-trigger-config': true,
     'scheduled-notification-settings': true,
@@ -265,7 +266,8 @@ function getDmsOperationalHealth_() {
     'calendar-queue-journal-reconciliation': true,
     'latest-backup-integrity': true,
     'durable-operation-lifecycle': true,
-    'operation-contention-anomalies': true
+    'operation-contention-anomalies': true,
+    'measurement-corruption': true
   };
   const independentFailure = (report.checks || []).some(function(check) {
     return !check.ok && !componentChecks[check.name];
@@ -285,6 +287,7 @@ function getDmsOperationalHealth_() {
     backup: report.backup,
     durableOperations: report.durableOperations,
     metrics: report.operationMetrics,
+    measurements: report.measurements,
     latestErrorClasses: latestErrorClasses,
     system: report.system,
     checks: report.checks

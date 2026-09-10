@@ -232,15 +232,13 @@ function resolveDmsClientPortalBindingRows_(telegramUserId, rows) {
     };
   });
   const matches = normalized.filter(function(binding) {
-    return binding.telegramUserId === requestedId;
+    return binding.telegramUserId === requestedId &&
+      binding.status === DMS_CLIENT_PORTAL.ACTIVE_STATUS;
   });
   if (!matches.length) throwDmsClientPortalError_('client_not_linked', 403);
   if (matches.length !== 1) throwDmsClientPortalError_('client_link_invalid', 409);
 
   const selected = matches[0];
-  if (selected.status !== DMS_CLIENT_PORTAL.ACTIVE_STATUS) {
-    throwDmsClientPortalError_('client_not_linked', 403);
-  }
   if (!/^BND-[A-Za-z0-9_-]+$/.test(selected.bindingId) ||
       !/^CL-[A-Za-z0-9_-]+$/.test(selected.clientId)) {
     throwDmsClientPortalError_('client_link_invalid', 409);
@@ -282,7 +280,7 @@ function getDmsClientPortalProfile_(sheet, clientId) {
 }
 
 function buildDmsClientPortalMeasurements_(clientId, rows) {
-  const parsed = parseDmsClientPortalMeasurements_(rows);
+  const parsed = parseDmsClientPortalMeasurementsForClient_(clientId, rows);
   const corrected = {};
   parsed.forEach(function(item) {
     if (item.correctsId) corrected[item.correctsId] = true;
@@ -364,6 +362,65 @@ function parseDmsClientPortalMeasurements_(rows) {
   return parsed;
 }
 
+function parseDmsClientPortalMeasurementsForClient_(clientId, rows) {
+  const requestedId = normalizeDmsClientPortalClientId_(clientId);
+  const scoped = rows.filter(function(row) {
+    return String(row[1] || '').trim() === requestedId;
+  });
+  const ownersByMeasurementId = {};
+  rows.forEach(function(row) {
+    const measurementId = String(row[0] || '').trim();
+    if (!/^MSR-[A-Za-z0-9_-]+$/.test(measurementId)) return;
+    if (!ownersByMeasurementId[measurementId]) ownersByMeasurementId[measurementId] = [];
+    ownersByMeasurementId[measurementId].push(String(row[1] || '').trim());
+  });
+  if (scoped.some(function(row) {
+    return (ownersByMeasurementId[String(row[0] || '').trim()] || []).length !== 1;
+  })) {
+    throwDmsClientPortalError_('client_data_invalid', 409);
+  }
+  return parseDmsClientPortalMeasurements_(scoped);
+}
+
+function getDmsMeasurementCorruptionHealth_() {
+  const ss = SpreadsheetApp.getActive();
+  const sheet = getDmsClientPortalSheet_(
+    ss,
+    DMS_CLIENT_PORTAL.MEASUREMENTS_SHEET,
+    DMS_CLIENT_PORTAL.MEASUREMENT_HEADERS
+  );
+  const rows = getDmsClientPortalRows_(
+    sheet,
+    DMS_CLIENT_PORTAL.MEASUREMENT_FIRST_ROW,
+    DMS_CLIENT_PORTAL.MEASUREMENT_COLUMNS,
+    false
+  );
+  const clients = {};
+  let unassignedRows = 0;
+  rows.forEach(function(row) {
+    const clientId = String(row[1] || '').trim();
+    if (/^CL-[A-Za-z0-9_-]+$/.test(clientId)) clients[clientId] = true;
+    else unassignedRows++;
+  });
+  let affectedClients = 0;
+  Object.keys(clients).forEach(function(clientId) {
+    try {
+      parseDmsClientPortalMeasurementsForClient_(clientId, rows);
+    } catch (ignore) {
+      affectedClients++;
+    }
+  });
+  const issueCount = affectedClients + unassignedRows;
+  return {
+    state: issueCount ? 'failed' : 'healthy',
+    ok: issueCount === 0,
+    issueCount: issueCount,
+    affectedClients: affectedClients,
+    unassignedRows: unassignedRows,
+    totalRows: rows.length
+  };
+}
+
 function getDmsClientPortalAdminMeasurements_(clientId) {
   const ss = SpreadsheetApp.getActive();
   assertDmsClientPortalClient_(ss, clientId);
@@ -378,7 +435,7 @@ function getDmsClientPortalAdminMeasurements_(clientId) {
     DMS_CLIENT_PORTAL.MEASUREMENT_COLUMNS,
     false
   );
-  const parsed = parseDmsClientPortalMeasurements_(rows);
+  const parsed = parseDmsClientPortalMeasurementsForClient_(clientId, rows);
   const corrected = {};
   parsed.forEach(function(item) {
     if (item.correctsId) corrected[item.correctsId] = true;
@@ -446,7 +503,7 @@ function writeDmsClientPortalMeasurement_(payload, actorId, correction) {
       DMS_CLIENT_PORTAL.MEASUREMENT_COLUMNS,
       false
     );
-    const parsed = parseDmsClientPortalMeasurements_(rows);
+    const parsed = parseDmsClientPortalMeasurementsForClient_(clientId, rows);
     const corrected = {};
     parsed.forEach(function(item) {
       if (item.correctsId) corrected[item.correctsId] = true;

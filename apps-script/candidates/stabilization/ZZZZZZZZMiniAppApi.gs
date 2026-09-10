@@ -148,33 +148,6 @@ function validateDmsMiniAppInitData_(initData, now) {
   if (!user || user.id === undefined || user.id === null) {
     return {ok: false, error: 'invalid_user'};
   }
-  const waiting = queue.items.map(function(item) {
-    return {
-      queueId: item.queueId,
-      start: dmsMiniAppDateValue_(item.start),
-      end: dmsMiniAppDateValue_(item.end),
-      time: item.start instanceof Date
-        ? Utilities.formatDate(item.start, timeZone, 'HH:mm')
-        : '',
-      endTime: item.end instanceof Date
-        ? Utilities.formatDate(item.end, timeZone, 'HH:mm')
-        : '',
-      client: item.client,
-      blockId: item.blockId,
-      matching: item.matching,
-      decision: item.decision,
-      status: item.status,
-      calendarTitle: item.calendarTitle,
-      needsRegistration: item.needsRegistration,
-      processed: item.processed
-    };
-  });
-  const dayRevision = hashTelegramConfirmationValue_(canonicalTelegramConfirmationJson_({
-    dateKey: queue.dateKey,
-    waiting: waiting,
-    clients: clients
-  }));
-
   return {
     ok: true,
     user: user,
@@ -243,6 +216,33 @@ function getDmsMiniAppBootstrap_() {
       singlePrice: Number(singlePrice) || 0
     });
   });
+
+  const waiting = queue.items.map(function(item) {
+    return {
+      queueId: item.queueId,
+      start: dmsMiniAppDateValue_(item.start),
+      end: dmsMiniAppDateValue_(item.end),
+      time: item.start instanceof Date
+        ? Utilities.formatDate(item.start, timeZone, 'HH:mm')
+        : '',
+      endTime: item.end instanceof Date
+        ? Utilities.formatDate(item.end, timeZone, 'HH:mm')
+        : '',
+      client: item.client,
+      blockId: item.blockId,
+      matching: item.matching,
+      decision: item.decision,
+      status: item.status,
+      calendarTitle: item.calendarTitle,
+      needsRegistration: item.needsRegistration,
+      processed: item.processed
+    };
+  });
+  const dayRevision = hashTelegramConfirmationValue_(canonicalTelegramConfirmationJson_({
+    dateKey: queue.dateKey,
+    waiting: waiting,
+    clients: clients
+  }));
 
   return {
     generatedAt: now.toISOString(),
@@ -399,6 +399,7 @@ function getDmsMiniAppHealth_() {
     backup: operational.backup,
     durableOperations: operational.durableOperations,
     metrics: operational.metrics,
+    measurements: operational.measurements,
     latestErrorClasses: operational.latestErrorClasses
   };
 }

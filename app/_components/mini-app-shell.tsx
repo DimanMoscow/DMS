@@ -99,6 +99,7 @@ type SystemHealth = {
   reconciliation?: { state: string; issueCount?: number };
   backup?: { state: string };
   metrics?: { state: string; contentionAnomalies: number };
+  measurements?: { state: string; issueCount: number; affectedClients: number };
   latestErrorClasses?: Record<string, number>;
 };
 type CalendarOnboardingMode = "new" | "link" | "ignore";
@@ -1079,6 +1080,9 @@ function SystemView({ service, health, appsScriptRuntime, onRefresh }: {
         : "—"} />
       <Detail label="Lock contention" value={health?.metrics
         ? String(health.metrics.contentionAnomalies)
+        : "—"} />
+      <Detail label="Целостность замеров" value={health?.measurements
+        ? `${health.measurements.state} · ${health.measurements.issueCount}`
         : "—"} />
       <Detail label="Очередь" value={health ? `${health.queueWaiting} ожидает · ${health.queueErrors} ошибок` : "—"} />
       <Detail label="Регистрация" value={health ? String(health.queueRegistrations) : "—"} />
