@@ -374,22 +374,32 @@ function getDmsMiniAppReport_() {
 }
 
 function getDmsMiniAppHealth_() {
-  const report = runDmsReadOnlySelfTests();
-  const health = getDmsSystemHealth();
+  const operational = getDmsOperationalHealth_();
+  const checks = operational.checks || [];
+  const health = operational.system;
   return {
-    ok: report.ok,
-    checkedAt: dmsMiniAppDateValue_(report.checkedAt),
-    durationMs: report.durationMs,
-    passed: report.checks.filter(function(check) { return check.ok; }).length,
-    total: report.checks.length,
-    failures: report.checks.filter(function(check) { return !check.ok; }).map(function(check) {
+    ok: operational.state === 'healthy',
+    state: operational.state,
+    checkedAt: dmsMiniAppDateValue_(operational.checkedAt),
+    durationMs: operational.durationMs,
+    passed: checks.filter(function(check) { return check.ok; }).length,
+    total: checks.length,
+    failures: checks.filter(function(check) { return !check.ok; }).map(function(check) {
       return {name: check.name, details: String(check.details || '').slice(0, 240)};
     }),
     queueWaiting: health.queueWaiting,
     queueErrors: health.queueErrors,
     queueRegistrations: health.queueRegistrations,
     exhaustedOpenBlocks: health.exhaustedOpenBlocks.length,
-    triggerCount: health.triggers.length
+    triggerCount: health.triggers.length,
+    runtime: operational.runtime,
+    calendarIngestion: operational.calendarIngestion,
+    reconciliation: operational.reconciliation,
+    scheduledAutomation: operational.scheduledAutomation,
+    backup: operational.backup,
+    durableOperations: operational.durableOperations,
+    metrics: operational.metrics,
+    latestErrorClasses: operational.latestErrorClasses
   };
 }
 
