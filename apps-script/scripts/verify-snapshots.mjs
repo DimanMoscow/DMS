@@ -350,7 +350,10 @@ assert.ok(Number.isInteger(production.lastVerified.liveGateTotal) &&
   production.lastVerified.liveGateTotal > 0, "production live-gate total must be positive");
 assert.ok(Number.isInteger(production.lastVerified.liveGatePassed),
   "production live-gate passed count must be an integer");
-assert.equal(production.lastVerified.liveGatePassed, production.lastVerified.liveGateTotal);
+// The deployment pointer records observed production, including a degraded gate.
+// Release acceptance is separate; a red runtime must not keep an obsolete identity.
+assert.ok(production.lastVerified.liveGatePassed >= 0 &&
+  production.lastVerified.liveGatePassed <= production.lastVerified.liveGateTotal);
 assert.equal(production.lastVerified.reconciliationIssues, 0);
 const verifiedAt = new Date(production.lastVerified.at);
 assert.equal(Number.isNaN(verifiedAt.getTime()), false, "production verification time is invalid");

@@ -72,7 +72,7 @@ export function loadBundle(candidate = 'v51', overrides = {}, {releaseReady = tr
   if ((/^v(?:5[1-9]|[6-9]\d+)$/.test(candidate) || candidate === 'stabilization') && releaseReady) {
     context.PropertiesService.getScriptProperties().setProperty(
       'DMS_P1_RELEASE_READY', candidate === 'stabilization'
-        ? 'system-stabilization-2026-09' : candidate
+        ? 'system-stabilization-2026-09' : candidate === 'v55' ? 'system-stabilization-2026-09' : candidate
     );
   }
   const root = `apps-script/candidates/${candidate}`;

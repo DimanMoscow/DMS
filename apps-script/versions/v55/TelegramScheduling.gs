@@ -1,0 +1,3 @@
+function myFunctionTelegramScheduling_() {
+  
+}

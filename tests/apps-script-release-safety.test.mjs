@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import {loadBundle} from './helpers/apps-script-bundle.mjs';
 import {memoryWorkbook} from './helpers/memory-workbook.mjs';
@@ -21,9 +22,10 @@ test('v51 fresh HEAD denies entry points and domain writes without deployment ac
 });
 
 test('current production identity fingerprints all five safety modules and rejects missing handlers', () => {
-  const f = loadBundle('v54'); const identity = JSON.parse(JSON.stringify(f.context.getDmsRuntimeIdentity_()));
+  const production = JSON.parse(fs.readFileSync('apps-script/production.json'));
+  const f = loadBundle(production.candidate); const identity = JSON.parse(JSON.stringify(f.context.getDmsRuntimeIdentity_()));
   assert.equal(P1_RUNTIME_MODULES.length, 5);
-  const hashes = runtimeSourceHashes('apps-script/candidates/v54');
+  const hashes = runtimeSourceHashes('apps-script/candidates/' + production.candidate);
   for (const [key, hash] of Object.entries(hashes)) assert.equal(identity[key], hash);
   assert.equal(matchesAppsScriptRuntime(identity), true);
   for (const name of ['processTelegramSecureCallback_', 'getDmsMutationLock_',
@@ -34,7 +36,7 @@ test('current production identity fingerprints all five safety modules and rejec
   }
 });
 
-test('production verifier accepts exact v54 and rejects older or mixed fingerprints', () => {
+test('production verifier accepts its exact pin and rejects older or mixed fingerprints', () => {
   const markers = {ok: true, clientPortalHandlerLoaded: true, telegramConfirmationsHandlerLoaded: true};
   assert.equal(matchesAppsScriptRuntime({...EXPECTED_APPS_SCRIPT_RUNTIME, ...markers}), true);
   const legacy = {...EXPECTED_APPS_SCRIPT_RUNTIME, ...runtimeSourceHashes('apps-script/candidates/v50')};
