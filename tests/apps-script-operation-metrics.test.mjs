@@ -68,6 +68,8 @@ test('operation metrics persist only bounded allow-listed fields', () => {
     outcome: 'success',
     totalMs: 51,
     lockWaitMs: 4,
+    lockHeldMs: 0,
+    flushMs: 0,
     sheetsReadMs: 17,
     sheetsWriteMs: 0,
     calendarMs: 31,

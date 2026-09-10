@@ -18,7 +18,9 @@ var DMS_TELEGRAM_SECURE_DELIVERY = false;
 
 function telegramSendMessage_(chatId, text, replyMarkup) {
   try {
-    return telegramSendMessageV49_(chatId, text, replyMarkup);
+    const sent = telegramSendMessageV49_(chatId, text, replyMarkup);
+    if (sent && sent.message_id) bindDmsTelegramDayView_(replyMarkup, chatId, sent.message_id);
+    return sent;
   } catch (error) {
     if (DMS_TELEGRAM_SECURE_DELIVERY) return null;
     throw error;
@@ -27,7 +29,9 @@ function telegramSendMessage_(chatId, text, replyMarkup) {
 
 function telegramEditMessage_(chatId, messageId, text, replyMarkup) {
   try {
-    return telegramEditMessageV49_(chatId, messageId, text, replyMarkup);
+    const sent = telegramEditMessageV49_(chatId, messageId, text, replyMarkup);
+    if (sent) bindDmsTelegramDayView_(replyMarkup, chatId, messageId);
+    return sent;
   } catch (error) {
     if (DMS_TELEGRAM_SECURE_DELIVERY) return null;
     throw error;
@@ -452,8 +456,6 @@ function performTelegramQueueDecisionSecure_(data, userId, chatId, messageId, op
     source: 'Telegram', dateScope: 'yesterday_today'
   });
   markTelegramQueueOperation_(result.queueId, operationId);
-  if (parts[2] === 'move') startTelegramMove_(userId, chatId, messageId, result);
-  else refreshTelegramQueueMessage_(chatId, messageId, result.date);
   return result;
 }
 
@@ -468,7 +470,6 @@ function markTelegramQueueOperation_(queueId, operationId) {
 function performTelegramDayConfirmationSecure_(dateKey, chatId, messageId, operationId) {
   // The accepted queue is immutable for this execution. A sync here could add
   // trainings that were never included in the confirmed operation.
-  const date = parseTelegramDateKey_(dateKey);
   const acceptedRows = DMS_CONFIRMED_EXECUTION.payload.acceptedRows || getDmsDayAcceptanceRows_(dateKey);
   const result = executeDmsDayConfirmation_({
     dateKey: dateKey, source: 'Telegram', acceptedRows: acceptedRows
@@ -476,6 +477,25 @@ function performTelegramDayConfirmationSecure_(dateKey, chatId, messageId, opera
   const incomplete = result.code === 'day_partial' || result.status === 'failed';
   telegramAuditAction_('confirm_day', dateKey,
     (incomplete ? 'День обработан частично' : 'День подтверждён') + ' через Telegram [' + operationId + ']', null);
+  return result;
+}
+
+// Presentation happens only after the durable business result and lock release.
+// A Telegram network failure must not make a completed mutation ambiguous.
+function presentDmsTelegramDayResult_(context, result) {
+  const chatId = context.chatId; const messageId = context.messageId;
+  if (result.status === 'manual_review') return;
+  if (context.state.action === 'queue_decision') {
+    if (result.status === 'failed') return;
+    const item = Object.assign({}, result, {
+      date: new Date(result.date), start: new Date(result.start), end: new Date(result.end)
+    });
+    if (result.decision === 'move') startTelegramMove_(context.userId, chatId, messageId, item);
+    else refreshTelegramQueueMessage_(chatId, messageId, item.date);
+    return;
+  }
+  if (context.state.action !== 'confirm_day') return;
+  const date = parseTelegramDateKey_(context.payload.legacyData.substring(3));
   if (result.status === 'failed') {
     telegramEditMessage_(chatId, messageId,
       '<b>День не подтверждён</b>\nСостояние изменилось или не все события готовы. Обнови экран.', null);
@@ -488,7 +508,6 @@ function performTelegramDayConfirmationSecure_(dateKey, chatId, messageId, opera
         errors: []
       }) + buildTelegramWarningsText_(), null);
   }
-  return result;
 }
 
 function recoverTelegramSecureMutation_(context) {
@@ -610,6 +629,87 @@ function describeTelegramLegacyMutation_(data) {
   return null;
 }
 
+function sealDmsTelegramDayView_(dateKey, markup) {
+  const id = Utilities.getUuid().replace(/-/g, '').substring(0, 24);
+  const view = {id: id, dateKey: dateKey, expiresAt: Date.now() + 900000,
+    rows: getDmsDayAcceptanceRows_(dateKey), actions: {}, chatId: '', messageId: ''};
+  markup.inline_keyboard.forEach(function(buttons) { buttons.forEach(function(button) {
+    const match = String(button.callback_data || '').match(/^qd:([^:]+):(done|charge|free|move)$/);
+    let accepted = null;
+    if (match) {
+      const index = view.rows.findIndex(function(row) { return row.queueId === match[1]; });
+      if (index < 0) throw new Error('Day changed during rendering.');
+      accepted = {index: index, action: match[2]};
+    } else if (button.callback_data === 'qp:' + dateKey) {
+      accepted = {index: 'day', action: 'confirm'};
+    }
+    if (accepted) {
+      const nonce = Utilities.getUuid().replace(/-/g, '').substring(0, 24);
+      view.actions[nonce] = accepted;
+      // The callback carries no editable row or action. Its random capability
+      // resolves only the exact button rendered in this bound view.
+      button.callback_data = 'qv:' + id + ':' + nonce;
+    }
+  }); });
+  const json = canonicalTelegramConfirmationJson_(view);
+  if (Utilities.newBlob(json).getBytes().length > 90000) throw new Error('Day view exceeds safe size.');
+  CacheService.getScriptCache().put('DMS_DAY_VIEW_' + id, json, 900);
+  return markup;
+}
+
+function bindDmsTelegramDayView_(markup, chatId, messageId) {
+  const ids = {};
+  (markup && markup.inline_keyboard || []).forEach(function(buttons) { buttons.forEach(function(button) {
+    const match = String(button.callback_data || '').match(/^qv:([a-f0-9]{24}):/);
+    if (match) ids[match[1]] = true;
+  }); });
+  Object.keys(ids).forEach(function(id) {
+    const cache = CacheService.getScriptCache(); const raw = cache.get('DMS_DAY_VIEW_' + id);
+    if (!raw) return;
+    const view = JSON.parse(raw);
+    if (view.chatId && (view.chatId !== String(chatId) || view.messageId !== String(messageId))) {
+      throw new Error('Day view is already bound.');
+    }
+    view.chatId = String(chatId); view.messageId = String(messageId);
+    cache.put('DMS_DAY_VIEW_' + id, canonicalTelegramConfirmationJson_(view), 900);
+  });
+}
+
+function acceptDmsTelegramDayView_(query) {
+  const parsed = withTelegramDocumentLock_(function() {
+    const match = String(query.data || '').match(/^qv:([a-f0-9]{24}):([a-f0-9]{24})$/);
+    if (!match) throw new Error('Invalid day action.');
+    const raw = CacheService.getScriptCache().get('DMS_DAY_VIEW_' + match[1]);
+    if (!raw) throw new Error('Day view expired.');
+    const view = JSON.parse(raw); const message = query.message || {};
+    const sourceMs = Number(message.edit_date || message.date) * 1000;
+    if (!isTelegramAdmin_(query.from && query.from.id, message.chat && message.chat.id) ||
+        view.chatId !== String(message.chat && message.chat.id) ||
+        view.messageId !== String(message.message_id) || Date.now() >= view.expiresAt ||
+        !isFinite(sourceMs) || sourceMs <= 0 || sourceMs > Date.now() + 300000 || Date.now() - sourceMs >= 900000) {
+      throw new Error('Day view binding or expiry differs.');
+    }
+    const accepted = view.actions && view.actions[match[2]];
+    if (!accepted) throw new Error('Unknown day action.');
+    const day = accepted.index === 'day'; const row = view.rows[Number(accepted.index)];
+    const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone() || 'Europe/Moscow';
+    if ([makeDateKey_(new Date(), tz), makeDateKey_(new Date(Date.now() - 86400000), tz)].indexOf(view.dateKey) === -1) {
+      throw new Error('Day view expired.');
+    }
+    if (day ? accepted.action !== 'confirm' : !row || ['done', 'charge', 'free', 'move'].indexOf(accepted.action) === -1) throw new Error('Invalid day action.');
+    const payload = {legacyData: day ? 'qp:' + view.dateKey : 'qd:' + row.queueId + ':' + accepted.action,
+      sourceMessageId: view.messageId,
+      state: {secureFlowId: String(query.data)},
+      semanticAcceptance: true};
+    if (day) payload.acceptedRows = view.rows;
+    else payload.expectedQueueRows = [row];
+    const ticket = createTelegramConfirmation_(query.from.id, view.chatId, view.messageId,
+      day ? 'confirm_day' : 'queue_decision', payload);
+    return parseTelegramConfirmationCallback_(ticket.callbackData);
+  });
+  return processTelegramSecureCallback_(query, parsed);
+}
+
 function upgradeTelegramLegacyMutation_(query, descriptor, data) {
   return withTelegramDocumentLock_(function() {
   const message = query.message || {};
@@ -665,6 +765,15 @@ function handleTelegramCallback_(query) {
     return;
   }
   const data = String(query.data || '');
+  if (data.indexOf('qv:') === 0) {
+    try { acceptDmsTelegramDayView_(query); }
+    catch (error) { telegramAnswerCallback_(query.id, 'Кнопка устарела или состояние изменилось: открой день заново.', true); }
+    return;
+  }
+  if (/^(qd|qp):/.test(data)) {
+    telegramAnswerCallback_(query.id, 'Старая кнопка: открой Сегодня или Вчера заново.', true);
+    return;
+  }
   if (/^(cf[12]|cx[12]):/.test(data)) {
     try {
       const parsed = parseTelegramConfirmationCallback_(data);

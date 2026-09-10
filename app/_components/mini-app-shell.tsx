@@ -55,6 +55,7 @@ type WaitingTraining = {
   queueId: string; time: string; endTime: string; client: string; blockId: string;
   matching: string; decision: string; status: string; processed: boolean;
   calendarTitle: string; needsRegistration: boolean;
+  semanticRevision: string;
 };
 type Bootstrap = {
   generatedAt: string;
@@ -123,14 +124,15 @@ type DecisionCode = "done" | "free" | "charge";
 type Confirmation =
   | { kind: "decision"; item: WaitingTraining; decision: DecisionCode; operationId: string }
   | { kind: "day"; count: number; revision: string;
-      acceptedRows: { queueId: string; decision: string; status: string }[]; operationId: string };
+      acceptedRows: { queueId: string; decision: string; status: string; semanticRevision: string }[]; operationId: string };
 type MutationResponse = {
   bootstrap: Bootstrap;
   mutation?: { notice?: string };
 };
 type ConfirmDayResponse = {
   bootstrap: Bootstrap;
-  confirmation?: { changed: boolean; added: number; skipped: number };
+  confirmation?: { changed: boolean; added: number; skipped: number;
+    conflictQueueIds?: string[]; pendingQueueIds?: string[] };
 };
 
 const reportLabels: Record<string, string> = {
@@ -316,9 +318,9 @@ export function MiniAppShell() {
     }
   }, [initData]);
 
-  const confirmAction = useCallback(async () => {
-    if (!initData || !confirmation || busyKey) return;
-    const activeConfirmation = confirmation;
+  const confirmAction = useCallback(async (prepared?: Confirmation) => {
+    const activeConfirmation = prepared || confirmation;
+    if (!initData || !activeConfirmation || busyKey) return;
     const key = activeConfirmation.kind === "day" ? "day" : activeConfirmation.item.queueId;
     const action = activeConfirmation.kind === "day" ? "confirm_day" : "set_queue_decision";
     const payload = activeConfirmation.kind === "day"
@@ -326,6 +328,7 @@ export function MiniAppShell() {
           acceptedRows: activeConfirmation.acceptedRows, operationId: activeConfirmation.operationId }
       : { queueId: activeConfirmation.item.queueId, decision: activeConfirmation.decision,
           expectedDecision: activeConfirmation.item.decision,
+          semanticRevision: activeConfirmation.item.semanticRevision,
           expectedStatus: activeConfirmation.item.status, operationId: activeConfirmation.operationId };
 
     setBusyKey(key);
@@ -336,8 +339,11 @@ export function MiniAppShell() {
       if (activeConfirmation.kind === "day") {
         const result = await requestDms<ConfirmDayResponse>(initData, action, payload);
         setData(result.bootstrap);
+        const remaining = (result.confirmation?.conflictQueueIds?.length || 0) +
+          (result.confirmation?.pendingQueueIds?.length || 0);
         setNotice(result.confirmation?.changed
-          ? `День подтверждён: записано ${result.confirmation.added}, без списания ${result.confirmation.skipped}.`
+          ? `Записано ${result.confirmation.added}, без списания ${result.confirmation.skipped}.` +
+            (remaining ? ` Осталось проверить: ${remaining}. Остальные решения сохранены.` : " День подтверждён.")
           : "День уже был обработан — повторных списаний нет.");
       } else {
         const result = await requestDms<MutationResponse>(initData, action, payload);
@@ -432,11 +438,12 @@ export function MiniAppShell() {
           kind: "decision", item, decision, operationId: newOperationId(),
         })}
         onOnboard={(item, mode) => setOnboarding({ item, mode })}
-        onConfirmDay={() => setConfirmation({
+        onConfirmDay={() => void confirmAction({
           kind: "day",
           count: data.today.waiting.filter((item) => !item.processed).length,
           revision: data.today.revision,
           acceptedRows: data.today.waiting.filter((item) => !item.processed).map((item) => ({
+            semanticRevision: item.semanticRevision,
             queueId: item.queueId, decision: item.decision, status: item.status,
           })),
           operationId: newOperationId(),
@@ -458,7 +465,7 @@ export function MiniAppShell() {
         <NavButton label="Отчёт" icon="▥" active={view === "report"} disabled={!data} onClick={() => navigate("report")} />
       </nav>
       {confirmation && <ConfirmationSheet confirmation={confirmation} busy={Boolean(busyKey)}
-        onCancel={() => setConfirmation(null)} onConfirm={confirmAction} />}
+        onCancel={() => setConfirmation(null)} onConfirm={() => void confirmAction()} />}
       {onboarding && data && <CalendarOnboardingSheet
         state={onboarding}
         clients={data.clients}

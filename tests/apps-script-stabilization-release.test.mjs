@@ -7,11 +7,11 @@ import {
   verifyStabilizationReleaseInventory,
 } from '../apps-script/scripts/release-stabilization.mjs';
 
-test('stabilization HEAD rejects the old v54 readiness marker', () => {
+test('stabilization HEAD rejects the old v55 readiness marker', () => {
   const f = loadBundle('stabilization', {}, {releaseReady: false});
-  f.properties.set('DMS_P1_RELEASE_READY', 'v54');
-  assert.throws(() => f.context.assertDmsP1ReleaseReady_(), /maintenance/);
   f.properties.set('DMS_P1_RELEASE_READY', 'system-stabilization-2026-09');
+  assert.throws(() => f.context.assertDmsP1ReleaseReady_(), /maintenance/);
+  f.properties.set('DMS_P1_RELEASE_READY', 'emergency-semantic-recovery-2026-09');
   assert.doesNotThrow(() => f.context.assertDmsP1ReleaseReady_());
 });
 
@@ -19,13 +19,13 @@ test('stabilization runtime identity fingerprints its exact candidate modules', 
   const f = loadBundle('stabilization');
   const identity = JSON.parse(JSON.stringify(f.context.getDmsRuntimeIdentity_()));
   const hashes = runtimeSourceHashes('apps-script/candidates/stabilization');
-  assert.equal(identity.release, 'system-stabilization');
+  assert.equal(identity.release, 'emergency-semantic-recovery');
   for (const [key, value] of Object.entries(hashes)) assert.equal(identity[key], value);
 });
 
-test('stabilization drain converts only the active v54 marker to a closed state', () => {
+test('stabilization drain converts only the active v55 marker to a closed state', () => {
   const f = loadBundle('stabilization', {}, {releaseReady: false});
-  f.properties.set('DMS_P1_RELEASE_READY', 'v54');
+  f.properties.set('DMS_P1_RELEASE_READY', 'system-stabilization-2026-09');
   f.context.startDmsP1ExecutionDrain();
   assert.equal(f.properties.has('DMS_P1_RELEASE_READY'), false);
   assert.match(f.properties.get('DMS_P1_DRAIN_STARTED_AT'), /^\d{4}-\d{2}-\d{2}T/);
@@ -40,12 +40,13 @@ test('stabilization activation writes only the new readiness marker after its ga
   f.properties.set('DMS_P1_DRAIN_STARTED_AT', '2020-01-01T00:00:00Z');
   f.context.getTelegramOperationLedger_ = () => ({});
   f.context.getDmsFinancialHealth_ = () => ({ok: true});
+  f.context.getDmsDurableOperationHealth_ = () => ({pending:0, stale:0, manualReview:0});
   f.context.getDmsScheduledAutomationHealth_ = () => ({
     configOk: true, settingsOk: true, freshnessOk: true,
   });
   f.context.inspectDmsP1ReleaseState = () => ({legacyStates: {malformed: 0}});
   f.context.activateDmsP1Release();
-  assert.equal(f.properties.get('DMS_P1_RELEASE_READY'), 'system-stabilization-2026-09');
+  assert.equal(f.properties.get('DMS_P1_RELEASE_READY'), 'emergency-semantic-recovery-2026-09');
 });
 
 test('release accepts the version number returned by Google without assuming v55', async () => {
@@ -87,6 +88,8 @@ test('release inventory requires a fresh, drained, owner-bound paused state', ()
     mutationReady: false, scriptLockAvailable: true, documentLockAvailable: true,
     scheduledAutomation: {configOk: true, settingsOk: true, ownerVerified: true, handlers},
     legacyStates: {malformed: 0}, drainStartedAt: new Date(now - 421000).toISOString(),
+    durableOperations: {pending:0, stale:0, manualReview:0},
+    usage: {script:{failSafe:false},document:{failSafe:false}},
   };
   assert.equal(verifyStabilizationReleaseInventory(inventory, {now}), true);
   assert.throws(() => verifyStabilizationReleaseInventory({...inventory, mutationReady: true}, {now}),

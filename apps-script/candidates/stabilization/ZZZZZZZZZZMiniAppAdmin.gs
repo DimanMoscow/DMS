@@ -33,8 +33,9 @@ function setDmsMiniAppQueueDecisionMeasured_(payload, actorId, metrics) {
   const requestId = String(payload && payload.operationId || '').toLowerCase();
   const expectedDecision = String(payload && payload.expectedDecision || '');
   const expectedStatus = String(payload && payload.expectedStatus || '');
+  const semanticRevision = String(payload && payload.semanticRevision || '');
   if (!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(requestId) ||
-      expectedDecision.length > 80 || expectedStatus.length > 80) {
+      expectedDecision.length > 80 || expectedStatus.length > 80 || !/^[A-Za-z0-9_-]{43}$/.test(semanticRevision)) {
     throwDmsMiniAppError_('invalid_operation', 400, 'Некорректный идентификатор операции.');
   }
 
@@ -45,11 +46,12 @@ function setDmsMiniAppQueueDecisionMeasured_(payload, actorId, metrics) {
     throwDmsMiniAppError_('operation_busy', 409, 'Другое действие ещё выполняется.');
   }
   addDmsOperationDuration_(metrics, 'lockWaitMs', Date.now() - lockStartedAt);
-
+  const lockAcquiredAt = Date.now();
+  let mutation;
   try {
     const accepted = {queueId: queueId, decision: decisionCode,
-      expectedDecision: expectedDecision, expectedStatus: expectedStatus};
-    const mutation = runDmsDurableOperation_({
+      expectedDecision: expectedDecision, expectedStatus: expectedStatus, semanticRevision: semanticRevision};
+    mutation = runDmsDurableOperation_({
       action: 'queue_decision', actorId: actorId, requestId: requestId, payload: accepted
     }, {
       execute: function(command, operationId) {
@@ -57,7 +59,7 @@ function setDmsMiniAppQueueDecisionMeasured_(payload, actorId, metrics) {
           const changed = measureDmsOperationPhase_(metrics, 'sheetsWriteMs', function() {
             return setTelegramQueueDecision_(command.queueId, command.decision, {
               source: 'MiniApp', dateScope: 'today',
-              expected: {decision: command.expectedDecision, status: command.expectedStatus}
+              expected: {decision: command.expectedDecision, status: command.expectedStatus, semanticRevision: command.semanticRevision}
             });
           });
           if (changed.changed) addDmsOperationCount_(metrics, 'rowsWritten', 1);
@@ -78,13 +80,11 @@ function setDmsMiniAppQueueDecisionMeasured_(payload, actorId, metrics) {
       throwDmsMiniAppError_(mutation.code, 409, 'Операция отклонена или требует сверки.');
     }
 
-    return {
-      bootstrap: getDmsMiniAppBootstrap_(),
-      mutation: mutation
-    };
   } finally {
     lock.releaseLock();
+    addDmsOperationDuration_(metrics, 'lockHeldMs', Date.now() - lockAcquiredAt);
   }
+  return {bootstrap: getDmsMiniAppBootstrap_(), mutation: mutation};
 }
 
 function confirmDmsMiniAppDay_(payload, actorId) {
@@ -122,19 +122,19 @@ function confirmDmsMiniAppDayMeasured_(payload, actorId, metrics) {
     throwDmsMiniAppError_('operation_busy', 409, 'Другое действие ещё выполняется.');
   }
   addDmsOperationDuration_(metrics, 'lockWaitMs', Date.now() - lockStartedAt);
-
+  const lockAcquiredAt = Date.now();
+  let result;
   try {
     const acceptedRevision = String(payload && payload.revision || '');
     const accepted = {dateKey: dateKey, revision: acceptedRevision,
       acceptedRows: normalizeDmsDayAcceptanceRows_(payload && payload.acceptedRows)};
-    const result = runDmsDurableOperation_({
+    result = runDmsDurableOperation_({
       action: 'confirm_day', actorId: actorId, requestId: requestId, payload: accepted
     }, {execute: function(command, operationId) {
-      const current = getDmsMiniAppBootstrap_();
-      if (!/^[a-f0-9]{64}$/.test(command.revision) || current.today.revision !== command.revision) {
+      if (!/^[A-Za-z0-9_-]{43}$/.test(command.revision)) {
         return {status: 'failed', code: 'underlying_state_changed', ref: command.dateKey, changed: false};
       }
-      const calendarPayload = {legacyData: 'qp:' + command.dateKey, state: {}};
+      const calendarPayload = {legacyData: 'qp:' + command.dateKey, state: {}, acceptedRows: command.acceptedRows};
       return executeDmsDayConfirmation_({
         dateKey: command.dateKey, source: 'MiniApp', acceptedRows: command.acceptedRows,
         calendarTargets: getDmsConfirmationCalendarTargets_(calendarPayload), operationId: operationId
@@ -148,13 +148,11 @@ function confirmDmsMiniAppDayMeasured_(payload, actorId, metrics) {
       throwDmsMiniAppError_('operation_manual_review', 409, 'Операция требует ручной сверки.');
     }
 
-    return {
-      bootstrap: getDmsMiniAppBootstrap_(),
-      confirmation: result
-    };
   } finally {
     lock.releaseLock();
+    addDmsOperationDuration_(metrics, 'lockHeldMs', Date.now() - lockAcquiredAt);
   }
+  return {bootstrap: getDmsMiniAppBootstrap_(), confirmation: result};
 }
 
 function throwDmsMiniAppError_(code, status, message) {

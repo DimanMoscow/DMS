@@ -3,6 +3,7 @@
 export function memoryWorkbook(initial = {}) {
   const sheets = new Map();
   const writes = [];
+  const reads = [];
   const hooks = {before: null, after: null};
   function mutate(event, fn) {
     hooks.before?.(event);
@@ -47,8 +48,10 @@ export function memoryWorkbook(initial = {}) {
         const range = {
           getRow: () => row, getColumn: () => col, getNumRows: () => height,
           getNumColumns: () => width, getSheet: () => sheet,
-          getValues: () => Array.from({length: height}, (_, i) =>
-            Array.from({length: width}, (_, j) => cell(row + i, col + j))),
+          getValues: () => {
+            reads.push({sheet: name, row, col, height, width});
+            return Array.from({length: height}, (_, i) => Array.from({length: width}, (_, j) => cell(row + i, col + j)));
+          },
           getDisplayValues: () => range.getValues().map(r => r.map(v =>
             v === true ? 'TRUE' : v === false ? 'FALSE' : String(v ?? ''))),
           getValue: () => cell(row, col), getDisplayValue: () => range.getDisplayValues()[0][0],
@@ -97,5 +100,5 @@ export function memoryWorkbook(initial = {}) {
       return rule;
     },
     flush: () => {}, CopyPasteType: {PASTE_FORMAT: 'format', PASTE_DATA_VALIDATION: 'validation'}};
-  return {workbook, sheets, service, writes, hooks};
+  return {workbook, sheets, service, writes, reads, hooks};
 }

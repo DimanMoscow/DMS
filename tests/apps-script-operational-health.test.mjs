@@ -65,7 +65,7 @@ test('unified operational health preserves semantic component states', () => {
   assert.equal(health.reconciliation.state, 'awaiting_sync');
   assert.equal(health.scheduledAutomation.state, 'healthy');
   assert.deepEqual(health.scheduledAutomation.handlers.map(item => item.state),
-    ['not_due_yet', 'healthy']);
+    ['within_window', 'healthy']);
   assert.equal(health.backup.state, 'not_due_yet');
   assert.equal(health.runtime.release, 'fixture');
   assert.deepEqual(JSON.parse(JSON.stringify(health.latestErrorClasses)), {contention: 1});

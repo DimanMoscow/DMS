@@ -51,7 +51,7 @@ test("offline plan accepts the named stabilization candidate over production v55
   assert.equal(plan.candidate, "stabilization");
   assert.equal(plan.baseline, "v55");
   assert.equal(plan.productionNumberedVersion, 55);
-  assert.equal(Object.keys(plan.files).length, 23);
+  assert.equal(Object.keys(plan.files).length, 25);
 });
 
 test("private-file policy rejects in-repository names beginning with two dots", () => {
