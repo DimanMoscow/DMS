@@ -29,7 +29,7 @@
           "repositorySourceSha256": "343f02a12e80a6b440315bda34f114ba324efc6eb4db8e794ded2166c0567507",
           "redactions": []
         },
-        "Код.gs": {
+        "\u041a\u043e\u0434.gs": {
           "type": "SERVER_JS",
           "originalSourceSha256": "558eb4251179ef11c18e8d9c9c454e2a11231ea6ae128bf782cfc46eb79507fd",
           "repositorySourceSha256": "558eb4251179ef11c18e8d9c9c454e2a11231ea6ae128bf782cfc46eb79507fd",
@@ -129,7 +129,7 @@
           "repositorySourceSha256": "343f02a12e80a6b440315bda34f114ba324efc6eb4db8e794ded2166c0567507",
           "redactions": []
         },
-        "Код.gs": {
+        "\u041a\u043e\u0434.gs": {
           "type": "SERVER_JS",
           "originalSourceSha256": "558eb4251179ef11c18e8d9c9c454e2a11231ea6ae128bf782cfc46eb79507fd",
           "repositorySourceSha256": "558eb4251179ef11c18e8d9c9c454e2a11231ea6ae128bf782cfc46eb79507fd",
@@ -346,7 +346,7 @@
       "expectedChangedFiles": [
         "TelegramBot.gs",
         "ZZZZZZZRuntime.gs",
-        "Код.gs"
+        "\u041a\u043e\u0434.gs"
       ],
       "liveVerification": {
         "method": "Apps Script Editor numbered source, production deployment metadata, 17-check live gate, and reconciliation",
@@ -394,7 +394,7 @@
         "ZZZZZZZZZZZZZZUndoSafety.gs",
         "ZZZZZZZZZZZZZZZFinancialSafety.gs",
         "ZZZZZZZZZZZZZZZZReleaseSafety.gs",
-        "Код.gs"
+        "\u041a\u043e\u0434.gs"
       ],
       "files": {
         "appsscript.json": {
@@ -521,7 +521,7 @@
           "repositorySourceSha256": "8d81851e0cf7f4ce1df2687d373f6c86399657cc2beccd8f1cdeb4bf5edff6ba",
           "redactions": []
         },
-        "Код.gs": {
+        "\u041a\u043e\u0434.gs": {
           "type": "SERVER_JS",
           "originalSourceSha256": "69982812c6d73718a45020ce361d27bba679b6624100a7f33140e258f4157c89",
           "repositorySourceSha256": "69982812c6d73718a45020ce361d27bba679b6624100a7f33140e258f4157c89",
@@ -589,6 +589,27 @@
         "verifiedAt": "2026-09-09T21:12:57.203Z",
         "result": "All 21 numbered v54 files match candidate; production mapping and runtime identity match. Live pending Calendar ingestion was classified awaiting_sync with no alarm or repair; the next natural sync cleared it, post-sync reconciliation was zero, the next natural watchdog cleared maintenance delay, and the final read-only gate passed 19/19."
       }
+    },
+    "v55": {
+      "baseVersion": "v54",
+      "fileCount": 23,
+      "sourceTreeSha256": "16a4d270960a649f1cae9f3170efb87ae73da6d1000a91e3ec37e23c4467040e",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZMiniAppAdmin.gs",
+        "ZZZZZZZZZZZClientPortal.gs",
+        "ZZZZZZZZZZZZTelegramConfirmations.gs",
+        "ZZZZZZZZZZZZZOperationSafety.gs",
+        "ZZZZZZZZZZZZZZZFinancialSafety.gs",
+        "ZZZZZZZZZZZZZZZZReleaseSafety.gs",
+        "ZZZZZZZZZZZZZZZZZOperationMetrics.gs",
+        "ZZZZZZZZZZZZZZZZZZDomainOperations.gs"
+      ],
+      "matchesCandidate": "v55"
     }
   },
   "candidates": {
@@ -680,7 +701,7 @@
       "expectedChangedFiles": [
         "TelegramBot.gs",
         "ZZZZZZZRuntime.gs",
-        "Код.gs"
+        "\u041a\u043e\u0434.gs"
       ]
     },
     "v50": {
@@ -713,7 +734,7 @@
         "ZZZZZZZZZZZZZZUndoSafety.gs",
         "ZZZZZZZZZZZZZZZFinancialSafety.gs",
         "ZZZZZZZZZZZZZZZZReleaseSafety.gs",
-        "Код.gs"
+        "\u041a\u043e\u0434.gs"
       ]
     },
     "v52": {
@@ -752,6 +773,26 @@
       ]
     },
     "stabilization": {
+      "baseVersion": "v54",
+      "fileCount": 23,
+      "sourceTreeSha256": "16a4d270960a649f1cae9f3170efb87ae73da6d1000a91e3ec37e23c4467040e",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZMiniAppAdmin.gs",
+        "ZZZZZZZZZZZClientPortal.gs",
+        "ZZZZZZZZZZZZTelegramConfirmations.gs",
+        "ZZZZZZZZZZZZZOperationSafety.gs",
+        "ZZZZZZZZZZZZZZZFinancialSafety.gs",
+        "ZZZZZZZZZZZZZZZZReleaseSafety.gs",
+        "ZZZZZZZZZZZZZZZZZOperationMetrics.gs",
+        "ZZZZZZZZZZZZZZZZZZDomainOperations.gs"
+      ]
+    },
+    "v55": {
       "baseVersion": "v54",
       "fileCount": 23,
       "sourceTreeSha256": "16a4d270960a649f1cae9f3170efb87ae73da6d1000a91e3ec37e23c4467040e",

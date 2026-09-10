@@ -6,6 +6,7 @@ import { verifyBackupManifest, withBackupProductionPointer } from "../apps-scrip
 
 const fixture = JSON.parse(fs.readFileSync("tests/fixtures/backups/valid.json", "utf8"));
 const production = JSON.parse(fs.readFileSync("apps-script/production.json", "utf8"));
+fixture.appsScriptVersion = production.snapshot;
 const now = new Date("2026-09-05T01:00:00Z");
 
 test("private Drive-copy recovery manifest covers the complete workbook contract", () => {

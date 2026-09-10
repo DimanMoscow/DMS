@@ -20,8 +20,8 @@ import {
 
 test("Apps Script offline plan is deterministic, redacted, and never deployable", () => {
   const input = {
-    candidate: "v54",
-    baseline: "v54",
+    candidate: "v55",
+    baseline: "v55",
     createdAt: "2026-09-05T00:00:00Z",
     sourceRevision: "1".repeat(40),
   };
@@ -35,22 +35,22 @@ test("Apps Script offline plan is deterministic, redacted, and never deployable"
   assert.equal(first.remoteStateVerified, false);
   assert.equal(first.releaseReady, false);
   assert.equal(first.deployable, false);
-  assert.equal(Object.keys(first.files).length, 21);
+  assert.equal(Object.keys(first.files).length, 23);
   assert.doesNotMatch(JSON.stringify(first), /script\.google\.com|\.vercel\.app|refresh_token/);
 });
 
-test("offline plan accepts the named stabilization candidate over production v54", () => {
+test("offline plan accepts the named stabilization candidate over production v55", () => {
   const input = {
     candidate: "stabilization",
-    baseline: "v54",
+    baseline: "v55",
     createdAt: "2026-09-10T00:00:00Z",
     sourceRevision: "2".repeat(40),
   };
   const plan = buildOfflineReleasePlan(input);
   assert.equal(verifyOfflineReleasePlan(plan, {sourceRevision: input.sourceRevision}), true);
   assert.equal(plan.candidate, "stabilization");
-  assert.equal(plan.baseline, "v54");
-  assert.equal(plan.productionNumberedVersion, 54);
+  assert.equal(plan.baseline, "v55");
+  assert.equal(plan.productionNumberedVersion, 55);
   assert.equal(Object.keys(plan.files).length, 23);
 });
 
@@ -108,7 +108,7 @@ test("Apps Script production identity rejects a well-formed wrong hash", () => {
   const identity = {
     ok: true,
     service: "dms-fitness-apps-script",
-    release: "calendar-ingestion-stabilization",
+    release: "system-stabilization",
     clientPortalHandlerLoaded: true,
     telegramConfirmationsHandlerLoaded: true,
     ...expected,

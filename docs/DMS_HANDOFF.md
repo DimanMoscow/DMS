@@ -1,42 +1,10 @@
 # DMS Fitness handoff
 
-Last verified: 2026-09-09 (Europe/Moscow).
+Recover from current `origin/main`, `AGENTS.md`, `docs/PROJECT_STATE.md`, manifests and live state. This is an **emergency recovery checkpoint**, not final acceptance.
 
-Use `origin/main`, `AGENTS.md`, current `docs/*`, and live service state. Old
-conversations and non-main branches are not authoritative.
-
-## Production checkpoint
-
-- Apps Script Production is immutable numbered `v54`; all 21 files, deployment mapping,
-  and runtime identity `calendar-ingestion-stabilization` matched the reviewed candidate.
-- The final live gate passed 19/19 at `2026-09-09T21:12:57.203Z`; reconciliation was zero after
-  the natural Calendar sync at `2026-09-09T20:21:19.759Z`.
-- A Calendar event arriving between successful sync windows was observed live as
-  `awaiting_sync`, with zero actionable drift, alarm, or repair. The next successful
-  sync cleared it. Watchdog decisions use durable sync generations and revision evidence,
-  so they do not depend on relative cron timing.
-- Five owner-bound triggers remain configured in `Europe/Moscow`. Natural backup,
-  morning, evening, and post-activation Calendar runs are healthy. Evening completed at
-  22:52:23; Calendar completed at `2026-09-09T20:21:19.759Z`. No trigger was reinstalled.
-- The release drain caused expected maintenance failures for the 22:10 watchdog and
-  22:21 Calendar run; activation finished at 22:22 and later natural runs recovered.
-- The repository gate passes 212/212 tests, dependency audit zero, production build,
-  exact snapshot verification, and migration checks.
-- The fresh private pre-v54 recovery copy and isolated restore verification cover all
-  16 required sheets. Private manifests and production identifiers remain outside Git.
-- The MiniApp pointer expects v54. The checkpoint merge's automatic Vercel Production
-  deployment is the only deployment for that commit and must match final `origin/main`.
-
-## Operating constraints
-
-- Do not manually repair Calendar or mutate business data merely to make a health gate
-  green. Let Calendar sync own ingestion and post-sync reconciliation.
-- Treat `awaiting_sync` as non-actionable. Alert reconciliation only for
-  `drift_after_successful_sync`; report missing/delayed/failed sync with its own class.
-- Preserve immutable versions v53/v54, confirmation and migration ledgers, and private
-  recovery evidence. Do not change product behavior, pricing, or access boundaries.
-- If a new security or race ambiguity appears, stop and escalate to Astra. Otherwise
-  start no new milestone from this checkpoint.
-
-Release procedure is in `docs/RELEASE_OPERATIONS.md`; recovery is in
-`docs/DISASTER_RECOVERY.md`.
+- Apps Script: verified immutable **v55**, `system-stabilization`, 23 files.
+- Last owner live gate: **22/23**, reconciliation **0**; morning execution really failed during September 10 release maintenance. Verify the next natural run; do not manually run scheduled jobs to make the gate green.
+- Five configured owner triggers; no unknown durable operations at inspection.
+- The previous v54 pointer is obsolete. This checkpoint fixes the pointer only.
+- Semantic confirm-day, one-click Telegram, scheduled telemetry and confirmed data corrections remain in recovery work. Private backup/restore and owner financial decisions remain outside Git. Do not repeat earlier recovery effects.
+- Preserve P1 security and all existing business/access constraints. No new functional stage until the full recovered production checkpoint is accepted.
