@@ -145,6 +145,152 @@ function recoverDmsDomainQueueDecision_(payload, operationId) {
   };
 }
 
+function getDmsDurableOperationHealth_() {
+  const sheet = getTelegramOperationLedger_();
+  const lastRow = sheet.getLastRow();
+  const latest = {};
+  if (lastRow >= 2) {
+    sheet.getRange(2, 1, lastRow - 1, 17).getValues().forEach(function(row) {
+      const protocol = String(row[13] || '');
+      const event = String(row[4] || '');
+      const operationId = String(row[2] || '');
+      if (['cf2', DMS_DOMAIN_OPERATION.VERSION].indexOf(protocol) === -1 || !operationId ||
+          ['pending', 'started', 'result', 'committed', 'failed', 'manual_review'].indexOf(event) === -1) return;
+      latest[protocol + '|' + operationId] = {
+        protocol: protocol, status: event, at: new Date(row[1]).getTime(), code: String(row[10] || '')
+      };
+    });
+  }
+  const now = Date.now();
+  const health = {state: 'healthy', total: Object.keys(latest).length, pending: 0,
+    stale: 0, manualReview: 0, failed: 0, committed: 0,
+    protocols: {cf2: 0, dop1: 0}, latestErrorClasses: {}};
+  Object.keys(latest).forEach(function(key) {
+    const item = latest[key];
+    health.protocols[item.protocol]++;
+    if (item.status === 'manual_review') health.manualReview++;
+    else if (item.status === 'failed') health.failed++;
+    else if (item.status === 'committed') health.committed++;
+    else if (now - item.at >= DMS_OPERATION_V2.STALE_MS) health.stale++;
+    else health.pending++;
+    if (item.status === 'manual_review' || item.status === 'failed') {
+      const errorClass = item.code === 'underlying_state_changed' || item.code === 'day_not_ready'
+        ? 'validation' : item.status === 'manual_review' ? 'manual_review' : 'runtime_error';
+      health.latestErrorClasses[errorClass] = (health.latestErrorClasses[errorClass] || 0) + 1;
+    }
+  });
+  if (health.manualReview) health.state = 'manual_review';
+  else if (health.stale) health.state = 'stale';
+  return health;
+}
+
+function getDmsOperationMetricsHealth_() {
+  const operations = {};
+  let contentionAnomalies = 0;
+  const latestErrorClasses = {};
+  Object.keys(DMS_OPERATION_METRICS.OPERATIONS).forEach(function(operation) {
+    const metric = getDmsOperationMetric_(operation);
+    if (!metric) return;
+    operations[operation] = metric;
+    if (metric.errorClass === 'contention') contentionAnomalies++;
+    if (metric.errorClass) {
+      latestErrorClasses[metric.errorClass] = (latestErrorClasses[metric.errorClass] || 0) + 1;
+    }
+  });
+  return {state: contentionAnomalies ? 'failed' : 'healthy', contentionAnomalies: contentionAnomalies,
+    latestErrorClasses: latestErrorClasses, operations: operations};
+}
+
+function normalizeDmsOperationalState_(state) {
+  const value = String(state || 'failed');
+  if (['healthy', 'not_due_yet', 'awaiting_sync', 'delayed', 'failed', 'stale',
+    'manual_review'].indexOf(value) >= 0) return value;
+  if (value === 'last_run_succeeded') return 'healthy';
+  if (value === 'within_expected_window') return 'not_due_yet';
+  if (value === 'sync_delayed') return 'delayed';
+  if (value === 'sync_failed' || value === 'sync_trigger_missing' ||
+      value === 'accounting_drift' || value === 'drift_after_successful_sync' ||
+      value === 'last_run_failed' || value === 'trigger_missing' ||
+      value === 'trigger_misconfigured') return 'failed';
+  return 'failed';
+}
+
+function normalizeDmsScheduledHealth_(scheduled) {
+  if (!scheduled) return {state: 'failed', ok: false, handlers: []};
+  const result = {};
+  Object.keys(scheduled).forEach(function(key) { result[key] = scheduled[key]; });
+  result.handlers = (scheduled.handlers || []).map(function(item) {
+    const normalized = {};
+    Object.keys(item).forEach(function(key) { normalized[key] = item[key]; });
+    normalized.evidenceState = item.state;
+    normalized.state = normalizeDmsOperationalState_(item.state);
+    return normalized;
+  });
+  const states = result.handlers.map(function(item) { return item.state; });
+  result.state = !scheduled.configOk || !scheduled.settingsOk || states.indexOf('failed') >= 0 ? 'failed' :
+    states.indexOf('stale') >= 0 ? 'stale' :
+      states.indexOf('delayed') >= 0 ? 'delayed' : 'healthy';
+  return result;
+}
+
+function getDmsOperationalHealth_() {
+  const report = runDmsReadOnlySelfTests({watchdog: true});
+  const latestErrorClasses = {};
+  const collectErrors = function(values) {
+    Object.keys(values || {}).forEach(function(name) {
+      latestErrorClasses[name] = (latestErrorClasses[name] || 0) + Number(values[name] || 0);
+    });
+  };
+  collectErrors(report.durableOperations && report.durableOperations.latestErrorClasses);
+  collectErrors(report.operationMetrics && report.operationMetrics.latestErrorClasses);
+  (report.scheduledAutomation && report.scheduledAutomation.handlers || []).forEach(function(item) {
+    if (!item.lastErrorClass || !item.lastErrorAt ||
+        item.lastSuccessAt && Date.parse(item.lastSuccessAt) >= Date.parse(item.lastErrorAt)) return;
+    latestErrorClasses[item.lastErrorClass] = (latestErrorClasses[item.lastErrorClass] || 0) + 1;
+  });
+  const calendarIngestion = report.calendarIngestion || {state: 'failed'};
+  const normalizedCalendar = {};
+  Object.keys(calendarIngestion).forEach(function(key) { normalizedCalendar[key] = calendarIngestion[key]; });
+  normalizedCalendar.evidenceState = calendarIngestion.state;
+  normalizedCalendar.state = normalizeDmsOperationalState_(calendarIngestion.state);
+  const scheduled = normalizeDmsScheduledHealth_(report.scheduledAutomation);
+  const componentStates = [normalizedCalendar.state, scheduled.state,
+    report.backup && report.backup.state, report.reconciliation && report.reconciliation.state,
+    report.durableOperations && report.durableOperations.state,
+    report.operationMetrics && report.operationMetrics.state];
+  const componentChecks = {
+    'scheduled-trigger-config': true,
+    'scheduled-notification-settings': true,
+    'scheduled-trigger-freshness': true,
+    'calendar-queue-journal-reconciliation': true,
+    'latest-backup-integrity': true,
+    'durable-operation-lifecycle': true,
+    'operation-contention-anomalies': true
+  };
+  const independentFailure = (report.checks || []).some(function(check) {
+    return !check.ok && !componentChecks[check.name];
+  });
+  const overallState = componentStates.indexOf('manual_review') >= 0 ? 'manual_review' :
+    componentStates.indexOf('failed') >= 0 || independentFailure ? 'failed' :
+      componentStates.indexOf('stale') >= 0 ? 'stale' :
+        componentStates.indexOf('delayed') >= 0 ? 'delayed' : 'healthy';
+  return {
+    state: overallState,
+    checkedAt: report.checkedAt,
+    durationMs: report.durationMs,
+    runtime: getDmsRuntimeIdentity_(),
+    calendarIngestion: normalizedCalendar,
+    reconciliation: report.reconciliation || {state: 'failed', ok: false},
+    scheduledAutomation: scheduled,
+    backup: report.backup,
+    durableOperations: report.durableOperations,
+    metrics: report.operationMetrics,
+    latestErrorClasses: latestErrorClasses,
+    system: report.system,
+    checks: report.checks
+  };
+}
+
 function getDmsDayAcceptanceRows_(dateKey) {
   const ss = SpreadsheetApp.getActive();
   const queue = getRequiredSheet_(ss, DMS_TELEGRAM.QUEUE);

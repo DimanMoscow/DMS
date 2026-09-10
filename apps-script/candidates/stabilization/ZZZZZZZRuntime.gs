@@ -680,6 +680,7 @@ function runDmsReadOnlySelfTests(options) {
     });
 
     const health = getDmsSystemHealth();
+    report.system = health;
     addDmsSelfTestCheck_(
       report,
       'queue-errors',
@@ -708,6 +709,7 @@ function runDmsReadOnlySelfTests(options) {
     );
 
     const scheduled = getDmsScheduledAutomationHealth_({requireFreshness: true});
+    report.scheduledAutomation = scheduled;
     addDmsSelfTestCheck_(
       report,
       'scheduled-trigger-config',
@@ -762,6 +764,15 @@ function runDmsReadOnlySelfTests(options) {
     const calendarHealth = classifyDmsCalendarIngestion_(syncEvidence, reconciliation,
       scheduled.handlers.find(function(item) { return item.handler === 'syncCalendarToQueue'; }));
     report.calendarIngestion = calendarHealth;
+    const reconciliationAwaitingSync = !reconciliation.ok && calendarHealth.ok &&
+      calendarHealth.state === 'awaiting_sync';
+    report.reconciliation = {
+      state: reconciliation.ok ? 'healthy' : reconciliationAwaitingSync ? 'awaiting_sync' : 'failed',
+      ok: reconciliation.ok || reconciliationAwaitingSync,
+      issueCount: reconciliation.issueCount,
+      safeRepairCount: reconciliation.safeRepairCount,
+      counts: reconciliation.counts
+    };
     addDmsSelfTestCheck_(
       report,
       'calendar-queue-journal-reconciliation',
@@ -775,6 +786,11 @@ function runDmsReadOnlySelfTests(options) {
     });
     const backupAwaitingWindow =
       isDmsBackupAgeAwaitingExpectedWindow_(backup, backupJob);
+    report.backup = {
+      state: backup.ok ? 'healthy' : backupAwaitingWindow ? 'not_due_yet' : 'failed',
+      ok: backup.ok || backupAwaitingWindow,
+      summary: backupAwaitingWindow ? 'awaiting expected backup window' : backup.summary
+    };
     addDmsSelfTestCheck_(
       report,
       'latest-backup-integrity',
@@ -797,6 +813,23 @@ function runDmsReadOnlySelfTests(options) {
       'calendar-read-access',
       true,
       'доступ подтверждён'
+    );
+
+    const durable = getDmsDurableOperationHealth_();
+    report.durableOperations = durable;
+    report.operationMetrics = getDmsOperationMetricsHealth_();
+    addDmsSelfTestCheck_(
+      report,
+      'durable-operation-lifecycle',
+      durable.manualReview === 0 && durable.stale === 0,
+      durable.state + '; pending=' + durable.pending + '; manual_review=' + durable.manualReview +
+        '; stale=' + durable.stale
+    );
+    addDmsSelfTestCheck_(
+      report,
+      'operation-contention-anomalies',
+      report.operationMetrics.contentionAnomalies === 0,
+      String(report.operationMetrics.contentionAnomalies)
     );
   } catch (error) {
     addDmsSelfTestCheck_(

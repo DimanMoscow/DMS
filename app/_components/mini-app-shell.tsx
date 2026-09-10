@@ -91,9 +91,15 @@ type ClientPortalAdminResponse = {
 };
 type MeasurementAdminResponse = { measurements: AdminMeasurements };
 type SystemHealth = {
-  ok: boolean; checkedAt: string; durationMs: number; passed: number; total: number;
+  ok: boolean; state?: string; checkedAt: string; durationMs: number; passed: number; total: number;
   failures: { name: string; details: string }[]; queueWaiting: number; queueErrors: number;
   queueRegistrations: number; exhaustedOpenBlocks: number; triggerCount: number;
+  durableOperations?: { state: string; pending: number; stale: number; manualReview: number };
+  calendarIngestion?: { state: string };
+  reconciliation?: { state: string; issueCount?: number };
+  backup?: { state: string };
+  metrics?: { state: string; contentionAnomalies: number };
+  latestErrorClasses?: Record<string, number>;
 };
 type CalendarOnboardingMode = "new" | "link" | "ignore";
 type CalendarOnboardingState = { item: WaitingTraining; mode: CalendarOnboardingMode };
@@ -1045,10 +1051,13 @@ function SystemView({ service, health, appsScriptRuntime, onRefresh }: {
   appsScriptRuntime: AppsScriptRuntimeHealth | null;
   onRefresh: () => void;
 }) {
+  const headline = !health ? "Проверяю систему" : health.ok
+    ? "Все проверки пройдены"
+    : `Требует внимания: ${health.state || "failed"}`;
   return <Page title="Состояние системы" subtitle="Диагностика">
     <section className="system-hero">
-      <span className={health?.ok ? "system-indicator ok" : "system-indicator"}>{health?.ok ? "✓" : "…"}</span>
-      <div><strong>{health?.ok ? "Все проверки пройдены" : "Проверяю систему"}</strong><p>{health
+      <span className={health?.ok ? "system-indicator ok" : "system-indicator"}>{health ? health.ok ? "✓" : "!" : "…"}</span>
+      <div><strong>{headline}</strong><p>{health
         ? `${health.passed} из ${health.total} · ${health.durationMs} мс`
         : "Без изменения данных"}</p></div>
     </section>
@@ -1059,6 +1068,18 @@ function SystemView({ service, health, appsScriptRuntime, onRefresh }: {
         ? "не указан"
         : service?.sourceRevision?.slice(0, 12) || "—"} />
       <Detail label="Apps Script" value={appsScriptRuntime?.release || "—"} />
+      <Detail label="Backend" value={service?.dataMode || "—"} />
+      <Detail label="Calendar sync" value={health?.calendarIngestion?.state || "—"} />
+      <Detail label="Сверка" value={health?.reconciliation
+        ? `${health.reconciliation.state} · ${health.reconciliation.issueCount || 0}`
+        : "—"} />
+      <Detail label="Backup" value={health?.backup?.state || "—"} />
+      <Detail label="Durable operations" value={health?.durableOperations
+        ? `${health.durableOperations.state} · pending ${health.durableOperations.pending}`
+        : "—"} />
+      <Detail label="Lock contention" value={health?.metrics
+        ? String(health.metrics.contentionAnomalies)
+        : "—"} />
       <Detail label="Очередь" value={health ? `${health.queueWaiting} ожидает · ${health.queueErrors} ошибок` : "—"} />
       <Detail label="Регистрация" value={health ? String(health.queueRegistrations) : "—"} />
       <Detail label="Исчерпанные блоки" value={health ? String(health.exhaustedOpenBlocks) : "—"} />
