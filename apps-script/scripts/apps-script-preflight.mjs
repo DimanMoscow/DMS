@@ -22,6 +22,24 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
+export function loadCurrentTelegramLedgerSchema(root = appsScriptRoot) {
+  const ledger = readJson(path.join(root, "migrations", "ledger.json"));
+  const sheetName = "Журнал операций Telegram";
+  const version = Number(ledger.currentSchemaVersions?.[sheetName]);
+  assert.ok(Number.isSafeInteger(version) && version > 0,
+    "current Telegram ledger schema version is missing");
+  assert.ok((ledger.applied || []).some(item =>
+    item.id === `telegram-confirmations-v${version}`),
+  "current Telegram ledger migration is not applied");
+  const schema = readJson(path.join(
+    root, "migrations", `telegram-confirmations-v${version}`, "schema.json",
+  ));
+  assert.equal(schema.schemaVersion, version,
+    "current Telegram ledger schema artifact differs");
+  assert.equal(schema.sheet.name, sheetName);
+  return schema;
+}
+
 function exactKeys(value, keys, label) {
   assert.ok(value && typeof value === "object" && !Array.isArray(value), `${label} must be an object`);
   assert.deepEqual(Object.keys(value).sort(), [...keys].sort(), `${label} fields differ`);
@@ -229,23 +247,21 @@ export async function runAppsScriptPreflight({
     assert.ok(sheetNames.includes(required), `source workbook is missing required sheet: ${required}`);
   }
 
-  const ledgerSchema = readJson(path.join(appsScriptRoot, "migrations", "telegram-confirmations-v1", "schema.json"));
+  const ledgerSchema = loadCurrentTelegramLedgerSchema();
   const ledgerSheets = (metadata.sheets || []).filter((sheet) =>
     sheet.properties?.title === ledgerSchema.sheet.name);
   assert.ok(ledgerSheets.length <= 1, "Telegram ledger sheet is duplicated");
   let ledgerState = "absent";
   if (ledgerSheets.length === 1) {
-    const headerRange = `'${ledgerSchema.sheet.name.replaceAll("'", "''")}'!1:2`;
+    const headerRange = `'${ledgerSchema.sheet.name.replaceAll("'", "''")}'!1:1`;
     const values = await googleJson(accessToken,
       `${SHEETS_API}/spreadsheets/${encodeURIComponent(sourceMatches[0].id)}/values/${encodeURIComponent(headerRange)}`,
       {}, fetchImpl);
     const expectedHeaders = ledgerSchema.sheet.columns.map((column) => column.name);
     assert.deepEqual(values.values?.[0] || [], expectedHeaders, "Telegram ledger headers differ");
-    assert.equal((values.values || []).slice(1).flat().some((value) => String(value).trim()), false,
-      "Telegram ledger contains data before rollout");
     assert.equal(ledgerSheets[0].properties?.gridProperties?.frozenRowCount,
       ledgerSchema.sheet.frozenRows, "Telegram ledger frozen-row setting differs");
-    ledgerState = "present-empty";
+    ledgerState = `present-v${ledgerSchema.schemaVersion}`;
   }
 
   const materialized = materializeCandidate(
