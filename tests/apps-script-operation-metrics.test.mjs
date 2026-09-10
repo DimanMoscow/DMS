@@ -155,20 +155,23 @@ test('instrumented Calendar sync preserves orchestration and records a scheduled
       tryLock: function() { advance(5); calls.push('lock'); return true; },
       releaseLock: function() { calls.push('unlock'); }
     }; };
-    beginDmsCalendarSyncGeneration_ = function() { calls.push('generation-start'); return {}; };
+    beginDmsCalendarSyncGeneration_ = function() {
+      calls.push('generation-start'); return {lastSyncStarted: '2026-09-10T00:00:00.000Z'};
+    };
     getDmsCalendarIngestionEvidence_ = function(report) { return report; };
     runDmsCalendarQueueReconciliation = function() { advance(11); calls.push('reconcile'); return {ok: true}; };
     buildCalendarQueueSyncPlan_ = function(metric) {
       measureDmsOperationPhase_(metric, 'calendarMs', function() { advance(7); });
       addDmsOperationCount_(metric, 'eventsRead', 3);
       calls.push('plan');
-      return {errors: 0, writes: [{}, {}]};
+      return {errors: 0, writes: [{}, {}], scan: {}};
     };
     applyCalendarQueueSyncPlan_ = function(plan, metric) {
       advance(3); addDmsOperationCount_(metric, 'rowsWritten', plan.writes.length);
       calls.push('apply'); return 'applied';
     };
     SpreadsheetApp = {flush: function() { advance(2); calls.push('flush'); }};
+    completeDmsCalendarScanState_ = function() { calls.push('scan-complete'); };
     completeDmsCalendarSyncGeneration_ = function() { calls.push('generation-complete'); };
     failDmsCalendarSyncGeneration_ = function() { calls.push('generation-failed'); };
     recordDmsScheduledAutomationSuccess_ = function() { calls.push('scheduled-success'); };
@@ -178,7 +181,7 @@ test('instrumented Calendar sync preserves orchestration and records a scheduled
   assert.equal(result, 'applied');
   assert.deepEqual(JSON.parse(JSON.stringify(context.calls)), [
     'scheduled-start', 'lock', 'generation-start', 'reconcile', 'plan', 'apply',
-    'flush', 'reconcile', 'generation-complete', 'scheduled-success', 'unlock',
+    'flush', 'reconcile', 'scan-complete', 'generation-complete', 'scheduled-success', 'unlock',
   ]);
   const sample = JSON.parse(values.get('DMS_OP_METRIC_V1_CALENDAR_SYNC_SCHEDULED'));
   assert.equal(sample.outcome, 'success');
