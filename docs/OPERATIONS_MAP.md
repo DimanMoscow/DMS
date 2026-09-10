@@ -138,7 +138,7 @@ The largest measured totals are evening queue (22.109 s), morning digest (12.854
 4. **Canonical day confirmation** — implemented in the stabilization candidate with accepted-row/precondition validation, conditional Calendar writes, durable MiniApp replay and fail-closed post-start ambiguity.
 5. **Bounded Calendar ingestion** — implemented in the candidate with an overlap cursor, daily bounded verification, exceptional full recovery and regression coverage for deletions, moves, pagination and cursor expiry. Queue-write batching remains a later optimization if production-equivalent metrics justify it.
 6. **Unified health** — implemented in the stabilization candidate: normalized component states and cross-runtime evidence, with `awaiting_sync` excluded from failure in the operational view and no new alert path.
-7. **P2 reliability** — semantic financial reconciliation, binding lifecycle and measurement corruption isolation are implemented in the candidate; bounded Calendar scanning and the acceptance matrix remain.
+7. **P2 reliability** — semantic financial reconciliation, binding lifecycle, measurement corruption isolation and bounded Calendar scanning are implemented in the candidate. `docs/ACCEPTANCE_MATRIX.md` binds every required stabilization scenario to fixture or isolated-copy evidence.
 8. **Milestone release** — fresh backup/isolated restore, candidate snapshot, auth preflight, Google-assigned numbered version, deployment update, runtime/live/reconciliation/health/read-only smoke, then checkpoint docs. No production business mutation is used for smoke.
 
 Until the milestone release, implementation PRs update the next candidate snapshot and tests only. Immutable numbered snapshots and production remain unchanged.
