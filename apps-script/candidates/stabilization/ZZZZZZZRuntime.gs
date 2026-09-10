@@ -976,13 +976,12 @@ function runDmsCalendarQueueReconciliation(metrics) {
   if (metrics) measureDmsOperationPhase_(metrics, 'sheetsReadMs', readSheets);
   else readSheets();
   const now = new Date();
-  const windowEnd = new Date(now.getTime());
-  windowEnd.setDate(windowEnd.getDate() + 1);
+  const window = getDmsCalendarWideWindow_(config, now);
 
   const events = listCalendarEvents_(
     config.calendarId,
-    config.startDate,
-    windowEnd,
+    window.start,
+    window.end,
     config.timeZone,
     metrics
   );
@@ -992,8 +991,8 @@ function runDmsCalendarQueueReconciliation(metrics) {
     events,
     {
       calendarId: config.calendarId,
-      startDate: config.startDate,
-      endDate: windowEnd
+      startDate: window.start,
+      endDate: window.end
     }
   );
 

@@ -11,6 +11,15 @@ const DMS_SYNC = {
 
 const DMS_UNKNOWN_CLIENT_STATUS = 'Требует регистрации';
 
+const DMS_CALENDAR_SCAN = {
+  VERSION: 1,
+  STATE_KEY: 'DMS_CALENDAR_BOUNDED_SCAN_V1',
+  OVERLAP_MS: 24 * 60 * 60 * 1000,
+  BOOTSTRAP_UPDATED_LOOKBACK_MS: 7 * 24 * 60 * 60 * 1000,
+  WIDE_LOOKBACK_DAYS: 120,
+  WIDE_INTERVAL_MS: 24 * 60 * 60 * 1000
+};
+
 function syncCalendarToQueue(event) {
   const metrics = beginDmsOperationMetrics_(
     event && event.triggerUid ? 'calendar_sync_scheduled' : 'calendar_sync_inline'
@@ -44,6 +53,7 @@ function syncCalendarToQueue(event) {
         'reconciliationMs',
         function() { return runDmsCalendarQueueReconciliation(metrics); }
       );
+      completeDmsCalendarScanState_(plan.scan, syncState.lastSyncStarted);
       completeDmsCalendarSyncGeneration_(syncState, before, after);
       recordDmsScheduledAutomationSuccess_(
         'syncCalendarToQueue', event, 'completed', execution);
@@ -101,17 +111,29 @@ function buildCalendarQueueSyncPlan_(metrics) {
   };
   if (metrics) measureDmsOperationPhase_(metrics, 'sheetsReadMs', readSheets);
   else readSheets();
-  const windowEnd = new Date();
+  const now = new Date();
+  const windowEnd = new Date(now.getTime());
 
   windowEnd.setDate(windowEnd.getDate() + 1);
-
-  const events = listCalendarEvents_(
-    config.calendarId,
-    config.startDate,
-    windowEnd,
-    config.timeZone,
-    metrics
-  );
+  const scan = getDmsCalendarScanPlan_(config, now);
+  let incrementalEvents;
+  let wideEvents = [];
+  try {
+    incrementalEvents = listCalendarEventsUpdated_(
+      config.calendarId, scan.updatedMin, config.timeZone, metrics);
+  } catch (error) {
+    if (!isDmsCalendarIncrementalResetError_(error)) throw error;
+    if (metrics) addDmsOperationCount_(metrics, 'retryCount', 1);
+    scan.recoveryFull = true;
+    scan.includeWide = true;
+    scan.wideStart = config.startDate;
+    incrementalEvents = [];
+  }
+  if (scan.includeWide) {
+    wideEvents = listCalendarEvents_(
+      config.calendarId, scan.wideStart, windowEnd, config.timeZone, metrics);
+  }
+  const events = mergeDmsCalendarEventSets_(wideEvents, incrementalEvents);
   const plan = {
     ss: ss,
     queue: queue,
@@ -127,6 +149,7 @@ function buildCalendarQueueSyncPlan_(metrics) {
     errors: 0,
     summary: ''
   };
+  plan.scan = scan;
 
   events.forEach(function(event) {
     const eventId = String(event.id || '').trim();
@@ -168,6 +191,10 @@ function buildCalendarQueueSyncPlan_(metrics) {
       plan.ignored++;
       return;
     }
+    if (!existingRow && (times.start < config.startDate || times.start >= windowEnd)) {
+      plan.ignored++;
+      return;
+    }
 
     const client = clientMap[normalizeCalendarTitle_(title)] || null;
     const rowValues = buildQueueRow_(
@@ -199,14 +226,16 @@ function buildCalendarQueueSyncPlan_(metrics) {
     }
   });
 
-  reconcileMissingQueueEventsInPlan_(
-    plan,
-    existing.rows,
-    config.calendarId,
-    config.startDate,
-    windowEnd,
-    clientMap
-  );
+  if (scan.includeWide) {
+    reconcileMissingQueueEventsInPlan_(
+      plan,
+      existing.rows,
+      config.calendarId,
+      scan.wideStart,
+      windowEnd,
+      clientMap
+    );
+  }
 
   plan.summary =
     'Добавлено: ' + plan.added +
@@ -308,6 +337,122 @@ function listCalendarEvents_(calendarId, startDate, endDate, timeZone, metrics) 
   } while (pageToken);
 
   return items;
+}
+
+function listCalendarEventsUpdated_(calendarId, updatedMin, timeZone, metrics) {
+  // updatedMin includes recently deleted entries. Deliberately omit timeMin and
+  // timeMax so an existing event moved far outside the normal horizon is still
+  // returned; the planner filters only previously unseen far-future events.
+  const items = [];
+  let pageToken = null;
+  do {
+    const params = {
+      updatedMin: updatedMin.toISOString(),
+      singleEvents: true,
+      showDeleted: true,
+      maxResults: 2500,
+      timeZone: timeZone
+    };
+    if (pageToken) params.pageToken = pageToken;
+    const response = metrics
+      ? measureDmsOperationPhase_(metrics, 'calendarMs', function() {
+        return Calendar.Events.list(calendarId, params);
+      })
+      : Calendar.Events.list(calendarId, params);
+    Array.prototype.push.apply(items, response.items || []);
+    if (metrics) addDmsOperationCount_(metrics, 'eventsRead', (response.items || []).length);
+    pageToken = response.nextPageToken || null;
+  } while (pageToken);
+  return items;
+}
+
+function getDmsCalendarFingerprint_(calendarId) {
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(calendarId || ''),
+    Utilities.Charset.UTF_8
+  );
+  return Utilities.base64EncodeWebSafe(bytes).substring(0, 22);
+}
+
+function readDmsCalendarScanState_(calendarId, now) {
+  const raw = PropertiesService.getScriptProperties().getProperty(DMS_CALENDAR_SCAN.STATE_KEY);
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw);
+    const lastSuccess = Date.parse(value.lastSuccessfulAt || '');
+    const lastWide = Date.parse(value.lastWideVerificationAt || '');
+    if (value.version !== DMS_CALENDAR_SCAN.VERSION ||
+        value.calendarFingerprint !== getDmsCalendarFingerprint_(calendarId) ||
+        !isFinite(lastSuccess) || lastSuccess > now.getTime() + 5 * 60 * 1000 ||
+        value.lastWideVerificationAt && !isFinite(lastWide)) return null;
+    return value;
+  } catch (ignore) {
+    return null;
+  }
+}
+
+function getDmsCalendarWideWindow_(config, now) {
+  const bounded = new Date(now.getTime());
+  bounded.setDate(bounded.getDate() - DMS_CALENDAR_SCAN.WIDE_LOOKBACK_DAYS);
+  return {
+    start: config.startDate > bounded ? new Date(config.startDate.getTime()) : bounded,
+    end: new Date(now.getTime() + 24 * 60 * 60 * 1000)
+  };
+}
+
+function getDmsCalendarScanPlan_(config, now) {
+  const state = readDmsCalendarScanState_(config.calendarId, now);
+  const window = getDmsCalendarWideWindow_(config, now);
+  const anchor = state
+    ? new Date(Date.parse(state.lastSuccessfulAt) - DMS_CALENDAR_SCAN.OVERLAP_MS)
+    : new Date(now.getTime() - DMS_CALENDAR_SCAN.BOOTSTRAP_UPDATED_LOOKBACK_MS);
+  return {
+    calendarFingerprint: getDmsCalendarFingerprint_(config.calendarId),
+    updatedMin: anchor < config.startDate ? new Date(config.startDate.getTime()) : anchor,
+    includeWide: !state || !state.lastWideVerificationAt ||
+      now.getTime() - Date.parse(state.lastWideVerificationAt) >= DMS_CALENDAR_SCAN.WIDE_INTERVAL_MS,
+    wideStart: window.start,
+    recoveryFull: false
+  };
+}
+
+function completeDmsCalendarScanState_(scan, successfulStartAt) {
+  const completedAt = new Date().toISOString();
+  PropertiesService.getScriptProperties().setProperty(DMS_CALENDAR_SCAN.STATE_KEY, JSON.stringify({
+    version: DMS_CALENDAR_SCAN.VERSION,
+    calendarFingerprint: scan.calendarFingerprint,
+    lastSuccessfulAt: successfulStartAt,
+    lastWideVerificationAt: scan.includeWide ? completedAt :
+      (readDmsCalendarScanStateByFingerprint_(scan.calendarFingerprint) || {}).lastWideVerificationAt || ''
+  }));
+}
+
+function readDmsCalendarScanStateByFingerprint_(fingerprint) {
+  const raw = PropertiesService.getScriptProperties().getProperty(DMS_CALENDAR_SCAN.STATE_KEY);
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw);
+    return value.version === DMS_CALENDAR_SCAN.VERSION &&
+      value.calendarFingerprint === fingerprint ? value : null;
+  } catch (ignore) {
+    return null;
+  }
+}
+
+function mergeDmsCalendarEventSets_(wide, incremental) {
+  const byId = {};
+  (wide || []).concat(incremental || []).forEach(function(event) {
+    const id = String(event && event.id || '').trim();
+    if (id) byId[id] = event;
+  });
+  return Object.keys(byId).map(function(id) { return byId[id]; });
+}
+
+function isDmsCalendarIncrementalResetError_(error) {
+  const code = Number(error && (error.code || error.status || error.responseCode));
+  const message = String(error && error.message || error || '');
+  return code === 410 || /\b410\b|fullSyncRequired|updatedMinTooLongAgo/i.test(message);
 }
 
 function buildCalendarClientMap_(clients, metrics) {
