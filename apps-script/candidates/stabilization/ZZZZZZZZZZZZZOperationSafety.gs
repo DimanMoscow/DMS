@@ -31,7 +31,7 @@ function getDmsMutationLock_() {
       if (!DMS_MUTATION_DEPTH) {
         const mutex = DMS_MUTATION_MUTEX;
         DMS_MUTATION_MUTEX = null;
-        try { SpreadsheetApp.flush(); } finally { mutex.releaseLock(); }
+        try { measureActiveDmsOperationPhase_('flushMs', function() { SpreadsheetApp.flush(); }); } finally { mutex.releaseLock(); }
       }
     }
   };
@@ -45,7 +45,11 @@ function withTelegramDocumentLock_(callback, metrics) {
     throw new Error('Другое действие ещё выполняется.');
   }
   if (metrics) addDmsOperationDuration_(metrics, 'lockWaitMs', Date.now() - startedAt);
-  try { return callback(); } finally { lease.releaseLock(); }
+  const acquiredAt = Date.now();
+  try { return callback(); } finally {
+    lease.releaseLock();
+    if (metrics) addDmsOperationDuration_(metrics, 'lockHeldMs', Date.now() - acquiredAt);
+  }
 }
 
 function getDmsConfirmedState_(kind, userId, chatId) {
@@ -80,9 +84,10 @@ function getDmsConfirmedBusinessHash_() {
 
 function getDmsConfirmationCalendarTargets_(payload) {
   const targets = [];
-  function add(calendarId, eventId) {
+  let calendarClientMap = null;
+  function add(calendarId, eventId, queueRow) {
     if (calendarId && eventId && !targets.some(function(t) { return t.calendarId === calendarId && t.eventId === eventId; })) {
-      targets.push({calendarId: String(calendarId), eventId: String(eventId)});
+      targets.push({calendarId: String(calendarId), eventId: String(eventId), queueRow: queueRow});
     }
   }
   const data = String(payload.legacyData || ''); const state = payload.state || {};
@@ -96,8 +101,11 @@ function getDmsConfirmationCalendarTargets_(payload) {
     const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
     if (last >= 4) queue.getRange(4, 1, last - 3, 17).getValues().forEach(function(row) {
       if ((data === '__secure:queueMove' && String(row[0]) === String(state.queueId)) ||
-          (data.indexOf('qp:') === 0 && row[1] instanceof Date && makeDateKey_(row[1], tz) === data.substring(3))) {
-        add(row[2], row[3]);
+          (data.indexOf('qp:') === 0 && row[1] instanceof Date && makeDateKey_(row[1], tz) === data.substring(3) &&
+            (!Array.isArray(payload.acceptedRows) || payload.acceptedRows.some(function(item) {
+              return item.queueId === String(row[0]);
+            })))) {
+        add(row[2], row[3], data.indexOf('qp:') === 0 ? row : null);
       }
     });
   }
@@ -121,12 +129,25 @@ function getDmsConfirmationCalendarTargets_(payload) {
     }
     catch (error) {
       if (!isCalendarEventMissingError_(error)) throw error;
-      return {calendarId: target.calendarId, eventId: target.eventId, absent: true};
+      return {calendarId: target.calendarId, eventId: target.eventId, absent: true,
+        queueId: target.queueRow ? String(target.queueRow[0]) : undefined,
+        semanticChanged: !!target.queueRow && ['Отмена без списания', 'Не учитывать'].indexOf(target.queueRow[12]) === -1};
     }
     if (!event.etag) throw new Error('Calendar version unavailable.');
     if (state.confirmedCalendarEtag && event.etag !== state.confirmedCalendarEtag) throw new Error('Calendar preview changed.');
+    const row = target.queueRow;
+    let ownerChanged = false;
+    if (row && normalizeCalendarTitle_(event.summary) !== normalizeCalendarTitle_(row[7])) {
+      if (!calendarClientMap) calendarClientMap = buildCalendarClientMap_(getRequiredSheet_(SpreadsheetApp.getActive(), 'Клиенты'));
+      const mapped = calendarClientMap[normalizeCalendarTitle_(event.summary)];
+      ownerChanged = !mapped || String(mapped.id) !== String(row[8]);
+    }
+    const changed = !!row && (ownerChanged || event.status === 'cancelled' ||
+      Date.parse(event.start && (event.start.dateTime || event.start.date)) !== new Date(row[5]).getTime() ||
+      Date.parse(event.end && (event.end.dateTime || event.end.date)) !== new Date(row[6]).getTime());
     return {calendarId: target.calendarId, eventId: target.eventId, etag: event.etag,
-      start: event.start, end: event.end, status: event.status || 'confirmed'};
+      start: event.start, end: event.end, status: event.status || 'confirmed',
+      queueId: row ? String(row[0]) : undefined, semanticChanged: changed};
   });
 }
 
@@ -343,7 +364,11 @@ function createTelegramConfirmation_(userId, chatId, messageId, action, payload,
     const immutable = JSON.parse(canonicalTelegramConfirmationJson_(payload));
     const flowMaterial = immutable.state && immutable.state.secureFlowId
       ? canonicalTelegramConfirmationJson_(immutable) : '';
-    immutable.expectedBusinessHash = getDmsConfirmedBusinessHash_();
+    if (immutable.semanticAcceptance === true && ['queue_decision', 'confirm_day'].indexOf(String(action)) !== -1) {
+      normalizeDmsDayAcceptanceRows_(immutable.acceptedRows || immutable.expectedQueueRows);
+    } else {
+      immutable.expectedBusinessHash = getDmsConfirmedBusinessHash_();
+    }
     immutable.calendarTargets = getDmsConfirmationCalendarTargets_(immutable);
     const json = canonicalTelegramConfirmationJson_(immutable);
     if (json.length > DMS_OPERATION_V2.MAX_PAYLOAD_CHARS) throw new Error('Confirmation payload too large.');
@@ -422,11 +447,13 @@ function beginTelegramSecureOperation_(parsed, query, nowMs) {
 
 function processTelegramSecureCallback_(query, parsed, nowMs) {
   const metrics = beginDmsOperationMetrics_('telegram_secure_mutation');
+  let presentationContext = null;
   try {
   const result = withDmsOperationMetrics_(metrics, function() {
     return withTelegramDocumentLock_(function() {
     const started = beginTelegramSecureOperation_(parsed, query, nowMs);
     const context = started.validated; const previous = started.previous;
+    presentationContext = context;
     if (previous.status === 'committed' || previous.status === 'result') {
       if (!previous.result) throw new Error('Durable result missing.');
       if (previous.status === 'result') {
@@ -457,12 +484,22 @@ function processTelegramSecureCallback_(query, parsed, nowMs) {
       return unknown;
     }
     if (previous.status !== 'pending') throw new Error('Unknown operation lifecycle.');
-    if (context.payload.expectedBusinessHash !== getDmsConfirmedBusinessHash_()) {
+    const semantic = context.payload.semanticAcceptance === true &&
+      ['queue_decision', 'confirm_day'].indexOf(context.state.action) !== -1;
+    let semanticChanged = false;
+    if (semantic && context.state.action === 'queue_decision') {
+      const ss = SpreadsheetApp.getActive(); const sheet = getRequiredSheet_(ss, DMS_TELEGRAM.QUEUE);
+      const expected = normalizeDmsDayAcceptanceRows_(context.payload.expectedQueueRows)[0];
+      const row = findRowByValue_(sheet, 1, expected.queueId, DMS_TELEGRAM.QUEUE_FIRST_ROW);
+      semanticChanged = !row || getDmsQueueSemanticRevision_(sheet.getRange(row, 1, 1, 17).getValues()[0],
+        getDmsQueueSemanticContext_()) !== expected.semanticRevision;
+    }
+    if (semanticChanged || !semantic && context.payload.expectedBusinessHash !== getDmsConfirmedBusinessHash_()) {
       const rejected = {status: 'failed', code: 'underlying_state_changed'};
       appendTelegramOperationEvent_(context.state, 'failed', rejected.code, '', 'no_mutation', null, rejected);
       return rejected;
     }
-    assertDmsConfirmedCalendarCurrent_(context.payload);
+    if (!(semantic && context.state.action === 'confirm_day')) assertDmsConfirmedCalendarCurrent_(context.payload);
     appendTelegramOperationEvent_(context.state, 'started', '', '', 'mutation_intent');
     DMS_CONFIRMED_EXECUTION = context;
     let applied;
@@ -483,6 +520,9 @@ function processTelegramSecureCallback_(query, parsed, nowMs) {
   const acknowledgement = result.status === 'manual_review' ? 'Требуется ручная сверка' :
     result.status === 'failed' ? 'Действие отклонено' : result.code === 'day_partial' ? 'День обработан частично' : 'Готово';
   withDmsOperationMetrics_(metrics, function() {
+    if (presentationContext && typeof presentDmsTelegramDayResult_ === 'function') {
+      presentDmsTelegramDayResult_(presentationContext, result);
+    }
     telegramAnswerCallback_(query.id, acknowledgement, false);
   });
   finishDmsOperationMetricsSafely_(metrics,

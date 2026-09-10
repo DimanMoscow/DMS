@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import {loadBundle} from './apps-script-bundle.mjs';
 import {memoryWorkbook} from './memory-workbook.mjs';
 
-export function undoFixture({paid = false, block = true, onWrite} = {}) {
+export function undoFixture({paid = false, block = true, onWrite, candidate = 'v51', product} = {}) {
   const initial = {'Клиенты': [[], [], [], ['ID']], 'Блоки': [[], [], ['ID']],
     'Оплаты': [[], [], ['ID']], 'Журнал тренировок': [[], [], ['ID']],
     'Очередь подтверждения': [[], [], ['ID']], 'Настройки': [['Key', 'Value']],
@@ -16,7 +16,7 @@ export function undoFixture({paid = false, block = true, onWrite} = {}) {
   const shared = new Map([['DMS_TG_ADMIN_USER_IDS', '1001'], ['DMS_TG_CHAT_ID', '2002'], ['DMS_TG_BOT_TOKEN', 'fixture']]);
   const props = {getProperty: k => shared.get(k) ?? null, setProperty: (k, v) => shared.set(k, String(v)),
     getProperties: () => Object.fromEntries(shared), deleteProperty: k => shared.delete(k)};
-  const create = () => loadBundle('v51', {SpreadsheetApp: book.service,
+  const create = () => loadBundle(candidate, {SpreadsheetApp: book.service,
     PropertiesService: {getScriptProperties: () => props, getDocumentProperties: () => null},
     UrlFetchApp: {fetch: () => ({getResponseCode: () => 200, getContentText: () => JSON.stringify({ok: true, result: {message_id: 7}})})},
     LockService: {getDocumentLock: () => null, getScriptLock: () => ({
@@ -28,9 +28,9 @@ export function undoFixture({paid = false, block = true, onWrite} = {}) {
   const values = ['Q-1', start, '', '', '', start, new Date(start.getTime() + 3600000),
     'Fixture New ПТ', '', '', '', 'Требует регистрации', '', 'Требует регистрации', '', '', ''];
   queue.appendRow(values);
-  const preview = {client: {name: 'Fixture New'}, product: block
+  const preview = {client: {name: 'Fixture New'}, product: product || (block
     ? {code: 'block10', count: 10, price: 30000, format: 'Блок 10', support: 0}
-    : {code: 'single', count: 0, price: 3500, format: 'Разовая'},
+    : {code: 'single', count: 0, price: 3500, format: 'Разовая'}),
     payment: {paid, amount: 30000, method: 'Перевод', dateKey: '2026-09-05'}};
   const result = c.withTelegramDocumentLock_(() => c.applyDmsCalendarOnboardingNewClient_(book.workbook,
     {sheet: queue, row: 4, queueId: 'Q-1', values}, preview, 'fixture-admin'));

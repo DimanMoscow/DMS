@@ -179,6 +179,12 @@ function getDmsDurableOperationHealth_() {
       health.latestErrorClasses[errorClass] = (health.latestErrorClasses[errorClass] || 0) + 1;
     }
   });
+  const recoveryRaw = PropertiesService.getScriptProperties().getProperty('DMS_EMERGENCY_RECOVERY_RESULT_V1');
+  if (recoveryRaw) {
+    let recovery;
+    try { recovery = JSON.parse(recoveryRaw); } catch (ignore) {}
+    if (!recovery || recovery.status !== 'committed') health.manualReview++;
+  }
   if (health.manualReview) health.state = 'manual_review';
   else if (health.stale) health.state = 'stale';
   return health;
@@ -203,10 +209,10 @@ function getDmsOperationMetricsHealth_() {
 
 function normalizeDmsOperationalState_(state) {
   const value = String(state || 'failed');
-  if (['healthy', 'not_due_yet', 'awaiting_sync', 'delayed', 'failed', 'stale',
+  if (['healthy', 'not_due_yet', 'within_window', 'awaiting_sync', 'delayed', 'failed', 'stale',
     'manual_review'].indexOf(value) >= 0) return value;
   if (value === 'last_run_succeeded') return 'healthy';
-  if (value === 'within_expected_window') return 'not_due_yet';
+  if (value === 'within_expected_window') return 'within_window';
   if (value === 'sync_delayed') return 'delayed';
   if (value === 'sync_failed' || value === 'sync_trigger_missing' ||
       value === 'accounting_drift' || value === 'drift_after_successful_sync' ||
@@ -297,11 +303,39 @@ function getDmsOperationalHealth_() {
   };
 }
 
+function getDmsQueueSemanticContext_() {
+  const ss = SpreadsheetApp.getActive();
+  const read = function(name, first) {
+    const sheet = getRequiredSheet_(ss, name);
+    return sheet.getLastRow() < first ? [] : sheet.getRange(first, 1,
+      sheet.getLastRow() - first + 1, sheet.getLastColumn()).getValues();
+  };
+  return {clients: read('Клиенты', 5), blocks: read('Блоки', 4)};
+}
+
+// Only the addressed training and its entitlement inputs can invalidate intent.
+// Audit/source timestamps, labels, derived balances and unrelated entities cannot.
+function getDmsQueueSemanticRevision_(values, context) {
+  const select = function(row, columns) { return columns.map(function(i) {
+    return row && row[i] !== undefined ? row[i] : '';
+  }); };
+  const matchingClients = context.clients.filter(function(row) { return String(row[0]) === String(values[8]); });
+  const client = matchingClients.length === 1 ? matchingClients[0] : null;
+  const blockId = String(values[10] || client && client[3] || '');
+  const blocks = context.blocks.filter(function(row) { return String(row[0]) === blockId; });
+  return hashTelegramConfirmationValue_(canonicalTelegramConfirmationJson_({
+    queue: select(values, [0, 1, 2, 3, 4, 5, 6, 8, 10, 11, 12, 13]),
+    clients: matchingClients.map(function(row) { return select(row, [0, 2, 3, 10]); }),
+    blocks: blocks.map(function(row) { return select(row, [0, 1, 2, 3, 4, 5, 7, 10, 11]); })
+  }));
+}
+
 function getDmsDayAcceptanceRows_(dateKey) {
   const ss = SpreadsheetApp.getActive();
   const queue = getRequiredSheet_(ss, DMS_TELEGRAM.QUEUE);
   const timeZone = ss.getSpreadsheetTimeZone() || 'Europe/Moscow';
   const rows = [];
+  const context = getDmsQueueSemanticContext_();
   const lastRow = queue.getLastRow();
   if (lastRow < DMS_TELEGRAM.QUEUE_FIRST_ROW) return rows;
   queue.getRange(DMS_TELEGRAM.QUEUE_FIRST_ROW, 1,
@@ -312,7 +346,8 @@ function getDmsDayAcceptanceRows_(dateKey) {
       rows.push({
         queueId: String(values[0]),
         decision: String(values[12] || ''),
-        status: String(values[13] || '')
+        status: String(values[13] || ''),
+        semanticRevision: getDmsQueueSemanticRevision_(values, context)
       });
     });
   return rows.sort(function(left, right) { return left.queueId.localeCompare(right.queueId); });
@@ -325,10 +360,12 @@ function normalizeDmsDayAcceptanceRows_(rows) {
     const normalized = {
       queueId: String(row && row.queueId || ''),
       decision: String(row && row.decision || ''),
-      status: String(row && row.status || '')
+      status: String(row && row.status || ''),
+      semanticRevision: String(row && row.semanticRevision || '')
     };
     if (!/^Q-[A-Za-z0-9_-]+$/.test(normalized.queueId) || seen[normalized.queueId] ||
-        normalized.decision.length > 80 || normalized.status.length > 80) {
+        normalized.decision.length > 80 || normalized.status.length > 80 ||
+        !/^[A-Za-z0-9_-]{43}$/.test(normalized.semanticRevision)) {
       throw new Error('Accepted day rows invalid.');
     }
     seen[normalized.queueId] = true;
@@ -346,43 +383,69 @@ function executeDmsDayConfirmation_(command, metrics) {
   }
   const acceptedRows = normalizeDmsDayAcceptanceRows_(input.acceptedRows || []);
   const currentRows = getDmsDayAcceptanceRows_(dateKey);
-  if (canonicalTelegramConfirmationJson_(acceptedRows) !== canonicalTelegramConfirmationJson_(currentRows)) {
+  const currentById = {};
+  currentRows.forEach(function(row) { currentById[row.queueId] = row; });
+  const conflicts = acceptedRows.filter(function(row) {
+    return canonicalTelegramConfirmationJson_(row) !== canonicalTelegramConfirmationJson_(currentById[row.queueId]);
+  }).map(function(row) { return row.queueId; });
+  const calendarTargets = input.calendarTargets || DMS_CONFIRMED_EXECUTION && DMS_CONFIRMED_EXECUTION.payload.calendarTargets || [];
+  calendarTargets.forEach(function(target) {
+    if (target.semanticChanged && target.queueId && conflicts.indexOf(target.queueId) === -1) conflicts.push(target.queueId);
+  });
+  const selected = acceptedRows.filter(function(row) { return conflicts.indexOf(row.queueId) === -1; });
+  let queueIds = selected.map(function(row) { return row.queueId; });
+  const pendingIds = currentRows.filter(function(row) {
+    return !acceptedRows.some(function(accepted) { return row.queueId === accepted.queueId; });
+  }).map(function(row) { return row.queueId; });
+  if (!selected.length) {
     return {status: 'failed', code: 'underlying_state_changed', ref: dateKey, dateKey: dateKey,
       changed: false, total: 0, added: 0, skipped: 0, alreadyLogged: 0, blocked: 0,
-      blockers: [], calendarDeleted: 0, calendarAlreadyMissing: 0, calendarFailed: 0};
+      blockers: [], conflictQueueIds: conflicts, pendingQueueIds: pendingIds,
+      calendarDeleted: 0, calendarAlreadyMissing: 0, calendarFailed: 0};
   }
 
   const previousConfirmedExecution = DMS_CONFIRMED_EXECUTION;
-  if (!previousConfirmedExecution && Array.isArray(input.calendarTargets)) {
+  if (Array.isArray(calendarTargets)) {
     DMS_CONFIRMED_EXECUTION = {
-      state: {operationId: String(input.operationId || '')},
-      payload: {calendarTargets: JSON.parse(canonicalTelegramConfirmationJson_(input.calendarTargets))}
+      state: previousConfirmedExecution ? previousConfirmedExecution.state : {operationId: String(input.operationId || '')},
+      payload: {calendarTargets: JSON.parse(canonicalTelegramConfirmationJson_(calendarTargets.filter(function(target) {
+        return !target.queueId || queueIds.indexOf(target.queueId) !== -1;
+      })))}
     };
   }
   try {
   if (DMS_CONFIRMED_EXECUTION) assertDmsConfirmedCalendarCurrent_(DMS_CONFIRMED_EXECUTION.payload);
   const date = parseTelegramDateKey_(dateKey);
   const preflight = measureDmsOperationPhase_(metrics, 'sheetsReadMs', function() {
-    return processQueueDate_(date, source, true, {lockHeld: true, projectPlannedActivations: true});
+    return processQueueDate_(date, source, true, {lockHeld: true, projectPlannedActivations: true, queueIds: queueIds});
   });
   if (Number(preflight.blocked || 0) > 0 || (preflight.blockers || []).length > 0) {
+    const blockedIds = preflight.blockedQueueIds || [];
+    // Only a positively identified blocker may be excluded. Unknown/global
+    // failures remain closed for the whole accepted operation.
+    if (blockedIds.length === Number(preflight.blocked) && blockedIds.length === (preflight.blockers || []).length) {
+      queueIds = queueIds.filter(function(id) { return blockedIds.indexOf(id) === -1; });
+      blockedIds.forEach(function(id) { if (conflicts.indexOf(id) === -1) conflicts.push(id); });
+    } else queueIds = [];
+    if (!queueIds.length) {
     return {status: 'failed', code: 'day_not_ready', ref: dateKey, dateKey: dateKey,
       changed: false, total: Number(preflight.total || 0), added: 0, skipped: 0,
       alreadyLogged: Number(preflight.alreadyLogged || 0), blocked: Number(preflight.blocked || 0),
       blockers: (preflight.blockers || []).slice(0, 50), calendarDeleted: 0,
       calendarAlreadyMissing: 0, calendarFailed: 0};
+    }
   }
 
   let result;
   let calendarResult;
   measureDmsOperationPhase_(metrics, 'sheetsWriteMs', function() {
-    result = processQueueDate_(date, source, false, {lockHeld: true});
-    calendarResult = applyTelegramCalendarCancellationsForDate_(date);
+    result = processQueueDate_(date, source, false, {lockHeld: true, queueIds: queueIds});
+    calendarResult = applyTelegramCalendarCancellationsForDate_(date, queueIds);
   });
   if (Number(result.blocked || 0) > 0 || (result.blockers || []).length > 0) {
     throw new Error('Day preflight invariant changed during locked execution.');
   }
-  const incomplete = Number(calendarResult.failed || 0) > 0;
+  const incomplete = Number(calendarResult.failed || 0) > 0 || conflicts.length > 0 || pendingIds.length > 0;
   return {
     code: incomplete ? 'day_partial' : 'day_confirmed',
     ref: dateKey,
@@ -392,8 +455,10 @@ function executeDmsDayConfirmation_(command, metrics) {
     added: Number(result.added || 0),
     skipped: Number(result.skipped || 0),
     alreadyLogged: Number(result.alreadyLogged || 0),
-    blocked: 0,
-    blockers: [],
+    blocked: Number(preflight.blocked || 0),
+    blockers: (preflight.blockers || []).slice(0, 50),
+    conflictQueueIds: conflicts,
+    pendingQueueIds: pendingIds,
     calendarDeleted: Number(calendarResult.deleted || 0),
     calendarAlreadyMissing: Number(calendarResult.alreadyMissing || 0),
     calendarFailed: Number(calendarResult.failed || 0)

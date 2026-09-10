@@ -59,11 +59,17 @@ function fixture({date = new Date(), secondDate = date} = {}) {
     return context;
   };
   const context = newExecution();
-  const query = action => ({id: 'callback-' + action, data: 'qd:Q-2:' + action,
+  const dayKey = context.makeDateKey_(secondDate, 'Europe/Moscow');
+  const markup = context.sealDmsTelegramDayView_(dayKey, {inline_keyboard: [
+    ['done','charge','free','move'].map(action=>({callback_data:'qd:Q-2:'+action}))
+  ]});
+  context.bindDmsTelegramDayView_(markup, '2002', '7');
+  const query = action => ({id: 'callback-' + action, data: markup.inline_keyboard[0][['done','charge','free','move'].indexOf(action)].callback_data,
     from: {id: '1001'}, message: {message_id: 7, date: Math.floor(Date.now() / 1000),
       text: 'Вчера / Сегодня', chat: {id: '2002'}}});
   const queue = book.sheets.get('Очередь подтверждения');
-  return {book, context, newExecution, query, queue, ui, isLocked: () => locked};
+  const semanticRevision = context.getDmsQueueSemanticRevision_(queue.getRange(5,1,1,17).getValues()[0], context.getDmsQueueSemanticContext_());
+  return {book, context, newExecution, query, queue, ui, markup, semanticRevision, isLocked: () => locked};
 }
 
 const decisions = {
@@ -72,6 +78,29 @@ const decisions = {
   free: 'Отмена без списания',
   move: 'Перенос',
 };
+
+test('rendered callback has no editable row/action and a forged capability fails closed', () => {
+  const f = fixture(); const query = f.query('free');
+  assert.match(query.data, /^qv:[a-f0-9]{24}:[a-f0-9]{24}$/);
+  assert.ok(Buffer.byteLength(query.data) <= 64);
+  query.data = query.data.slice(0, -24) + '0'.repeat(24);
+  f.context.handleTelegramCallback_(query);
+  assert.equal(f.queue.getRange(5, 13).getValue(), '');
+  assert.equal(f.book.sheets.get('Журнал операций Telegram').getLastRow(), 1);
+});
+
+test('Telegram refresh follows durable commit outside the lock and network retry does not repeat the effect', () => {
+  const f = fixture(); const query = f.query('free'); let fail = true;
+  f.context.refreshTelegramQueueMessage_ = () => {
+    assert.equal(f.isLocked(), false);
+    assert.equal(f.book.sheets.get('Журнал операций Telegram').rows.at(-1)[4], 'committed');
+    if (fail) {fail = false; throw new Error('Telegram network unavailable');}
+  };
+  f.context.handleTelegramCallback_(query);
+  const writes = f.book.writes.filter(w => w.sheet === 'Очередь подтверждения').length;
+  f.context.handleTelegramCallback_(query);
+  assert.equal(f.book.writes.filter(w => w.sheet === 'Очередь подтверждения').length, writes);
+});
 
 for (const [action, expected] of Object.entries(decisions)) {
   test(`Telegram qd:${action} accepts and applies the exact row in one click`, () => {
@@ -179,7 +208,7 @@ test('Telegram and MiniApp receive the same queue-decision domain result', () =>
   );
   const miniApp = fixture();
   const miniAppResult = miniApp.context.setDmsMiniAppQueueDecision_({
-    queueId: 'Q-2', decision: 'charge', expectedDecision: '', expectedStatus: 'Ожидает',
+    queueId: 'Q-2', decision: 'charge', expectedDecision: '', expectedStatus: 'Ожидает', semanticRevision: miniApp.semanticRevision,
     operationId: '11111111-1111-4111-8111-111111111111'
   }, '1001').mutation;
   const domainKeys = ['code', 'ref', 'changed', 'queueId', 'decision', 'notice'];
@@ -189,7 +218,7 @@ test('Telegram and MiniApp receive the same queue-decision domain result', () =>
 
 test('MiniApp queue retry returns its durable result without a second effect', () => {
   const f = fixture();
-  const payload = {queueId: 'Q-2', decision: 'free', expectedDecision: '', expectedStatus: 'Ожидает',
+  const payload = {queueId: 'Q-2', decision: 'free', expectedDecision: '', expectedStatus: 'Ожидает', semanticRevision: f.semanticRevision,
     operationId: '22222222-2222-4222-8222-222222222222'};
   const first = f.context.setDmsMiniAppQueueDecision_(payload, '1001').mutation;
   const queueWrites = () => f.book.writes.filter(write => write.sheet === 'Очередь подтверждения').length;
@@ -203,7 +232,7 @@ test('MiniApp queue retry returns its durable result without a second effect', (
 
 test('MiniApp queue crash after its durable row marker recovers without replaying the write', () => {
   const f = fixture(); let crashed = false;
-  const payload = {queueId: 'Q-2', decision: 'free', expectedDecision: '', expectedStatus: 'Ожидает',
+  const payload = {queueId: 'Q-2', decision: 'free', expectedDecision: '', expectedStatus: 'Ожидает', semanticRevision: f.semanticRevision,
     operationId: '33333333-3333-4333-8333-333333333333'};
   f.book.hooks.after = event => {
     if (!crashed && event.sheet === 'Очередь подтверждения' && event.col === 17) {
@@ -223,14 +252,14 @@ test('MiniApp queue crash after its durable row marker recovers without replayin
 test('MiniApp queue accepted state change and concurrent delivery fail closed', () => {
   const changed = fixture();
   changed.queue.getRange(5, 13).setValue('Проведена');
-  const changedPayload = {queueId: 'Q-2', decision: 'free', expectedDecision: '', expectedStatus: 'Ожидает',
+  const changedPayload = {queueId: 'Q-2', decision: 'free', expectedDecision: '', expectedStatus: 'Ожидает', semanticRevision: changed.semanticRevision,
     operationId: '66666666-6666-4666-8666-666666666666'};
   assert.throws(() => changed.context.setDmsMiniAppQueueDecision_(changedPayload, '1001'),
     error => error.dmsCode === 'underlying_state_changed');
   assert.equal(changed.queue.getRange(5, 13).getValue(), 'Проведена');
 
   const concurrent = fixture(); const other = concurrent.newExecution(); let attempted = false;
-  const payload = {queueId: 'Q-2', decision: 'free', expectedDecision: '', expectedStatus: 'Ожидает',
+  const payload = {queueId: 'Q-2', decision: 'free', expectedDecision: '', expectedStatus: 'Ожидает', semanticRevision: concurrent.semanticRevision,
     operationId: '77777777-7777-4777-8777-777777777777'};
   concurrent.book.hooks.after = event => {
     if (!attempted && event.sheet === 'Журнал операций Telegram' && event.values[0][4] === 'started') {

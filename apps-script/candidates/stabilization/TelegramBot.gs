@@ -17,10 +17,10 @@ const DMS_TELEGRAM = {
 // bundle is actually serving the web-app URL after a deployment update.
 const DMS_RUNTIME_IDENTITY = {
   SERVICE: 'dms-fitness-apps-script',
-  RELEASE: 'system-stabilization',
-  ROUTER_SHA256: 'c3fa2b044a4bc591d18103a475d0c6a92fd5252d3faf123ba7ba16f395acba39',
+  RELEASE: 'emergency-semantic-recovery',
+  ROUTER_SHA256: '845880a146750df5f7d94ceae4ddfcb533fe2f995d566b26a1635630721ffbd7',
   CLIENT_PORTAL_SHA256: '763e56aebc3bd07db8bae8e70e33e40ea3ab29856f7fb9ed408c482e979e4b98',
-  TELEGRAM_CONFIRMATIONS_SHA256: '2b0c01e90f0c03242ff2b249a60abd1f065927f6956893f41f28634ebedd1e61'
+  TELEGRAM_CONFIRMATIONS_SHA256: 'cdf03fac0af9b7757c0ba5090817fadac35819ff9685c4afba6ac4590b1fbb7e'
 };
 
 /**
@@ -434,7 +434,7 @@ function buildTelegramQueueDashboard_(date) {
     title: title,
     items: items,
     text: lines.join('\n'),
-    replyMarkup: keyboard.length ? {inline_keyboard: keyboard} : null
+    replyMarkup: keyboard.length ? sealDmsTelegramDayView_(dateKey, {inline_keyboard: keyboard}) : null
   };
 }
 
@@ -591,7 +591,7 @@ function buildTelegramWarningsText_() {
  * Planned blocks are converted to active only when an ended training from that
  * block is about to be counted. Payment fields are untouched, so debt remains.
  */
-function activateStartedPlannedBlocksForDate_(date) {
+function activateStartedPlannedBlocksForDate_(date, queueIds) {
   const ss = SpreadsheetApp.getActive();
   const queue = getRequiredSheet_(ss, DMS_TELEGRAM.QUEUE);
   const blocks = getRequiredSheet_(ss, 'Блоки');
@@ -617,6 +617,7 @@ function activateStartedPlannedBlocksForDate_(date) {
     queueLastRow - DMS_TELEGRAM.QUEUE_FIRST_ROW + 1,
     DMS_TELEGRAM.QUEUE_COLUMNS
   ).getValues().forEach(function(row) {
+    if (Array.isArray(queueIds) && queueIds.indexOf(String(row[0])) === -1) return;
     if (!(row[1] instanceof Date) || makeDateKey_(row[1], timeZone) !== dateKey) return;
     if (row[13] === 'Обработано') return;
     if (['Проведена', 'Отмена со списанием'].indexOf(String(row[12] || '')) === -1) return;
@@ -969,7 +970,8 @@ function setTelegramQueueDecision_(queueId, decisionCode, options) {
 
   if (settings.expected && (
       String(values[12] || '') !== String(settings.expected.decision || '') ||
-      String(values[13] || '') !== String(settings.expected.status || ''))) {
+      String(values[13] || '') !== String(settings.expected.status || '') ||
+      settings.expected.semanticRevision && getDmsQueueSemanticRevision_(values, getDmsQueueSemanticContext_()) !== settings.expected.semanticRevision)) {
     const changed = new Error('Состояние события изменилось.');
     changed.dmsDomainCode = 'underlying_state_changed';
     throw changed;
@@ -4880,6 +4882,10 @@ function createTelegramBlockRow_(state, clientId) {
   const todayKey = Utilities.formatDate(new Date(), timeZone, 'yyyy-MM-dd');
   const status = state.blockDateKey > todayKey ? 'Запланирован' : 'Активен';
 
+  if (!Number.isSafeInteger(count) || count <= 0 || !isFinite(price) || price <= 0) {
+    throw new Error('Некорректная стоимость или размер блока.');
+  }
+
   prepareTelegramEntityRow_(
     blocks,
     blockRow,
@@ -4897,7 +4903,7 @@ function createTelegramBlockRow_(state, clientId) {
     count
   ]]);
   setTelegramBlockStatus_(blocks, blockRow, status);
-  blocks.getRange(blockRow, 11).setValue(price);
+  blocks.getRange(blockRow, 11, 1, 2).setValues([[price, price / count]]);
   blocks.getRange(blockRow, 13).clearContent();
   blocks.getRange(blockRow, 16).setValue(
     'Создан через Telegram ' + Utilities.formatDate(new Date(), timeZone, 'dd.MM.yyyy')

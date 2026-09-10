@@ -153,7 +153,7 @@ function buildDmsSemanticReconciliationHealth_(financial) {
     invalidValue: 0,
     formulaIntegrity: 0,
     numericMismatch: (financial.numericMismatches || financial.mismatches || []).length,
-    other: 0
+    other: (financial.businessFindings || []).length
   };
   (financial.issues || []).forEach(function(issue) {
     const value = String(issue || '');
@@ -177,6 +177,58 @@ function buildDmsSemanticReconciliationHealth_(financial) {
   };
 }
 
+function computeDmsBusinessSemanticFindings_(clients, blocks, payments, journal, queue) {
+  const findings = [];
+  const add = function(kind, ref) { findings.push({kind: kind, ref: String(ref)}); };
+  const byBlock = {}; const singleCharges = {}; const singlePaid = {}; const byQueue = {};
+  blocks.forEach(function(row) {
+    if (!row[0]) return;
+    byBlock[String(row[0])] = {row: row, counted: 0, paid: 0};
+    if (!Number.isSafeInteger(row[7]) || row[7] <= 0 ||
+        !Number.isFinite(row[10]) || row[10] <= 0 || !Number.isFinite(row[11]) || row[11] <= 0) {
+      add('block_financial_fields', row[0]);
+    }
+  });
+  journal.forEach(function(row) {
+    if (!row[0] || row[6] !== 'Проведена') return;
+    if (row[18]) {
+      const key = String(row[18]);
+      if (!byQueue[key]) byQueue[key] = [];
+      byQueue[key].push(row);
+    }
+    if (byBlock[String(row[3])]) byBlock[String(row[3])].counted++;
+    if (!row[3] && row[4] === 'Разовая' && row[5] === 'Фактически проведена') {
+      singleCharges[String(row[2])] = (singleCharges[String(row[2])] || 0) + Number(row[7] || 0);
+    }
+  });
+  payments.forEach(function(row) {
+    if (!row[0] || row[7] !== 'Подтверждён') return;
+    if (byBlock[String(row[3])]) byBlock[String(row[3])].paid += Number(row[6] || 0);
+    else if (!row[3]) singlePaid[String(row[2])] = (singlePaid[String(row[2])] || 0) + Number(row[6] || 0);
+  });
+  Object.keys(byBlock).forEach(function(id) {
+    const item = byBlock[id];
+    if (item.counted > item.row[7]) add('block_overconsumed', id);
+    if (item.paid > item.row[10]) add('block_overpaid_requires_review', id);
+  });
+  clients.forEach(function(row) {
+    if (!row[0]) return;
+    const block = byBlock[String(row[3])];
+    if (row[3] && (!block || block.row[3] === 'Закрыт')) add('invalid_active_block', row[0]);
+    if ((singleCharges[String(row[0])] || 0) > (singlePaid[String(row[0])] || 0)) add('single_payment_gap', row[0]);
+  });
+  queue.forEach(function(row) {
+    if (!row[0] || row[13] !== 'Обработано') return;
+    const records = byQueue[String(row[0])] || [];
+    const charged = ['Проведена', 'Отмена со списанием'].indexOf(row[12]) !== -1;
+    const free = ['Отмена без списания', 'Не учитывать'].indexOf(row[12]) !== -1;
+    if (charged && records.length !== 1 || free && records.length !== 0) add('queue_accounting_effect', row[0]);
+    if (records.some(function(record) {return String(record[2]) !== String(row[8]) ||
+        row[10] && String(record[3]) !== String(row[10]);})) add('queue_journal_ownership', row[0]);
+  });
+  return findings;
+}
+
 function getDmsFinancialHealth_() {
   const ss = SpreadsheetApp.getActive();
   function read(name, first, width) {
@@ -184,7 +236,10 @@ function getDmsFinancialHealth_() {
     return sheet.getLastRow() < first ? [] : sheet.getRange(first, 1, sheet.getLastRow() - first + 1, width).getValues();
   }
   const clients = read('Клиенты', 5, 14); const blocks = read('Блоки', 4, 17);
-  const expected = computeDmsFinancialExpected_(clients, blocks, read('Оплаты', 4, 10), read('Журнал тренировок', 4, 19));
+  const payments = read('Оплаты', 4, 10); const journal = read('Журнал тренировок', 4, 19);
+  const expected = computeDmsFinancialExpected_(clients, blocks, payments, journal);
+  const businessFindings = computeDmsBusinessSemanticFindings_(clients, blocks, payments,
+    journal, read('Очередь подтверждения', 4, 17));
   const issues = expected.issues.slice(); const mismatches = [];
   try {
     if (getDmsClientFormatRepairs_(getRequiredSheet_(ss, 'Клиенты')).length) issues.push('Client format lookup has a fixed horizon');
@@ -214,5 +269,6 @@ function getDmsFinancialHealth_() {
     });
   });
   return {ok: issues.length === 0 && mismatches.length === 0, issues: issues, mismatches: mismatches,
+    businessFindings: businessFindings,
     summary: 'financial issues=' + issues.length + '; numeric mismatches=' + mismatches.length};
 }

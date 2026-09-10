@@ -220,6 +220,7 @@ function getDmsMiniAppBootstrap_() {
   const waiting = queue.items.map(function(item) {
     return {
       queueId: item.queueId,
+      semanticRevision: item.semanticRevision,
       start: dmsMiniAppDateValue_(item.start),
       end: dmsMiniAppDateValue_(item.end),
       time: item.start instanceof Date
@@ -282,6 +283,7 @@ function getDmsMiniAppQueueSnapshot_(date, ss, timeZone) {
   };
   const lastRow = queue.getLastRow();
   if (lastRow < DMS_TELEGRAM.QUEUE_FIRST_ROW) return result;
+  const semanticContext = getDmsQueueSemanticContext_();
 
   queue.getRange(
     DMS_TELEGRAM.QUEUE_FIRST_ROW,
@@ -297,6 +299,7 @@ function getDmsMiniAppQueueSnapshot_(date, ss, timeZone) {
     if (makeDateKey_(row[1], timeZone) !== dateKey) return;
     result.items.push({
       queueId: String(row[0]),
+      semanticRevision: getDmsQueueSemanticRevision_(row, semanticContext),
       start: row[5],
       end: row[6],
       client: String(row[9] || row[7] || 'Не распознано'),

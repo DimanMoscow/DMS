@@ -881,7 +881,7 @@ function validateQueueTrainingFast_(values, decision, now, context) {
 
   const eventStart = values[5];
 
-  if (block[4] instanceof Date && eventStart < block[4]) {
+  if (block[4] instanceof Date && makeDateKey_(eventStart, 'Europe/Moscow') < makeDateKey_(block[4], 'Europe/Moscow')) {
     return {ok: false, error: 'Тренировка раньше даты открытия блока.'};
   }
 
@@ -901,12 +901,10 @@ function validateQueueTrainingFast_(values, decision, now, context) {
     return {ok: false, error: 'В блоке ' + blockId + ' закончились тренировки.'};
   }
 
-  return {
-    ok: true,
-    blockId: blockId,
-    format: block[2],
-    trainingPrice: Number(block[11]) || 0
-  };
+  if (typeof block[11] !== 'number' || !Number.isFinite(block[11]) || block[11] <= 0) {
+    return {ok: false, error: 'В блоке не задана корректная цена тренировки.'};
+  }
+  return {ok: true, blockId: blockId, format: block[2], trainingPrice: block[11]};
 }
 
 function writeQueueTrainingLogRowFast_(log, data, context) {
@@ -947,7 +945,7 @@ function writeQueueTrainingLogRowFast_(log, data, context) {
     'Проведена',
     data.trainingPrice,
     'Calendar',
-    '',
+    data.note || '',
     '',
     false,
     data.calendarId,

@@ -608,8 +608,9 @@ function toggleTelegramSetting_(key) {
 
 function sendTelegramMorningDigest(event) {
   const metrics = beginDmsOperationMetrics_('morning_digest');
-  const execution = beginDmsScheduledAutomationExecution_('sendTelegramMorningDigest', event);
+  let execution = null;
   try {
+    execution = beginDmsScheduledAutomationExecution_('sendTelegramMorningDigest', event);
     const result = withDmsOperationMetrics_(metrics, function() {
       assertDmsP1ReleaseReady_();
       const settings = getTelegramFinalSettings_();
@@ -648,8 +649,9 @@ function sendTelegramMorningDigest(event) {
 
 function sendTelegramDailyQueue(event) {
   const metrics = beginDmsOperationMetrics_('evening_queue');
-  const execution = beginDmsScheduledAutomationExecution_('sendTelegramDailyQueue', event);
+  let execution = null;
   try {
+    execution = beginDmsScheduledAutomationExecution_('sendTelegramDailyQueue', event);
     const result = withDmsOperationMetrics_(metrics, function() {
       assertDmsP1ReleaseReady_();
       const settings = getTelegramFinalSettings_();
@@ -1246,8 +1248,9 @@ function runDmsBackupRestoreDryRun() {
 
 function createDmsAutomaticBackup(event) {
   const metrics = beginDmsOperationMetrics_('automatic_backup');
-  const execution = beginDmsScheduledAutomationExecution_('createDmsAutomaticBackup', event);
+  let execution = null;
   try {
+    execution = beginDmsScheduledAutomationExecution_('createDmsAutomaticBackup', event);
     const backupId = withDmsOperationMetrics_(metrics, function() {
       return createTelegramDataBackup(metrics);
     });

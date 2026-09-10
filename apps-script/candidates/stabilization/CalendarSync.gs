@@ -24,9 +24,10 @@ function syncCalendarToQueue(event) {
   const metrics = beginDmsOperationMetrics_(
     event && event.triggerUid ? 'calendar_sync_scheduled' : 'calendar_sync_inline'
   );
-  const execution = beginDmsScheduledAutomationExecution_('syncCalendarToQueue', event);
+  let execution = null;
   const lock = getDmsMutationLock_();
   try {
+    execution = beginDmsScheduledAutomationExecution_('syncCalendarToQueue', event);
     const lockStartedAt = Date.now();
     if (!lock.tryLock(10000)) {
       addDmsOperationDuration_(metrics, 'lockWaitMs', Date.now() - lockStartedAt);

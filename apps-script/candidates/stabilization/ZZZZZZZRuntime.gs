@@ -3,7 +3,7 @@ function myFunctionTelegramRuntime_() {
 
 // DMS Telegram calendar-permission and cancellation-retry extension v18.
 
-function applyTelegramCalendarCancellationsForDate_(date) {
+function applyTelegramCalendarCancellationsForDate_(date, queueIds) {
   const lock = getDmsMutationLock_();
 
   if (!lock.tryLock(10000)) {
@@ -33,6 +33,7 @@ function applyTelegramCalendarCancellationsForDate_(date) {
     ).getValues();
 
     rows.forEach(function(values, index) {
+      if (Array.isArray(queueIds) && queueIds.indexOf(String(values[0])) === -1) return;
       if (!(values[1] instanceof Date) ||
           makeDateKey_(values[1], timeZone) !== dateKey ||
           ['Обработано', 'Ошибка'].indexOf(String(values[13] || '')) === -1 ||
@@ -175,7 +176,8 @@ function processQueueDate_(date, confirmationSource, dryRun, options) {
       alreadyLogged: 0,
       blocked: 0,
       blockers: [],
-      autoClosedBlocks: []
+      autoClosedBlocks: [],
+      blockedQueueIds: []
     };
     const projectedRows = dryRun && Array.isArray(settings.queueRows)
       ? settings.queueRows.map(function(values) { return values.slice(); })
@@ -185,13 +187,18 @@ function processQueueDate_(date, confirmationSource, dryRun, options) {
       : queue.getLastRow();
 
     if (!dryRun && typeof activateStartedPlannedBlocksForDate_ === 'function') {
-      activateStartedPlannedBlocksForDate_(date);
+      activateStartedPlannedBlocksForDate_(date, settings.queueIds);
     }
 
     const context = buildQueueProcessingContext_(clients, blocks, log);
+    let settlementContext = null;
+    const settlements = function() {
+      if (!settlementContext) settlementContext = getDmsSingleSettlementContext_(ss);
+      return settlementContext;
+    };
 
     // Repair stale active links even when the day has no queue rows.
-    if (!dryRun) {
+    if (!dryRun && !Array.isArray(settings.queueIds)) {
       result.autoClosedBlocks = autoCloseAllExhaustedBlocks_(
         clients,
         blocks,
@@ -215,7 +222,9 @@ function processQueueDate_(date, confirmationSource, dryRun, options) {
     if (dryRun && settings.projectPlannedActivations) {
       projectStartedPlannedBlocksForDate_(
         dateKey,
-        queueRows,
+        queueRows.filter(function(row) {
+          return !Array.isArray(settings.queueIds) || settings.queueIds.indexOf(String(row[0])) !== -1;
+        }),
         context,
         timeZone,
         now
@@ -224,6 +233,8 @@ function processQueueDate_(date, confirmationSource, dryRun, options) {
 
     queueRows.forEach(function(values, index) {
       const rowNumber = DMS_QUEUE_PROCESSING.QUEUE_FIRST_ROW + index;
+
+      if (Array.isArray(settings.queueIds) && settings.queueIds.indexOf(String(values[0])) === -1) return;
 
       if (!values[0] || !(values[1] instanceof Date)) return;
       if (makeDateKey_(values[1], timeZone) !== dateKey) return;
@@ -238,6 +249,7 @@ function processQueueDate_(date, confirmationSource, dryRun, options) {
         context.logByEventId[eventId] || null;
 
       if (existingRecord) {
+        assertDmsExistingSingleSettlement_(settlements(), existingRecord);
         result.alreadyLogged++;
 
         if (!dryRun) {
@@ -268,6 +280,7 @@ function processQueueDate_(date, confirmationSource, dryRun, options) {
           ' тренировок уже использованы.';
         result.blocked++;
         result.blockers.push(queueId + ': ' + message);
+        result.blockedQueueIds.push(queueId);
 
         if (!dryRun) {
           autoCloseExhaustedBlock_(
@@ -287,8 +300,18 @@ function processQueueDate_(date, confirmationSource, dryRun, options) {
       if (!validation.ok) {
         result.blocked++;
         result.blockers.push(queueId + ': ' + validation.error);
+        result.blockedQueueIds.push(queueId);
 
         if (!dryRun) markQueueError_(queue, rowNumber, values, validation.error);
+        return;
+      }
+
+      const settlement = !validation.blockId && decision === 'Проведена'
+        ? planDmsSingleSettlement_(settlements(), values, validation.trainingPrice) : null;
+      if (settlement && settlement.error) {
+        result.blocked++;
+        result.blockers.push(queueId + ': ' + settlement.error);
+        result.blockedQueueIds.push(queueId);
         return;
       }
 
@@ -316,8 +339,11 @@ function processQueueDate_(date, confirmationSource, dryRun, options) {
         recurringEventId: values[4],
         confirmedAt: now,
         confirmationSource: confirmationSource,
-        queueId: queueId
+        queueId: queueId,
+        note: settlement ? settlement.marker : ''
       }, context);
+
+      if (settlement) writeDmsSingleSettlement_(ss, settlement);
 
       context.logByQueueId[queueId] = recordId;
       if (eventId) context.logByEventId[eventId] = recordId;
@@ -1413,8 +1439,9 @@ function getDmsWatchdogAlertSignature_(failedChecks) {
 }
 function runDmsWatchdog(event) {
   const metrics = beginDmsOperationMetrics_('watchdog');
-  const execution = beginDmsScheduledAutomationExecution_('runDmsWatchdog', event);
+  let execution = null;
   try {
+    execution = beginDmsScheduledAutomationExecution_('runDmsWatchdog', event);
     const report = withDmsOperationMetrics_(metrics, function() {
       assertDmsP1ReleaseReady_();
       return measureDmsOperationPhase_(metrics, 'healthCheckMs', function() {

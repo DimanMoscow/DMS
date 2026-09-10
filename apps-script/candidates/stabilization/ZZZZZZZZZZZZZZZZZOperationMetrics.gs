@@ -15,6 +15,8 @@ const DMS_OPERATION_METRICS = {
   },
   DURATIONS: {
     lockWaitMs: true,
+    lockHeldMs: true,
+    flushMs: true,
     sheetsReadMs: true,
     sheetsWriteMs: true,
     calendarMs: true,
@@ -46,6 +48,8 @@ function beginDmsOperationMetrics_(operation) {
     startedAtMs: Date.now(),
     durations: {
       lockWaitMs: 0,
+      lockHeldMs: 0,
+      flushMs: 0,
       sheetsReadMs: 0,
       sheetsWriteMs: 0,
       calendarMs: 0,
@@ -121,6 +125,8 @@ function finishDmsOperationMetrics_(metrics, outcome, error) {
       finishedAtMs - metrics.startedAtMs
     )),
     lockWaitMs: metrics.durations.lockWaitMs,
+    lockHeldMs: metrics.durations.lockHeldMs,
+    flushMs: metrics.durations.flushMs,
     sheetsReadMs: metrics.durations.sheetsReadMs,
     sheetsWriteMs: metrics.durations.sheetsWriteMs,
     calendarMs: metrics.durations.calendarMs,

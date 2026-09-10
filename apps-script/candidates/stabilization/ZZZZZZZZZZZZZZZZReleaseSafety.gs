@@ -18,7 +18,7 @@ const DMS_SCHEDULED_AUTOMATION = {
   ]
 };
 
-const DMS_RELEASE_READY_MARKER = 'system-stabilization-2026-09';
+const DMS_RELEASE_READY_MARKER = 'emergency-semantic-recovery-2026-09';
 
 // A new HEAD starts closed. Only the verified, drained stabilization rollout may enable
 // business mutations. Scheduled health metadata is maintained separately.
@@ -98,8 +98,12 @@ function getDmsScheduledAutomationRecordDate_(record, field) {
 function updateDmsScheduledAutomationRecord_(handler, event, mutate) {
   const triggerUid = event && event.triggerUid ? String(event.triggerUid) : '';
   if (!triggerUid) return null;
-  const lease = getDmsMutationLock_();
-  if (!lease.tryLock(10000)) throw new Error('DMS scheduled health update is busy.');
+  assertDmsScheduledInvocation_(handler, event);
+  // Health records must explain a maintenance rejection. This narrow writer
+  // acquires the same mutex but never grants a business-mutation lease.
+  const lease = DMS_MUTATION_DEPTH ? null : LockService.getScriptLock();
+  if (lease && !lease.tryLock(10000)) throw new Error('DMS scheduled health update is busy.');
+  if (!lease && !DMS_MUTATION_DEPTH) throw new Error('Script lock unavailable.');
   try {
     const manifest = getDmsScheduledAutomationManifest_();
     const expected = findDmsScheduledAutomationManifestTrigger_(manifest, handler);
@@ -118,7 +122,7 @@ function updateDmsScheduledAutomationRecord_(handler, event, mutate) {
     );
     return record;
   } finally {
-    lease.releaseLock();
+    if (lease) lease.releaseLock();
   }
 }
 
@@ -174,6 +178,7 @@ function recordDmsScheduledAutomationSuccess_(handler, event, outcome, execution
     record.triggerId = triggerUid;
     if (!record.lastStartedAt) record.lastStartedAt = finishedAt.toISOString();
     record.lastSuccessAt = finishedAt.toISOString();
+    record.lastCompletedAt = finishedAt.toISOString();
     record.lastDurationMs = getDmsScheduledDurationMs_(execution, record, finishedAt.getTime());
     record.outcome = outcome;
   });
@@ -199,6 +204,7 @@ function recordDmsScheduledAutomationFailure_(handler, event, error, execution) 
     record.triggerId = triggerUid;
     if (!record.lastStartedAt) record.lastStartedAt = finishedAt.toISOString();
     record.lastErrorAt = finishedAt.toISOString();
+    record.lastCompletedAt = finishedAt.toISOString();
     record.lastErrorClass = classifyDmsScheduledAutomationError_(error);
     record.lastDurationMs = getDmsScheduledDurationMs_(execution, record, finishedAt.getTime());
     record.outcome = 'failed';
@@ -440,7 +446,8 @@ function getDmsHourlyScheduledState_(spec, record, manifest, now) {
   if (error && (!success || error.getTime() > success.getTime())) {
     state = 'last_run_failed';
   } else if (record && record.outcome === 'started' && lastStarted &&
-      (!success || lastStarted.getTime() > success.getTime())) {
+      (!success || lastStarted.getTime() > success.getTime()) &&
+      isDmsScheduledDateCurrent_(lastStarted, now) && now.getTime() - lastStarted.getTime() <= 360000) {
     state = 'within_expected_window';
   } else if (success && now.getTime() < window.start.getTime()) {
     state = 'last_run_succeeded';
@@ -526,6 +533,7 @@ function getDmsScheduledAutomationHealth_(options) {
       enabled: enabled,
       state: state,
       lastStartedAt: timing.lastStarted ? timing.lastStarted.toISOString() : null,
+      lastCompletedAt: record && isFinite(Date.parse(record.lastCompletedAt)) ? record.lastCompletedAt : null,
       lastSuccessAt: timing.lastSuccess ? timing.lastSuccess.toISOString() : null,
       lastErrorAt: timing.lastError ? timing.lastError.toISOString() : null,
       lastErrorClass: record && record.lastErrorClass ? String(record.lastErrorClass) : null,
@@ -594,6 +602,7 @@ function inspectDmsP1ReleaseState() {
   const scheduled = getDmsScheduledAutomationHealth_({requireFreshness: true});
   const report = {checkedAt: new Date().toISOString(), originalDocumentContext: true,
     usage: getDmsPropertyUsage_(), legacyStates: states, ledgerRows: count, ledgerEvents: events,
+    durableOperations: getDmsDurableOperationHealth_(),
     mutationReady: PropertiesService.getScriptProperties().getProperty('DMS_P1_RELEASE_READY') ===
       DMS_RELEASE_READY_MARKER,
     scheduledAutomation: {ok: scheduled.ok, configOk: scheduled.configOk,
@@ -607,6 +616,7 @@ function inspectDmsP1ReleaseState() {
           expectedSchedule: item.expectedSchedule,
           state: item.state,
           lastStartedAt: item.lastStartedAt,
+          lastCompletedAt: item.lastCompletedAt,
           lastSuccessAt: item.lastSuccessAt,
           lastErrorAt: item.lastErrorAt,
           lastErrorClass: item.lastErrorClass,
@@ -620,13 +630,13 @@ function inspectDmsP1ReleaseState() {
   return report;
 }
 
-// Called after the stabilization HEAD is independently read back. It converts the active v54
+// Called after the stabilization HEAD is independently read back. It converts the active v55
 // marker into a closed state and starts the old-execution drain timer.
 function startDmsP1ExecutionDrain() {
   const properties = PropertiesService.getScriptProperties();
   const ready = properties.getProperty('DMS_P1_RELEASE_READY') || '';
   if (ready === DMS_RELEASE_READY_MARKER) throw new Error('Release is already enabled.');
-  if (ready && ready !== 'v54') throw new Error('Unexpected release marker.');
+  if (ready && ready !== 'system-stabilization-2026-09') throw new Error('Unexpected release marker.');
   properties.deleteProperty('DMS_P1_RELEASE_READY');
   const startedAt = new Date().toISOString();
   properties.setProperty('DMS_P1_DRAIN_STARTED_AT', startedAt);
@@ -644,7 +654,11 @@ function activateDmsP1Release() {
     if (!isFinite(start) || Date.now() - start < 420000) throw new Error('Old executions have not drained.');
     getTelegramOperationLedger_();
     const financial = getDmsFinancialHealth_();
-    if (!financial.ok) throw new Error('Financial migration numeric gate failed.');
+    if (!financial.ok || (financial.businessFindings || []).length) throw new Error('Financial or semantic gate failed.');
+    const durable = getDmsDurableOperationHealth_();
+    if (durable.pending || durable.stale || durable.manualReview) throw new Error('Unresolved durable operation blocks activation.');
+    const usage = getDmsPropertyUsage_();
+    if (usage.script.failSafe || usage.document.failSafe) throw new Error('Property capacity gate failed.');
     const scheduled = getDmsScheduledAutomationHealth_({requireFreshness: false});
     if (!scheduled.configOk || !scheduled.settingsOk) {
       throw new Error('Scheduled automation configuration gate failed.');

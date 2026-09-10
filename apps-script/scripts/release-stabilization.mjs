@@ -26,6 +26,11 @@ export function verifyStabilizationReleaseInventory(inventory, {now = Date.now()
     'stabilization candidate must remain paused before activation');
   assert.equal(inventory.scriptLockAvailable, true);
   assert.equal(inventory.documentLockAvailable, true);
+  for (const field of ['pending', 'stale', 'manualReview']) {
+    assert.equal(inventory.durableOperations?.[field], 0, 'unresolved durable operations block publication');
+  }
+  assert.equal(inventory.usage?.script?.failSafe, false, 'script property capacity gate failed');
+  assert.equal(inventory.usage?.document?.failSafe, false, 'document property capacity gate failed');
   assert.equal(inventory.scheduledAutomation?.configOk, true,
     'scheduled trigger configuration is not verified');
   assert.equal(inventory.scheduledAutomation?.settingsOk, true,
@@ -93,7 +98,7 @@ export async function runStabilizationReleasePhase({
   const plan = read(planPath);
   verifyOfflineReleasePlan(plan, {sourceRevision});
   assert.equal(plan.candidate, 'stabilization');
-  assert.equal(plan.baseline, 'v54');
+  assert.equal(plan.baseline, 'v55');
 
   loadAuthorizationProfile(path.join(privateRoot, 'reader-profile.json'), 'reader');
   const profile = loadAuthorizationProfile(path.join(privateRoot, 'writer-profile.json'), 'writer');
@@ -107,13 +112,13 @@ export async function runStabilizationReleasePhase({
   assert.equal(candidateTree, verification.candidates.stabilization.sourceTreeSha256);
   const base = SCRIPT_API + '/projects/' + encodeURIComponent(target.script_id);
   const [numbered, head, deployments] = await Promise.all([
-    googleJson(token, base + '/content?versionNumber=54', {}, fetchImpl),
+    googleJson(token, base + '/content?versionNumber=55', {}, fetchImpl),
     googleJson(token, base + '/content', {}, fetchImpl),
     googleJson(token, base + '/deployments', {}, fetchImpl),
   ]);
   const substitutions = verifyRemoteBaseline({
     remoteFiles: normalizeRemoteFiles(numbered.files),
-    baselineFiles: sourceMap('apps-script/versions/v54'),
+    baselineFiles: sourceMap('apps-script/versions/v55'),
     sanitizations: verification.repositorySanitizations,
   });
   const materialized = materializeCandidate(
@@ -127,8 +132,8 @@ export async function runStabilizationReleasePhase({
   assert.equal(matching.length, 1, 'production web-app URL must resolve exactly once');
   const deployment = matching[0];
   const deployedVersion = Number(deployment.deploymentConfig.versionNumber);
-  assert.ok(Number.isSafeInteger(deployedVersion) && deployedVersion >= 54,
-    'production deployment predates v54');
+  assert.ok(Number.isSafeInteger(deployedVersion) && deployedVersion >= 55,
+    'production deployment predates v55');
   const headFiles = normalizeRemoteFiles(head.files);
   const save = (name, result) => {
     const report = {
@@ -143,11 +148,11 @@ export async function runStabilizationReleasePhase({
   };
 
   if (phase === 'backup' || phase === 'refresh-backup') {
-    assert.equal(deployedVersion, 54,
-      'pre-stabilization recovery requires production v54');
+    assert.equal(deployedVersion, 55,
+      'pre-stabilization recovery requires production v55');
     if (phase === 'backup') {
       assert.deepEqual(headFiles, normalizeRemoteFiles(numbered.files),
-        'Apps Script HEAD changed since numbered v54');
+        'Apps Script HEAD changed since numbered v55');
     } else {
       assert.deepEqual(headFiles, materialized,
         'staged Apps Script HEAD must equal stabilization candidate');
@@ -159,8 +164,8 @@ export async function runStabilizationReleasePhase({
       accessToken: token,
       sourceSpreadsheetId: spreadsheet,
       privateRoot,
-      label: 'pre-system-stabilization',
-      appsScriptVersion: 'v54',
+      label: 'pre-emergency-recovery',
+      appsScriptVersion: 'v55',
       fetchImpl,
     });
     return save('stabilization-current-recovery.json', recovery);
@@ -173,9 +178,9 @@ export async function runStabilizationReleasePhase({
   assert.ok(Date.now() - Date.parse(backup.copyVerifiedAt) < 3600000,
     'stabilization release requires a verified backup less than one hour old');
   if (phase === 'stage') {
-    assert.equal(deployedVersion, 54, 'stabilization candidate is already deployed');
+    assert.equal(deployedVersion, 55, 'stabilization candidate is already deployed');
     assert.deepEqual(headFiles, normalizeRemoteFiles(numbered.files),
-      'Apps Script HEAD changed since numbered v54');
+      'Apps Script HEAD changed since numbered v55');
     const files = [...materialized].map(([name, source]) => name === 'appsscript.json'
       ? {name: 'appsscript', type: 'JSON', source}
       : {name: name.slice(0, -3), type: 'SERVER_JS', source});
@@ -190,7 +195,7 @@ export async function runStabilizationReleasePhase({
     );
     return save('stabilization-staged-paused.json', {
       headVerified: true,
-      productionVersion: 54,
+      productionVersion: 55,
       mutationsEnabled: false,
     });
   }
@@ -209,6 +214,7 @@ export async function runStabilizationReleasePhase({
   const versions = await googleJson(token, base + '/versions?pageSize=200', {}, fetchImpl);
   const numberedVersion = await resolveStabilizationVersion({
     versions: versions.versions,
+    baselineNumber: 55,
     materialized,
     readVersion: async versionNumber => normalizeRemoteFiles((await googleJson(
       token,
@@ -218,10 +224,10 @@ export async function runStabilizationReleasePhase({
     )).files),
     createVersion: () => googleJson(token, base + '/versions', {
       method: 'POST',
-      body: JSON.stringify({description: 'DMS system stabilization milestone'}),
+      body: JSON.stringify({description: 'DMS emergency semantic recovery'}),
     }, fetchImpl),
   });
-  if (deployedVersion === 54) {
+  if (deployedVersion === 55) {
     await googleJson(token, base + '/deployments/' + encodeURIComponent(deployment.deploymentId), {
       method: 'PUT',
       body: JSON.stringify({deploymentConfig: {
