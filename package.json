@@ -29,6 +29,7 @@
     "release:apps-script:v52": "node apps-script/scripts/release-v52.mjs",
     "release:apps-script:v53": "node apps-script/scripts/release-v53.mjs",
     "release:apps-script:v54": "node apps-script/scripts/release-v54.mjs",
+    "release:apps-script:stabilization": "node apps-script/scripts/release-stabilization.mjs",
     "release:backup:verify": "node apps-script/scripts/verify-backup-manifest.mjs",
     "release:migration:readiness": "node scripts/verify-migration-readiness.mjs",
     "audit:dependencies": "npm audit --audit-level=high",

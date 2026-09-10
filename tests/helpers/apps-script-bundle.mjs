@@ -71,7 +71,8 @@ export function loadBundle(candidate = 'v51', overrides = {}, {releaseReady = tr
   // initial, paused HEAD opt out and exercise the real default-deny behavior.
   if ((/^v(?:5[1-9]|[6-9]\d+)$/.test(candidate) || candidate === 'stabilization') && releaseReady) {
     context.PropertiesService.getScriptProperties().setProperty(
-      'DMS_P1_RELEASE_READY', candidate === 'stabilization' ? 'v54' : candidate
+      'DMS_P1_RELEASE_READY', candidate === 'stabilization'
+        ? 'system-stabilization-2026-09' : candidate
     );
   }
   const root = `apps-script/candidates/${candidate}`;

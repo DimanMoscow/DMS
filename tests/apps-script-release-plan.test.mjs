@@ -37,6 +37,21 @@ test("Apps Script offline plan is deterministic, redacted, and never deployable"
   assert.doesNotMatch(JSON.stringify(first), /script\.google\.com|\.vercel\.app|refresh_token/);
 });
 
+test("offline plan accepts the named stabilization candidate over production v54", () => {
+  const input = {
+    candidate: "stabilization",
+    baseline: "v54",
+    createdAt: "2026-09-10T00:00:00Z",
+    sourceRevision: "2".repeat(40),
+  };
+  const plan = buildOfflineReleasePlan(input);
+  assert.equal(verifyOfflineReleasePlan(plan, {sourceRevision: input.sourceRevision}), true);
+  assert.equal(plan.candidate, "stabilization");
+  assert.equal(plan.baseline, "v54");
+  assert.equal(plan.productionNumberedVersion, 54);
+  assert.equal(Object.keys(plan.files).length, 23);
+});
+
 test("private-file policy rejects in-repository names beginning with two dots", () => {
   const root = path.resolve("repository-root");
   assert.equal(isOutsidePath(root, path.join(root, "..auth", "profile.json")), false);
