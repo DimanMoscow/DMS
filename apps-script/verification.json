@@ -754,7 +754,7 @@
     "stabilization": {
       "baseVersion": "v54",
       "fileCount": 23,
-      "sourceTreeSha256": "299485b7fbc1b5ae85c6f94b40a1b7a886ea9896d3848b9481e3d102dc31b646",
+      "sourceTreeSha256": "8d7747cc17c7f2d30595c0dcaa7f81a393fb44de7870a0c052b9c54294359bb0",
       "expectedChangedFiles": [
         "CalendarSync.gs",
         "TelegramBot.gs",
@@ -762,6 +762,7 @@
         "ZZZZZZZRuntime.gs",
         "ZZZZZZZZMiniAppApi.gs",
         "ZZZZZZZZZZMiniAppAdmin.gs",
+        "ZZZZZZZZZZZClientPortal.gs",
         "ZZZZZZZZZZZZTelegramConfirmations.gs",
         "ZZZZZZZZZZZZZOperationSafety.gs",
         "ZZZZZZZZZZZZZZZZZOperationMetrics.gs",

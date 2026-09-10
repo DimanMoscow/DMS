@@ -4,8 +4,8 @@ import fs from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 
-const apiSource = fs.readFileSync("apps-script/candidates/v46/ZZZZZZZZMiniAppApi.gs", "utf8");
-const portalSource = fs.readFileSync("apps-script/candidates/v46/ZZZZZZZZZZZClientPortal.gs", "utf8");
+const apiSource = fs.readFileSync("apps-script/candidates/stabilization/ZZZZZZZZMiniAppApi.gs", "utf8");
+const portalSource = fs.readFileSync("apps-script/candidates/stabilization/ZZZZZZZZZZZClientPortal.gs", "utf8");
 const token = "fixture-token-not-a-production-secret";
 const nowSeconds = Math.floor(Date.now() / 1000);
 
@@ -154,6 +154,9 @@ function createContext({
       if (key === "DMS_TG_BOT_TOKEN") return token;
       if (key === "DMS_TG_ADMIN_USER_IDS") return adminIds;
       return "";
+    },
+    getDmsMutationLock_() {
+      return { tryLock: () => true, releaseLock() {} };
     },
     getDmsMiniAppFailure_(error) {
       return error?.dmsCode
@@ -305,6 +308,23 @@ test("duplicate or ambiguous bindings fail closed", () => {
     ["broken", "100001", "CL-A", "active", "", ""],
   ]) });
   assert.equal(request(malformed, "100001").error, "client_link_invalid");
+});
+
+test("a historical disabled binding does not block a new active enrollment", () => {
+  const sheets = fixtures([
+    ["BND-OLD", "100001", "CL-A", "disabled", new Date("2026-08-01"), new Date("2026-08-02")],
+  ]);
+  const context = createContext({ sheets });
+  const created = actionRequest(context, "999999", "create_client_portal_invite", { clientId: "CL-A" });
+  const tokenValue = new URL(created.data.inviteUrl).searchParams.get("startapp");
+  const enrolled = actionRequest(context, "100001", "client_portal_enroll", undefined, tokenValue);
+  assert.equal(enrolled.ok, true, JSON.stringify(enrolled));
+
+  const resolved = request(context, "100001");
+  assert.equal(resolved.ok, true, JSON.stringify(resolved));
+  assert.equal(resolved.data.profile.name, "Клиент A");
+  assert.equal(sheets["Доступ клиентов"].rows.filter((row) => row[3] === "active").length, 1);
+  assert.equal(sheets["Доступ клиентов"].rows.filter((row) => row[3] === "disabled").length, 1);
 });
 
 test("client identity cannot enter the existing admin API", () => {
@@ -587,4 +607,32 @@ test("measurement writes remain admin-only and reject invalid ranges or future d
     clientId: "CL-A", measuredAt: "2099-01-01", metrics: { weightKg: 80 },
   }).error, "measurement_invalid");
   assert.equal(sheets["Замеры"].rows.length, 1);
+});
+
+test("measurement corruption is isolated to the affected client and remains observable", () => {
+  const sheets = fixtures();
+  sheets["Замеры"].rows[3][3] = 999;
+  const context = createContext({ sheets });
+
+  const unaffected = request(context, "100001");
+  assert.equal(unaffected.ok, true, JSON.stringify(unaffected));
+  assert.equal(unaffected.data.measurements.length, 2);
+
+  const affected = request(context, "100002");
+  assert.equal(affected.ok, false);
+  assert.equal(affected.error, "client_data_invalid");
+
+  const adminWrite = actionRequest(context, "999999", "create_client_measurement", {
+    clientId: "CL-A",
+    measuredAt: "2026-09-01",
+    metrics: { weightKg: 78.5 },
+  });
+  assert.equal(adminWrite.ok, true, JSON.stringify(adminWrite));
+
+  const health = context.getDmsMeasurementCorruptionHealth_();
+  assert.deepEqual(JSON.parse(JSON.stringify(health)), {
+    state: "failed", ok: false, issueCount: 1, affectedClients: 1,
+    unassignedRows: 0, totalRows: 4,
+  });
+  assert.doesNotMatch(JSON.stringify(health), /CL-|MSR-|10000/);
 });

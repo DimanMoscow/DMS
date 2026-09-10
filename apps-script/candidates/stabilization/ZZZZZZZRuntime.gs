@@ -831,6 +831,15 @@ function runDmsReadOnlySelfTests(options) {
       report.operationMetrics.contentionAnomalies === 0,
       String(report.operationMetrics.contentionAnomalies)
     );
+    const measurementHealth = getDmsMeasurementCorruptionHealth_();
+    report.measurements = measurementHealth;
+    addDmsSelfTestCheck_(
+      report,
+      'measurement-corruption',
+      measurementHealth.ok,
+      'affected_clients=' + measurementHealth.affectedClients +
+        '; unassigned_rows=' + measurementHealth.unassignedRows
+    );
   } catch (error) {
     addDmsSelfTestCheck_(
       report,
