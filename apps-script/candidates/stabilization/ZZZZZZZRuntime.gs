@@ -688,6 +688,8 @@ function runDmsReadOnlySelfTests(options) {
       String(health.queueErrors)
     );
     const debtFormula = getDmsDebtFormulaHealth_();
+    const semanticReconciliation = buildDmsSemanticReconciliationHealth_(debtFormula);
+    report.semanticReconciliation = semanticReconciliation;
     const queueSourceValidation = getDmsQueueSourceValidationHealth_();
     addDmsSelfTestCheck_(
       report,
@@ -700,6 +702,12 @@ function runDmsReadOnlySelfTests(options) {
       'debt-formula-integrity',
       debtFormula.ok,
       debtFormula.summary
+    );
+    addDmsSelfTestCheck_(
+      report,
+      'semantic-financial-reconciliation',
+      semanticReconciliation.ok,
+      'issues=' + semanticReconciliation.issueCount
     );
     addDmsSelfTestCheck_(
       report,

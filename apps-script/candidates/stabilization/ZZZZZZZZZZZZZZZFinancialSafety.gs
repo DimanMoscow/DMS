@@ -73,6 +73,7 @@ function getDmsClientFormatRepairs_(clients) {
 
 function computeDmsFinancialExpected_(clients, blocks, payments, journal) {
   const issues = []; const byBlock = {}; const byClient = {};
+  const journalIds = {}; const paymentIds = {};
   function numeric(value, label) {
     if (value === '' || value === null || value === undefined) return 0;
     if (typeof value !== 'number' || !Number.isFinite(value)) { issues.push(label + ': invalid numeric value'); return 0; }
@@ -97,19 +98,32 @@ function computeDmsFinancialExpected_(clients, blocks, payments, journal) {
     if (!byClient[String(row[1])]) issues.push('Block without client');
   });
   each(journal, function(row) {
-    if (row[6] !== 'Проведена') return;
+    const recordId = String(row[0]);
+    if (journalIds[recordId]) issues.push('Duplicate journal ID');
+    journalIds[recordId] = true;
     const client = byClient[String(row[2])]; const block = byBlock[String(row[3])];
     if (!client) issues.push('Journal without client');
     if (row[3] && !block) issues.push('Journal without block');
+    if (client && block && String(block.row[1]) !== String(row[2])) {
+      issues.push('Journal block/client mismatch');
+    }
+    if (row[6] !== 'Проведена') return;
     if (block) block.completed++;
     if (client && row[4] === 'Разовая') client.singleCharges += numeric(row[7], 'Journal price');
   });
   each(payments, function(row) {
-    if (row[7] !== 'Подтверждён') return;
+    const recordId = String(row[0]);
+    if (paymentIds[recordId]) issues.push('Duplicate payment ID');
+    paymentIds[recordId] = true;
     const client = byClient[String(row[2])]; const block = byBlock[String(row[3])];
-    const amount = numeric(row[6], 'Payment amount');
     if (!client) issues.push('Payment without client');
-    if (row[3]) { if (!block) issues.push('Payment without block'); else block.paid += amount; }
+    if (client && block && String(block.row[1]) !== String(row[2])) {
+      issues.push('Payment block/client mismatch');
+    }
+    if (row[3] && !block) issues.push('Payment without block');
+    if (row[7] !== 'Подтверждён') return;
+    const amount = numeric(row[6], 'Payment amount');
+    if (row[3]) { if (block) block.paid += amount; }
     else if (client) client.singlePaid += amount;
   });
   const blockResults = {}; const clientResults = {};
@@ -129,6 +143,38 @@ function computeDmsFinancialExpected_(clients, blocks, payments, journal) {
     clientResults[id] = values;
   });
   return {blocks: blockResults, clients: clientResults, issues: issues};
+}
+
+function buildDmsSemanticReconciliationHealth_(financial) {
+  const classes = {
+    duplicateId: 0,
+    missingReference: 0,
+    ownershipMismatch: 0,
+    invalidValue: 0,
+    formulaIntegrity: 0,
+    numericMismatch: (financial.numericMismatches || financial.mismatches || []).length,
+    other: 0
+  };
+  (financial.issues || []).forEach(function(issue) {
+    const value = String(issue || '');
+    if (/^Duplicate /.test(value)) classes.duplicateId++;
+    else if (/ without /.test(value)) classes.missingReference++;
+    else if (/mismatch$/.test(value) || value === 'Invalid active block link') {
+      classes.ownershipMismatch++;
+    } else if (/invalid numeric value$/.test(value) || value === 'Record without ID') {
+      classes.invalidValue++;
+    } else if (/formula|anchor/i.test(value)) classes.formulaIntegrity++;
+    else classes.other++;
+  });
+  const issueCount = Object.keys(classes).reduce(function(total, name) {
+    return total + classes[name];
+  }, 0);
+  return {
+    state: issueCount ? 'failed' : 'healthy',
+    ok: issueCount === 0,
+    issueCount: issueCount,
+    issueClasses: classes
+  };
 }
 
 function getDmsFinancialHealth_() {

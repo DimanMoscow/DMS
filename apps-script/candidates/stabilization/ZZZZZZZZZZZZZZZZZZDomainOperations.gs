@@ -258,7 +258,8 @@ function getDmsOperationalHealth_() {
     report.backup && report.backup.state, report.reconciliation && report.reconciliation.state,
     report.durableOperations && report.durableOperations.state,
     report.operationMetrics && report.operationMetrics.state,
-    report.measurements && report.measurements.state];
+    report.measurements && report.measurements.state,
+    report.semanticReconciliation && report.semanticReconciliation.state];
   const componentChecks = {
     'scheduled-trigger-config': true,
     'scheduled-notification-settings': true,
@@ -267,7 +268,8 @@ function getDmsOperationalHealth_() {
     'latest-backup-integrity': true,
     'durable-operation-lifecycle': true,
     'operation-contention-anomalies': true,
-    'measurement-corruption': true
+    'measurement-corruption': true,
+    'semantic-financial-reconciliation': true
   };
   const independentFailure = (report.checks || []).some(function(check) {
     return !check.ok && !componentChecks[check.name];
@@ -288,6 +290,7 @@ function getDmsOperationalHealth_() {
     durableOperations: report.durableOperations,
     metrics: report.operationMetrics,
     measurements: report.measurements,
+    semanticReconciliation: report.semanticReconciliation,
     latestErrorClasses: latestErrorClasses,
     system: report.system,
     checks: report.checks
