@@ -18,10 +18,13 @@ const DMS_SCHEDULED_AUTOMATION = {
   ]
 };
 
-// A new HEAD starts closed. Only the verified, drained v54 rollout may enable
+const DMS_RELEASE_READY_MARKER = 'system-stabilization-2026-09';
+
+// A new HEAD starts closed. Only the verified, drained stabilization rollout may enable
 // business mutations. Scheduled health metadata is maintained separately.
 function assertDmsP1ReleaseReady_() {
-  if (PropertiesService.getScriptProperties().getProperty('DMS_P1_RELEASE_READY') !== 'v54') {
+  if (PropertiesService.getScriptProperties().getProperty('DMS_P1_RELEASE_READY') !==
+      DMS_RELEASE_READY_MARKER) {
     throw new Error('DMS release maintenance: mutations are paused.');
   }
 }
@@ -591,7 +594,8 @@ function inspectDmsP1ReleaseState() {
   const scheduled = getDmsScheduledAutomationHealth_({requireFreshness: true});
   const report = {checkedAt: new Date().toISOString(), originalDocumentContext: true,
     usage: getDmsPropertyUsage_(), legacyStates: states, ledgerRows: count, ledgerEvents: events,
-    mutationReady: PropertiesService.getScriptProperties().getProperty('DMS_P1_RELEASE_READY') === 'v54',
+    mutationReady: PropertiesService.getScriptProperties().getProperty('DMS_P1_RELEASE_READY') ===
+      DMS_RELEASE_READY_MARKER,
     scheduledAutomation: {ok: scheduled.ok, configOk: scheduled.configOk,
       settingsOk: scheduled.settingsOk, freshnessOk: scheduled.freshnessOk,
       ownerVerified: scheduled.ownerVerified,
@@ -616,13 +620,13 @@ function inspectDmsP1ReleaseState() {
   return report;
 }
 
-// Called after v54 HEAD is independently read back. It converts the active v53
+// Called after the stabilization HEAD is independently read back. It converts the active v54
 // marker into a closed state and starts the old-execution drain timer.
 function startDmsP1ExecutionDrain() {
   const properties = PropertiesService.getScriptProperties();
   const ready = properties.getProperty('DMS_P1_RELEASE_READY') || '';
-  if (ready === 'v54') throw new Error('Release is already enabled.');
-  if (ready && ready !== 'v53') throw new Error('Unexpected release marker.');
+  if (ready === DMS_RELEASE_READY_MARKER) throw new Error('Release is already enabled.');
+  if (ready && ready !== 'v54') throw new Error('Unexpected release marker.');
   properties.deleteProperty('DMS_P1_RELEASE_READY');
   const startedAt = new Date().toISOString();
   properties.setProperty('DMS_P1_DRAIN_STARTED_AT', startedAt);
@@ -647,7 +651,7 @@ function activateDmsP1Release() {
     }
     const inventory = inspectDmsP1ReleaseState();
     if (inventory.legacyStates.malformed) throw new Error('Malformed legacy evidence requires private recovery.');
-    properties.setProperty('DMS_P1_RELEASE_READY', 'v54');
+    properties.setProperty('DMS_P1_RELEASE_READY', DMS_RELEASE_READY_MARKER);
     console.log(JSON.stringify({mutationReady: true, financialGate: true,
       scheduledConfigurationGate: true, scheduledFreshnessPending: !scheduled.freshnessOk,
       legacyEvidenceRetained: true}));

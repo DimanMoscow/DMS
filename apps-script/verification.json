@@ -754,7 +754,7 @@
     "stabilization": {
       "baseVersion": "v54",
       "fileCount": 23,
-      "sourceTreeSha256": "d0045ae44af972a83446eae45509320bee21263912ec5cc6af59386915ba49cd",
+      "sourceTreeSha256": "16a4d270960a649f1cae9f3170efb87ae73da6d1000a91e3ec37e23c4467040e",
       "expectedChangedFiles": [
         "CalendarSync.gs",
         "TelegramBot.gs",
@@ -766,6 +766,7 @@
         "ZZZZZZZZZZZZTelegramConfirmations.gs",
         "ZZZZZZZZZZZZZOperationSafety.gs",
         "ZZZZZZZZZZZZZZZFinancialSafety.gs",
+        "ZZZZZZZZZZZZZZZZReleaseSafety.gs",
         "ZZZZZZZZZZZZZZZZZOperationMetrics.gs",
         "ZZZZZZZZZZZZZZZZZZDomainOperations.gs"
       ]

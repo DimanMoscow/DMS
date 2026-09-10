@@ -159,6 +159,15 @@ profile, explicit `--confirm v50`, verified private target and backup paths, an 
 v49 production baseline, and zero pending ledger operations. It stops on any read-back,
 snapshot, deployment, runtime, or mutation-counter mismatch.
 
+The stabilization milestone uses `npm run release:apps-script:stabilization` with the
+explicit final argument `stabilization`. Its offline plan names candidate
+`stabilization` over baseline `v54`. The candidate rejects the old `v54` readiness
+marker as soon as HEAD is staged, so installable triggers stay paused through the
+original-context drain. The publish phase reads the current Google version inventory,
+uses the number returned by `projects.versions.create`, verifies that numbered source,
+and updates only the existing production deployment. A resumed publish accepts only the
+latest numbered version when its complete source is byte-identical to the candidate.
+
 Official references:
 
 - [clasp guide](https://developers.google.com/apps-script/guides/clasp)

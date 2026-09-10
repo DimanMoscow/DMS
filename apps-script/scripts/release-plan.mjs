@@ -12,6 +12,7 @@ import { verifySourceState } from "../../scripts/verify-source-state.mjs";
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const appsScriptRoot = path.resolve(scriptDirectory, "..");
 const versionPattern = /^v\d+$/;
+const candidatePattern = /^(?:v\d+|stabilization)$/;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -39,7 +40,7 @@ export function buildOfflineReleasePlan({
   sourceRevision,
   root = appsScriptRoot,
 }) {
-  assert.match(candidate, versionPattern, "candidate must look like v49");
+  assert.match(candidate, candidatePattern, "candidate must be a version or stabilization");
   assert.match(baseline, versionPattern, "baseline must look like v49");
   assert.match(String(sourceRevision || ""), /^[0-9a-f]{40}$/,
     "a verified Git source revision is required");
