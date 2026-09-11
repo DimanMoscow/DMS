@@ -1,12 +1,12 @@
 # Emergency recovery candidate
 
-Status: candidate under release review; production remains numbered v55 until
-an official deployment read-back proves otherwise. This document is not final
-production acceptance.
+Status: deployed as numbered v56 with exact HEAD/Git/runtime comparison. Approved
+data corrections are committed and independently verified. Final acceptance awaits
+the next natural Calendar sync and complete production smoke; see PROJECT_STATE.md.
 
 ## Proven regressions and fixes
 
-| Failure | Proven cause | Candidate behavior |
+| Failure | Proven cause | Released behavior |
 | --- | --- | --- |
 | MiniApp confirm-day rejects its own day | Bootstrap emits 43-character Base64URL; confirmation expected 64-character hexadecimal | Validate the actual wire format; immutable per-row semantic preconditions govern execution |
 | Unrelated background change invalidates all selected rows | Whole workbook/day mutable snapshot mixed entity state with labels, technical timestamps and unrelated rows | Bind Queue identity, ownership, decision/status, time and entitlement inputs; changed rows remain pending while unchanged accepted rows complete |
@@ -68,7 +68,9 @@ the explanation. Neither function is exposed through a client or Telegram route.
   claims about production wall-clock latency.
 - Private captured-data recovery rehearsal resolves four semantic findings to
   zero; repeat application makes zero additional business writes.
-- Final release still requires fresh backup, exact staged and numbered source,
-  owner preflight/correction/read-back, runtime match, Vercel verification,
-  complete live gate, zero reconciliation, natural scheduled health and real
-  read-only Telegram/MiniApp smoke. Never invoke jobs to manufacture freshness.
+- Fresh private backup/restore (16 sheets), owner preflight/correction/read-back,
+  exact numbered v56 and runtime match are complete. Ten patches committed once;
+  five added payments, prior payments retained, semantic findings zero.
+- Remaining acceptance: automatic Vercel pointer deployment, full live gate after
+  the next natural Calendar sync, and real read-only Telegram/MiniApp smoke.
+  Never invoke jobs to manufacture freshness.
