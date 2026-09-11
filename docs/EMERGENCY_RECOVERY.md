@@ -1,8 +1,9 @@
 # Emergency recovery candidate
 
-Status: deployed as numbered v56 with exact HEAD/Git/runtime comparison. Approved
-data corrections are committed and independently verified. Final acceptance awaits
-the next natural Calendar sync and complete production smoke; see PROJECT_STATE.md.
+Status: production v56 verified with exact HEAD/Git/runtime comparison, approved
+recovery committed/read back, natural scheduled health green and owner gate 23/23
+at 2026-09-11T09:24:14Z. Telegram/MiniApp read flows are checked; mutation evidence
+remains isolated. See PROJECT_STATE.md for remaining risks and the stop point.
 
 ## Proven regressions and fixes
 
@@ -71,6 +72,9 @@ the explanation. Neither function is exposed through a client or Telegram route.
 - Fresh private backup/restore (16 sheets), owner preflight/correction/read-back,
   exact numbered v56 and runtime match are complete. Ten patches committed once;
   five added payments, prior payments retained, semantic findings zero.
-- Remaining acceptance: automatic Vercel pointer deployment, full live gate after
-  the next natural Calendar sync, and real read-only Telegram/MiniApp smoke.
-  Never invoke jobs to manufacture freshness.
+- Automatic Vercel pointer deployment passed, all four routes returned 200, and
+  Telegram Today/Yesterday plus signed MiniApp Today/client reads were checked.
+  Independent read-back after UI smoke proved unchanged business data.
+- Natural Calendar sync at 12:21 Moscow completed with post-sync findings zero;
+  full owner gate is 23/23. No scheduled job was invoked manually for freshness.
+  One slow watchdog health phase remains an explicitly unproved latency risk.

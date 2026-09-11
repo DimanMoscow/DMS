@@ -1,6 +1,6 @@
 # Stabilization acceptance matrix
 
-This matrix is the release acceptance contract for the stabilization candidate. All mutation, fault, replay and concurrency evidence runs only against in-memory fixtures or an isolated recovery copy. Production acceptance is limited to read-only identity, health, reconciliation and UI/API smoke checks.
+This matrix is the release acceptance contract for the deployed v56 stabilization release. All mutation, fault, replay and concurrency evidence runs only against in-memory fixtures or an isolated recovery copy. Production acceptance is limited to read-only identity, health, reconciliation and UI/API smoke checks.
 
 | ID | Scenario | Entry paths | Acceptance evidence | Required result | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -21,15 +21,28 @@ This matrix is the release acceptance contract for the stabilization candidate. 
 | A15 | Backup and recovery | Manifest validation and isolated restore rehearsal | `tests/backup-contract.test.mjs`; `tests/release-operations.test.mjs` | Complete, fresh backup is bound to production/version references and restore writes target only the isolated copy | covered: fixture + isolated copy |
 | A16 | Client Portal read isolation | Signed Telegram identity, bindings and measurements | `tests/apps-script-client-portal.test.mjs`; `tests/repository.test.mjs` | Client selector injection fails closed; responses contain only the bound client's allow-listed fields | covered: fixture |
 
-## Redundant Telegram confirmations removed in the candidate
+## Redundant Telegram confirmations removed in v56
 
-The original button is accepted as final intent only when it already represents a specific row or a dedicated preview result. The candidate still creates and consumes the same immutable `cf2` ticket internally.
+The original button is accepted as final intent only when it already represents a specific row or a dedicated preview result. The runtime still creates and consumes the same immutable `cf2` ticket internally.
 
-- Queue row decisions: completed, charged, free and move.
+- Queue row decisions: completed, charged, free and move (a new time is still requested where needed).
+- Confirm day: the explicit day button accepts the selected semantic row set without another generic confirmation screen.
 - Block actions from a dedicated preview: gift training, pause, resume and close.
 - Dedicated confirmation buttons: undo, client archive/restore and payment void.
 
-Day confirmation, settings toggles and manual backup retain a visible confirmation. Payment creation, Calendar creation, client/block editing, rename, price change, upcoming move and upcoming cancellation retain their existing dedicated preview/confirmation flow; stale pre-candidate state callbacks remain invalid.
+Settings toggles and manual backup retain a visible confirmation. Payment creation, Calendar creation, client/block editing, rename, price change, upcoming move and upcoming cancellation retain their existing dedicated preview/confirmation flow; stale pre-candidate state callbacks remain invalid.
+
+## Emergency regression evidence
+
+| Scenario | Isolated evidence | Outcome |
+| --- | --- | --- |
+| Ten unchanged rows, technical timestamps/background metadata, new Q11, changed Q5, Calendar edit/cancel/move | `tests/apps-script-domain-day-confirmation.test.mjs`; `tests/apps-script-business-semantics.test.mjs` | Unchanged accepted rows finish; new/conflicting rows stay pending; no silent inclusion |
+| One-click Telegram acceptance, stale/expired/forged/replayed/concurrent callbacks, delivery failure after commit | `tests/apps-script-telegram-row-action-ux.test.mjs`; `tests/apps-script-operation-safety.test.mjs` | Immutable lifecycle and one effect remain; presentation cannot re-run accounting |
+| Unit price, conducted single payment, existing credit, interrupted payment, semantic financial findings | `tests/apps-script-emergency-finance.test.mjs`; `tests/apps-script-business-semantics.test.mjs` | Positive inputs and consistent attribution; ambiguity fails closed |
+| Maintenance failure telemetry, morning/daily freshness and hourly lease | `tests/apps-script-emergency-scheduled.test.mjs`; `tests/apps-script-scheduled-automation-v54.test.mjs` | Real failures remain visible and only natural owner executions satisfy freshness |
+| Exact approved recovery, restart, replay, partial ambiguity, formula ownership | `tests/apps-script-emergency-recovery.test.mjs` | Only proved before/after ranges are accepted; one durable result/audit |
+
+Production-sized and 10x fixture measurements and limitations are recorded in `docs/OPERATIONS_MAP.md`. Actual data recovery has separate private backup, exact plan and independent read-back evidence; it is not synthetic smoke.
 
 ## Milestone release gate
 
