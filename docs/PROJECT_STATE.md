@@ -1,27 +1,41 @@
 # Current project state
 
-Last verified: 2026-09-11, 11:34 Europe/Moscow. Recovery data and runtime are deployed; final scheduled acceptance is pending.
+Last verified: 2026-09-11, 12:28 Europe/Moscow. Emergency recovery runtime and data are restored; final read-only gate is green.
 
-## Observed production
+## Production identity
 
-- Apps Script Production **v56**, release `emergency-semantic-recovery`, 25 files. Google assigned version 56. Official reader proves deployment mapping, numbered source, HEAD and the merged stabilization candidate are exact. Tree: `873ec728daf92883c31f67eed8857b092360a7fe1fbba3e3d30d316379470a7d`.
-- Published at 08:28:24Z; activated at 08:31:06Z after the completed 420-second drain, exact recovery read-back and financial/configuration checks. Runtime router/portal/confirmation fingerprints match `apps-script/production.json`; both handlers are loaded.
-- Owner read-only live gate **21/23** at 08:32:31Z. Raw reconciliation **0**, semantic financial findings **0**, queue errors **0**, duplicate accounting **0**, debt formula integrity passes. Pending/stale/manual-review durable operations **0/0/0**; nine historical validation failures are retained.
-- Two gate failures have one proven cause: the natural Calendar sync at 11:21 Moscow occurred during recovery maintenance and recorded `release_maintenance`. Post-sync evidence is therefore not accepted yet. Do not run sync/watchdog manually. Await the next natural sync around 12:21 Moscow and then repeat the live gate.
-- All five owner-bound triggers have correct configuration/timezone/settings. Today's natural backup and morning digest succeeded; evening is not due; watchdog's last success is 10:10 Moscow. Final scheduled freshness is not yet claimed.
-- Current Vercel production was verified at source `4878c2e81b1194f77f200bdf7fd6cdf968de6256`, release 0.2.7, connected, before v56 publication. This PR aligns its expected runtime pointer with observed v56. Verify automatic production deployment and read-only Telegram/MiniApp flows after merge; do not manually deploy a duplicate.
+- Apps Script **v56**, release `emergency-semantic-recovery`, 25 files. Official Google reader proved production deployment mapping, numbered source, HEAD and the merged candidate exact. Tree: `873ec728daf92883c31f67eed8857b092360a7fe1fbba3e3d30d316379470a7d`. Full router/portal/confirmation identities are in `apps-script/production.json`; both handlers are loaded.
+- Published at 08:28:24Z and activated at 08:31:06Z after the 420-second old-execution drain, private recovery and independent read-back. The temporary OAuth helper is absent from final HEAD, numbered source and snapshots.
+- Runtime pointer PR #78 merged as `9741d66e528941a4d24581e7860d3f0a2db705cb`; CI and automatic Vercel Production passed at that exact SHA. Release **0.2.7**, fingerprint `miniapp-r8-apps-script-runtime-probe`, connected. `/`, `/client`, `/api/health`, `/api/apps-script-runtime` all 200; invalid POST 400 and unsupported method 405 with `no-store`. A later documentation-only merge advances the source SHA; obtain current exact SHA from `origin/main` and `/api/health`, not this historical code checkpoint.
 
-## Recovery evidence
+## Final gate and natural schedules
 
-- Reviewed implementation PR #76 merged as `77a176763756519e978d71b65b883f50c0ac119a`, with 312 tests and full gate green. PR #77 recorded the prior OAuth checkpoint; neither PR was repeated.
-- Owner completed official Google consent. The temporary authorization helper proved read access, was removed, and is absent from HEAD, numbered v56 and snapshots. Separate local reader/writer profiles remain outside Git; Work and OAuth Playground are unnecessary.
-- Fresh owner-only backup and isolated restore matched all 16 sheets at 08:07:07Z. Private minimized recovery plan was updated/read back with owner-only permissions; no public or third-party access.
-- Exact accepted plan committed 10 guarded patches at 08:22:31Z. Independent reader verified every patch, five added payments, all 27 prior payments retained, one audit record and zero semantic findings. Existing training/Queue business data is unchanged; 57 differing technical timestamps were independently proved to retain their original `NOW()` formulas from backup.
-- Current counts: Clients **19**, Blocks **19**, Payments **32**, Journal **131**, Queue **117**. Private plan contains approved facts and explanations; no personal or financial row payload is committed.
-- Calendar preview before publication: zero writes, zero errors. No scheduled function was run manually and no synthetic business mutation was used for smoke.
+Owner read-only gate at **2026-09-11T09:24:14.440Z: 23/23**; duration 17.178 s. Raw and semantic reconciliation **0**, numeric/formula issues **0**, duplicate accounting **0**, Queue errors **0**, measurement corruption **0**. Durable pending/stale/manual-review **0/0/0**; nine historical validation failures remain auditable.
 
-## Constraints and next checkpoint
+| Managed job | Latest successful natural evidence (Moscow) | Final health |
+| --- | --- | --- |
+| Automatic backup | September 11, 03:02:31; 4.842 s | fresh, correct owner/configuration |
+| Morning digest | September 11, 08:11:13; 17.560 s | fresh, correct owner/configuration |
+| Evening queue | September 10, 22:53:47; 74.555 s | September 11 run not due yet; fresh |
+| Calendar sync | September 11, 12:21:20; 9.142 s | fresh; generation 33, completed post-sync findings 0 |
+| Watchdog | September 11, 12:15:05; 283.714 s | successful scheduled completion; reported the then-pending Calendar recovery |
 
-Complete natural scheduled evidence, the full live gate, Git-linked Vercel pointer verification and real read-only Telegram/MiniApp smoke. Record final acceptance separately; 21/23 is not complete recovery.
+All five handlers are present exactly once, correctly owner-bound, with verified cadence, settings and Europe/Moscow time zones. The 11:21 sync failure during maintenance is retained as history; the subsequent **natural** 12:21 success establishes freshness and accepted post-sync evidence. No manual scheduled execution was used to obtain green.
 
-Preserve P1 authentication, immutable acceptance, actor/message binding, nonce/TTL, ScriptLock, replay protection, durable results, formula ownership and fail-closed recovery. Retain previous recovery effects, no unconfirmed hybrid start, no measurements without explicit admin action, and unchanged prices/access rules. No new functional stage.
+## Recovery and user-flow evidence
+
+- Official owner consent completed. Reader/writer local OAuth profiles remain separate and outside Git. Work and OAuth Playground are unnecessary.
+- Fresh owner-only private backup and isolated restore matched all **16 sheets** at 08:07:07Z. The existing minimized recovery plan on Drive was read back exactly and permissions remained owner-only, with no public or third-party access.
+- Exact immutable plan committed **10 guarded patches once** at 08:22:31Z. Independent reader after UI smoke at 09:27:45Z proves every patch, five added payments, all 27 prior payments retained, one audit record, zero semantic findings, and unchanged Journal/Queue business data. The 57 differing technical timestamps retain their original backup-proved `NOW()` formulas.
+- Counts: Clients **19**, Blocks **19**, Payments **32**, Journal **131**, Queue **117**. Approved missing payments, one empty unit price and one existing advance assigned to a planned next block are corrected. The advance amount/date is preserved; planned activation still waits for the confirmed Calendar start. One historical aggregate supplement has an explicitly unknown exact payment date; no date was invented.
+- Telegram Web **Yesterday** returned no waiting events; **Today** rendered the current three rows and row/day buttons. Normal `/today` navigation retains its existing inline Calendar read/sync path and was exercised only **after** the independent natural green gate. Subsequent independent read-back proved no new business effects. Row/day mutation, replay and concurrency checks remain isolated fixtures, not real training/payment smoke.
+- Signed Admin MiniApp opened from Telegram, showed connected data, the three Today rows and registration boundaries, 19 clients, and the corrected zero debt in the affected client card. No payment, Calendar event, decision, enrollment or measurement was created for smoke.
+- Full repository gate: **312/312 tests**, lint, TypeScript, build, snapshot integrity and applied migrations pass; dependency audit **0 vulnerabilities**. Operations inventory now checks actual v56 global entry points. Detailed causes/security/evidence: `docs/EMERGENCY_RECOVERY.md`, `docs/OPERATIONS_MAP.md`, `docs/ACCEPTANCE_MATRIX.md`.
+
+## Remaining risks and stop point
+
+- One natural watchdog spent 279.238 s inside health checks, with no mutation lock held; the next owner gate took 17.178 s. The outlier's cause is unproved. Do not claim a production latency percentile or complete elimination of Google service latency. Isolated semantic read volume improved from 5,404 to 2,425 cells at 1x and 52,060 to 24,250 at 10x.
+- Some Telegram read commands/digests still run inline ingestion, and older manual spreadsheet/repair and management/onboarding paths remain separate audited control-plane boundaries. These residual limitations are explicit in the operations map; this recovery did not rewrite every business path.
+- Pending decisions and unregistered Calendar events require real admin decisions. Do not infer attendance/payment or perform them as smoke.
+
+Stop at this checkpoint. Preserve P1 authentication, immutable acceptance, actor/chat/message/action binding, nonce/TTL, ScriptLock, replay protection, durable results and fail-closed recovery. No unconfirmed hybrid start, measurements without explicit admin action, price/rule/access changes or new functional stage.

@@ -10,10 +10,10 @@ const scheduled = fs.readFileSync(path.join(
   root,
   'apps-script',
   'versions',
-  'v54',
+  'v56',
   'ZZZZZZZZZZZZZZZZReleaseSafety.gs',
 ), 'utf8');
-const snapshotRoot = path.join(root, 'apps-script', 'versions', 'v54');
+const snapshotRoot = path.join(root, 'apps-script', 'versions', 'v56');
 
 function quotedValues(block) {
   return [...block.matchAll(/["']([a-z][a-z0-9_]*)["']/g)].map(match => match[1]);
@@ -45,7 +45,7 @@ test('operations map covers every managed scheduled handler', () => {
   }
 });
 
-test('operations map names every v54 global Apps Script entry point', () => {
+test('operations map names every v56 global Apps Script entry point', () => {
   const globals = fs.readdirSync(snapshotRoot)
     .filter(name => name.endsWith('.gs'))
     .flatMap(name => {
@@ -54,7 +54,7 @@ test('operations map names every v54 global Apps Script entry point', () => {
         .map(match => match[1])
         .filter(name => !name.endsWith('_'));
     });
-  assert.ok(globals.length >= 40, 'v54 global entry inventory unexpectedly shrank');
+  assert.ok(globals.length >= 40, 'v56 global entry inventory unexpectedly shrank');
   for (const name of globals) {
     assert.ok(map.includes('`' + name + '`'), `missing Apps Script global entry: ${name}`);
   }
