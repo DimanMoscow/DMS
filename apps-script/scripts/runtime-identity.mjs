@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 export const EXPECTED_RUNTIME_SERVICE = "dms-fitness-apps-script";
-export const EXPECTED_RUNTIME_RELEASE = "system-stabilization";
+export const EXPECTED_RUNTIME_RELEASE = "emergency-semantic-recovery";
 
 export function verifyRuntimeIdentity(identity, expectedHashes, { requireOk = true } = {}) {
   const keys = [
