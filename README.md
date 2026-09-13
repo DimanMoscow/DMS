@@ -11,6 +11,10 @@
 - диагностический `/api/health`;
 - Apps Script остаётся источником бизнес-логики и учёта.
 
+Подтверждённый production baseline и история выпусков: [PROJECT_STATE](docs/PROJECT_STATE.md)
+и `apps-script/production.json`. Кандидат в Git сам по себе не является deployment.
+Аудит v56, карта интерфейсов и backlog: [POST_BURN_IN_AUDIT](docs/POST_BURN_IN_AUDIT.md).
+
 ## Локальный запуск
 
 ```bash

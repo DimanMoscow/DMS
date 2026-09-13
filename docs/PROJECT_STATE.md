@@ -2,6 +2,17 @@
 
 Last verified: 2026-09-11, 12:28 Europe/Moscow. Emergency recovery runtime and data are restored; final read-only gate is green.
 
+## Post-burn-in audit checkpoint — 2026-09-14
+
+Runtime/main rechecked at `4ab73e2103e85c3e0dd199ac220db51d2ccd61d3`, Apps Script v56;
+live signed read-only health 23/23 in 13.201 s. No production changes. This audit did
+not repeat the full owner HEAD/numbered-source export recorded below. Candidate v57
+is undeployed and must not be merged as a production operation without release approval.
+Findings, coverage limits, navigation/backlog and release gates:
+[POST_BURN_IN_AUDIT](POST_BURN_IN_AUDIT.md),
+[POST_BURN_IN_RELEASE_PLAN](POST_BURN_IN_RELEASE_PLAN.md).
+The following sections retain the dated September 11 release evidence.
+
 ## Production identity
 
 - Apps Script **v56**, release `emergency-semantic-recovery`, 25 files. Official Google reader proved production deployment mapping, numbered source, HEAD and the merged candidate exact. Tree: `873ec728daf92883c31f67eed8857b092360a7fe1fbba3e3d30d316379470a7d`. Full router/portal/confirmation identities are in `apps-script/production.json`; both handlers are loaded.

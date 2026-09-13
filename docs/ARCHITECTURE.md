@@ -23,7 +23,7 @@ Enrollment uses a separate admin action and a payloadless client action. The adm
 selects an exact existing client, Apps Script stores only a one-time invitation hash,
 and Telegram delivers the opaque token as signed `start_param`. Ordinary bot-menu
 launches have no `start_param` and are routed by the server-resolved role. Consumption is
-serialized by a document lock and creates the one-to-one binding without client-side
+serialized by the shared mutation ScriptLock and creates the one-to-one binding without client-side
 `clientId` input. Invitation state lives in `Приглашения Client Portal`; plaintext
 tokens exist only in the one-time admin response/link.
 
@@ -32,7 +32,7 @@ Unknown Calendar training titles use a separate queue state,
 Journal, block charge, payment, or client. The admin MiniApp can preview and then either
 create a client, link an explicitly selected active client and alias, or ignore only the
 specific event. The server revalidates the queue row, alias ownership, and Journal
-absence under the document lock. Resolution is audited, matching replay is a no-op, and
+absence under the shared mutation ScriptLock. Resolution is audited, matching replay is a no-op, and
 partial mutations are restored if a write or audit append fails.
 
 ## Responsibility boundaries
@@ -67,7 +67,7 @@ partial mutations are restored if a write or audit append fails.
 | Component | Production runtime | Repository role |
 | --- | --- | --- |
 | MiniApp | Vercel deployment | Canonical source in `app/`, `lib/`, `public/` |
-| Apps Script | Google Apps Script deployment on `v51` | Complete reviewed source in `apps-script/versions/v51` and `apps-script/candidates/v51` |
+| Apps Script | Confirmed baseline `v56`; recheck `production.json` and live identity before release | Complete reviewed source in `apps-script/versions/v56`; `candidates/v57` is not deployed |
 | Saved `v39` | Historical numbered version; not deployed | Reviewable snapshot beside `v38` |
 | Retained `v40` candidate | No runtime effect by itself | Reviewed source matching `versions/v40` byte-for-byte |
 | Numbered `v42` | Historical deployment with a proven runtime/source mismatch; not deployed | Source snapshot matching `candidates/v41` |
@@ -79,7 +79,8 @@ partial mutations are restored if a write or audit append fails.
 | Idempotency guard `v48` | Historical production runtime | Makes matching repeated new-client resolution a no-op and conflicting replay fail closed |
 | Production guards `v49` | Previous production runtime | Accepts canonical one-off onboarding conditions, validates Queue resolution sources, and prevents new clients from duplicating the Debt spill formula |
 | Telegram confirmations `v50` | Previous production runtime | Added one-time, message-bound mutation confirmations and the first append-only operation ledger |
-| P1 remediation `v51` | Active production runtime | Adds immutable cf2 lifecycle, shared ScriptLock, domain compensation, unbounded financial anchors, numeric verification, and the release interlock |
+| P1 remediation `v51` | Historical production runtime | Adds immutable cf2 lifecycle, shared ScriptLock, domain compensation, unbounded financial anchors, numeric verification, and the release interlock |
+| Emergency recovery `v56` | Confirmed production baseline | Retains P1 invariants and validates accepted day/row semantics |
 | Sheets / Calendar | Live Google services | No production data is stored in Git |
 | Telegram | Telegram API calling Apps Script webhook | Bot behavior is implemented in Apps Script files |
 
