@@ -7,6 +7,19 @@ const {TodayView,LoadedClientCard}=miniAppViews();
 const training={queueId:'Q-TEST',time:'10:00',endTime:'11:00',client:'Fixture <Long Name>',
   blockId:'',matching:'Требует регистрации',decision:'',status:'Требует регистрации',processed:false,needsRegistration:true};
 const renderDay=data=>renderToStaticMarkup(React.createElement(TodayView,{data,busyKey:'',onDecision(){},onOnboard(){},onConfirmDay(){}}));
+
+for (const [label,price,expected] of [
+  ['active block',{blockId:'BL-TEST',blockPrice:30000,singlePrice:3500},'30 000 ₽'],
+  ['confirmed one-off',{blockId:'',blockPrice:30000,singlePrice:3500},'3 500 ₽'],
+  ['unknown price',{blockId:'',blockPrice:30000,singlePrice:0},'—'],
+]) test('client price: '+label,()=>{
+  const detail={id:'CL-TEST',name:'Fixture',completed:0,paid:0,debt:0,conditions:'',
+    upcoming:[],trainingDates:[],clientPortal:{status:'unlinked',activeInvite:null},
+    measurements:{active:[],auditCount:0},...price};
+  const html=renderToStaticMarkup(React.createElement(LoadedClientCard,{detail,initData:'fixture',onBack(){}}));
+  const value=html.match(/Стоимость<\/span><strong>(.*?)<\/strong>/)?.[1]?.replace(/\s/g,' ');
+  assert.equal(value,expected);
+});
 test('unknown-only day does not claim completion or label unknown client as one-off',()=>{
   const html=renderDay({today:{title:'14.09.2026',dateKey:'2026-09-14',waiting:[training]}});
   assert.match(html,/Требуется регистрация: 1/);assert.doesNotMatch(html,/День обработан|Разовая/);

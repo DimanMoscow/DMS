@@ -124,6 +124,6 @@ Telegram оставить для быстрых действий, уведомл
 
 Vercel автоматически создал Preview ветки. Его `/api/health` подтверждает revision ветки, но `dataMode=not-configured`; `/api/apps-script-runtime` возвращает 503 `backend_not_configured`. Это ограничение окружения Preview: end-to-end candidate/backend smoke не пройден. Production credentials или backend URL в Preview не переносились. Перед выпуском нужен изолированный backend либо отдельно разрешённая конфигурация и signed read-only smoke.
 
-Candidate tree: `e05adf8ed0ce28c2f3eebfd9c53d61bf0f76e99c623a65d024c1972ef005d52e`, 26 файлов. Предметный Apps Script diff: `git diff --no-index apps-script/versions/v56 apps-script/candidates/v57`; 9 изменённых/добавленных файлов. Полная копия остальных исходников необходима для проверяемого staged release.
+Candidate tree: `332ef8a3c8672293598704abf62ee445b496d29d5bbddd4f4f98a9b1c404220c`, 26 файлов. Предметный Apps Script diff: `git diff --no-index apps-script/versions/v56 apps-script/candidates/v57`; 9 изменённых/добавленных файлов. Полная копия остальных исходников необходима для проверяемого staged release.
 
 Для выпуска требуется свежий exact-source gate, полный repo gate и отдельный release approval. До него **не merge main**, не создавать numbered version, не менять HEAD, deployment, triggers, настройки или данные. Подробный план: [POST_BURN_IN_RELEASE_PLAN.md](POST_BURN_IN_RELEASE_PLAN.md).

@@ -923,7 +923,7 @@ function LoadedClientCard({ detail, initData, onBack }: {
     <section className="detail-card">
       <Detail label="Формат" value={detail.blockId ? `${detail.blockId} · ${detail.format}` : detail.singlePrice ? "Разовые тренировки" : "Нет активного блока"} />
       <Detail label="Статус блока" value={detail.blockStatus || "—"} />
-      <Detail label="Стоимость" value={detail.blockId ? money(detail.blockPrice) : money(detail.singlePrice)} />
+      <Detail label="Стоимость" value={detail.blockId ? money(detail.blockPrice) : detail.singlePrice > 0 ? money(detail.singlePrice) : "—"} />
       {detail.blockId && <Detail label="Оплачено по блоку" value={money(detail.paid)} />}
     </section>
     <section className="content-section"><h2>Ближайшие записи</h2>{detail.upcoming.length

@@ -862,7 +862,7 @@
     "v57": {
       "baseVersion": "v56",
       "fileCount": 26,
-      "sourceTreeSha256": "e05adf8ed0ce28c2f3eebfd9c53d61bf0f76e99c623a65d024c1972ef005d52e",
+      "sourceTreeSha256": "332ef8a3c8672293598704abf62ee445b496d29d5bbddd4f4f98a9b1c404220c",
       "expectedChangedFiles": [
         "CalendarSync.gs",
         "TelegramBot.gs",
