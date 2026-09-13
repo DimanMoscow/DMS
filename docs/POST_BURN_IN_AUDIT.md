@@ -13,7 +13,7 @@
 - GitHub `main`: `4ab73e2103e85c3e0dd199ac220db51d2ccd61d3`; Vercel `/api/health` вернул тот же SHA, релиз 0.2.7 и connected.
 - Управление Apps Script показывает активную версию 56. Описание deployment осталось от v49: описание не является identity. Публичный runtime probe прошёл проверку всех ожидаемых модулей v56 и обоих loaded-маркеров.
 - `/`, `/client`, `/api/health`, `/api/apps-script-runtime`: 200; некорректный POST: 400; неподдерживаемый метод: 405; `no-store` подтверждён.
-- Telegram Web: /start, /clients, /balances и /debt ответили; /report открыл выбор периода. Просмотрены существующие сообщения дня, карточка разового, отсутствие истории, системный alert и запуск подписанного Admin MiniApp. Новые row/day/финансовые действия на настоящих строках не выполнялись.
+- Telegram Web: /start, /clients, /balances, /debt и /yesterday ответили; /report открыл выбор периода, подробный отчёт выявил F17. Просмотрены карточка разового, отсутствие истории, системный alert и запуск подписанного Admin MiniApp. Новые row/day/финансовые действия на настоящих строках не выполнялись.
 - Admin: Главная → Сегодня → Клиенты → карточка разового → Отчёт → Состояние системы. У сегодняшней будущей тренировки подтверждение недоступно до окончания. Отчёт показывает явно выбранный в таблице август; выбора периода в UI нет.
 - Живая диагностика 14.09 около 02:08 МСК: **23/23, 13 201 мс**, reconciliation 0, semantic financial 0, durable pending 0, queue errors 0, одна незарегистрированная запись. Это моментальная проверка, не доказательство устранения редкого drift/latency.
 - Read-only сравнение 19 блоков с 137 строками журнала: расхождений проведённого количества нет. Дубли ID в 137 строках журнала и 125 строках очереди не найдены. Есть ожидающие решения нескольких прошлых дней; они не подтверждались.
@@ -41,6 +41,7 @@
 | F14 | Проверка | 🚫/✅/💸/перенос: окончательный однозначный callback уже принимает намерение; cf2 остаётся внутренним | Регрессия лишнего экрана не воспроизведена в fixtures; replay, actor/chat/message/nonce/TTL сохранены |
 | F15 | Проверка | Confirm-day валидирует selected semantics: unrelated change, новая строка, stale selected row, replay | Затронутый fixture gate прошёл; глобальную revision-защиту не ослабляли |
 | F16 | P2 | Мобильная строка тренировки отводит статусу третью колонку и обрезает длинное имя многоточием | Имя переносится, статус расположен ниже. Визуально проверено на изолированных экранах 320/390/428 px |
+| F17 | P1 | Живой Telegram: «Текущий месяц подробно» открыл выбранный в Sheet предыдущий месяц и прибавил к его заработку прогноз текущего. `buildTelegramReportText_` складывал суммы без проверки периода | Кнопка точно называет источник месяца. Суммарный прогноз выводится только при совпадении месяца и года; иначе прогноз явно показан отдельно. Regression доказывает ошибку v56, проверяет другой месяц/год, неизвестную дату и корректное совпадение. Учётные данные не меняются |
 
 ## A. Инвентаризация продукта
 
@@ -119,8 +120,10 @@ Telegram оставить для быстрых действий, уведомл
 
 Новые regression tests: `apps-script-burn-in-audit.test.mjs`, `miniapp-audit-views.test.mjs`. Harness `DMS_AUDIT_BUNDLE=1` позволяет выполнить затронутые существующие v56/stabilization fixtures на v57; baseline tests остаются на исторических источниках. Core OperationSafety, UndoSafety, FinancialSafety, ReleaseSafety и DomainOperations побайтно сохранены. Изменение confirmation-файла касается только UI после результата.
 
-Результат локального gate: **327/327 tests**, lint, typecheck, production build, dependency audit (0 vulnerabilities), snapshot verifier и migrations — пройдены. Отдельный `npm run test:audit-candidate`: **47/47** на новом bundle; он включён в `npm run check` и CI. Из 327 общих тестов 15 новых: 12 backend regressions и 3 render fixtures. Исторические тесты не выдаются за исполнение v57.
+Результат локального gate: **328/328 tests**, lint, typecheck, production build, dependency audit (0 vulnerabilities), snapshot verifier и migrations — пройдены. Отдельный `npm run test:audit-candidate`: **47/47** на новом bundle; он включён в `npm run check` и CI. Из 328 общих тестов 16 новых: 13 backend regressions и 3 render fixtures. Исторические тесты не выдаются за исполнение v57.
 
-Candidate tree: `e43f0a4dd3bb2b76004b2f741d7325adc4bd8b289b3e1d1eae1dd48583974afa`, 26 файлов. Предметный Apps Script diff: `git diff --no-index apps-script/versions/v56 apps-script/candidates/v57`; 9 изменённых/добавленных файлов. Полная копия остальных исходников необходима для проверяемого staged release.
+Vercel автоматически создал Preview ветки. Его `/api/health` подтверждает revision ветки, но `dataMode=not-configured`; `/api/apps-script-runtime` возвращает 503 `backend_not_configured`. Это ограничение окружения Preview: end-to-end candidate/backend smoke не пройден. Production credentials или backend URL в Preview не переносились. Перед выпуском нужен изолированный backend либо отдельно разрешённая конфигурация и signed read-only smoke.
+
+Candidate tree: `e05adf8ed0ce28c2f3eebfd9c53d61bf0f76e99c623a65d024c1972ef005d52e`, 26 файлов. Предметный Apps Script diff: `git diff --no-index apps-script/versions/v56 apps-script/candidates/v57`; 9 изменённых/добавленных файлов. Полная копия остальных исходников необходима для проверяемого staged release.
 
 Для выпуска требуется свежий exact-source gate, полный repo gate и отдельный release approval. До него **не merge main**, не создавать numbered version, не менять HEAD, deployment, triggers, настройки или данные. Подробный план: [POST_BURN_IN_RELEASE_PLAN.md](POST_BURN_IN_RELEASE_PLAN.md).

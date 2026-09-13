@@ -4980,9 +4980,14 @@ function buildTelegramReportText_() {
       lines.push('• Не распознано событий ПТ: <b>' + forecast.unrecognizedCount + '</b>');
     }
     const earned = parseTelegramMoney_(metrics['Всего заработано работой']);
-    if (earned || forecast.workValue) {
+    const selectedMonth = report.getRange('B3').getValue();
+    const selectedMonthKey = selectedMonth instanceof Date && !isNaN(selectedMonth.getTime())
+      ? Utilities.formatDate(selectedMonth, ss.getSpreadsheetTimeZone() || 'Europe/Moscow', 'MM.yyyy') : '';
+    if (selectedMonthKey === forecast.monthName && (earned || forecast.workValue)) {
       lines.push('• Работа за месяц с учётом расписания: <b>' +
         escapeTelegramHtml_(formatTelegramMoney_(earned + forecast.workValue)) + '</b>');
+    } else if (selectedMonthKey !== forecast.monthName) {
+      lines.push('• Прогноз показан отдельно: его период не совпадает с выбранным месяцем отчёта.');
     }
   } catch (error) {
     lines.push(

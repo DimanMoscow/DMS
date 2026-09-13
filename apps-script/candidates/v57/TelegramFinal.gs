@@ -698,7 +698,7 @@ function sendTelegramReportMenu_(chatId, messageId) {
     [{text: 'Сегодня', callback_data: 'ops:report:1'},
      {text: '7 дней', callback_data: 'ops:report:7'},
      {text: '30 дней', callback_data: 'ops:report:30'}],
-    [{text: 'Текущий месяц подробно', callback_data: 'ops:report:0'}],
+    [{text: 'Месяц из таблицы · подробно', callback_data: 'ops:report:0'}],
     [{text: '🔙 Назад', callback_data: 'ops:more'}]
   ]};
   const text = '<b>Отчёты</b>\nВыбери период.';

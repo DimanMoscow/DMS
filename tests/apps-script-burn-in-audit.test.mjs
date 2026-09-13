@@ -164,3 +164,26 @@ test('candidate keeps core security/locking/undo/financial module bytes unchange
     'ZZZZZZZZZZZZZZZFinancialSafety.gs','ZZZZZZZZZZZZZZZZReleaseSafety.gs','ZZZZZZZZZZZZZZZZZZDomainOperations.gs'])
     assert.deepEqual(fs.readFileSync('apps-script/candidates/v57/'+file),fs.readFileSync('apps-script/versions/v56/'+file));
 });
+
+test('monthly report never adds another month or year to the current Calendar forecast',()=>{
+  for (const [candidate,month,hasTotal] of [
+    ['v56',new Date('2026-08-01T00:00:00Z'),true],
+    ['v57',new Date('2026-08-01T00:00:00Z'),false],
+    ['v57',new Date('2025-09-01T00:00:00Z'),false],
+    ['v57','unverified month',false],
+    ['v57',new Date('2026-09-01T00:00:00Z'),true],
+  ]) {
+    const f=loadBundle(candidate);const c=f.context;
+    c.getRequiredSheet_=()=>({getRange:()=>({getValue:()=>month,
+      getDisplayValue:()=> 'Selected month',
+      getDisplayValues:()=>[['Всего заработано работой','1000']]})});
+    c.getTelegramOperationalMetrics_=()=>({activeClients:1,openBlocks:1,lowBlocks:0,debtClients:0});
+    c.getTelegramCalendarForecast_=()=>({monthName:'09.2026',trainingCount:1,workValue:200,unrecognizedCount:0});
+    const text=c.buildTelegramReportText_();
+    assert.equal(text.includes('Работа за месяц с учётом расписания'),hasTotal);
+    assert.match(text,/Прогноз до конца 09.2026/);
+    if(hasTotal) assert.match(text,/1.200/);
+    else assert.match(text,/Прогноз показан отдельно/);
+    assert.equal(f.writes.length,0);
+  }
+});
