@@ -5,9 +5,12 @@ Last verified: 2026-09-11, 12:28 Europe/Moscow. Emergency recovery runtime and d
 ## Post-burn-in audit checkpoint — 2026-09-14
 
 Runtime/main rechecked at `4ab73e2103e85c3e0dd199ac220db51d2ccd61d3`, Apps Script v56;
-live signed read-only health 23/23 in 13.201 s. No production changes. This audit did
-not repeat the full owner HEAD/numbered-source export recorded below. Candidate v57
-is undeployed and must not be merged as a production operation without release approval.
+live signed read-only health 23/23 in 13.201 s. No production changes. Fresh owner
+HEAD/numbered v56 exact-source readback, 16-sheet owner-only recovery/restore and
+335 + 47 tests now pass. Isolated signed Web/backend v57 reads pass with an explicit
+local runtime-pointer overlay. Full Calendar incremental/deleted-event preflight
+awaits Calendar API enablement in the separate OAuth project; readiness remains NO. Candidate v57 is undeployed.
+Current evidence and rollout order: [V57_READINESS](V57_READINESS.md).
 Findings, coverage limits, navigation/backlog and release gates:
 [POST_BURN_IN_AUDIT](POST_BURN_IN_AUDIT.md),
 [POST_BURN_IN_RELEASE_PLAN](POST_BURN_IN_RELEASE_PLAN.md).
