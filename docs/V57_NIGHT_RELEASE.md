@@ -1,6 +1,6 @@
 # v57 night release — 14 September 2026
 
-**ROLLED BACK.** The owner explicitly authorized this release and guarded rollback. Apps Script numbered 57 was created and briefly mapped while the ingress was closed. The plan's signed-read gate proved impossible under the existing interlock. Production mapping and complete HEAD were restored to exact v56. Main and Vercel never changed. Normal v56 writes were restored at 02:00:47Z; independent inventory at 02:02:09Z confirms `mutationReady=true`, durable pending/stale/manual review 0/0/0.
+**ROLLED BACK.** The owner explicitly authorized this release and guarded rollback. Apps Script numbered 57 was created and briefly mapped while the ingress was closed. The plan's signed-read gate proved impossible under the existing interlock. Production mapping and complete HEAD were restored to exact v56. Main and Vercel never changed. Normal v56 writes were restored at 02:00:47Z; independent inventory at 02:02:09Z confirms `mutationReady=true`, durable pending/stale/manual review 0/0/0. Natural sync then succeeded; final signed health at 02:22:12Z is **23/23, 14.326 s**. Business hashes remain unchanged at 02:22:38Z. No owner action is needed to use production.
 
 ## Identities
 
@@ -38,7 +38,7 @@ No P1 module or approved runtime candidate was altered to make the release pass.
 
 ## Restored production smoke and effects
 
-Web/API v56: `/`, `/client`, `/api/health`, `/api/apps-script-runtime` 200; invalid POST 400; unsupported method 405; no-store and exact baseline SHA PASS. Signed MiniApp bootstrap, Today, Clients, one-off card, active-block card and Report read successfully after activation. Telegram `/start` and `/debt` returned normally. This is v56 recovery smoke, not a claim that v57 features passed production smoke.
+Web/API v56: `/`, `/client`, `/api/health`, `/api/apps-script-runtime` 200; invalid POST 400; unsupported method 405; no-store and exact baseline SHA PASS. Signed MiniApp bootstrap, Today, Clients, one-off card, active-block card, Report and diagnostics read successfully after activation. Mobile viewport 390 px shows no horizontal overflow; override reset. Telegram `/start`, `/debt`, `/clients`, one-off card, `/balances` and `/report` period selector returned normally. v56 `/today` and `/attention` were not used to force their inline sync during recovery. This is v56 recovery smoke, not a claim that the complete v57 feature smoke passed production.
 
 No real attendance/payment/client/block/alias operation was executed. Business counts and value hashes are unchanged before/after rollback smoke; only backup-proved volatile NOW() formula cells are excluded from that hash comparison. Release changed code/mapping and maintenance properties, then restored v56. It created two private recovery copies and the immutable inactive numbered 57. No full-sheet restore, deployment deletion, main merge, manual Vercel deployment or new permission scope occurred.
 
@@ -49,7 +49,13 @@ The first restoration click was rejected by automatic approval review because sc
 - Backup 00:02:26.360–00:02:31.478Z: succeeded naturally, 5.118 s, before release maintenance.
 - v56 watchdog 01:10:15.888Z: metric overall 14.434 s / health 13.401 s. This one fast baseline sample does not close F09.
 - Sync 01:21:15.639–01:21:18.182Z: skipped with `release_maintenance`, 2.543 s. Retained as a real operational interruption; never cleared or replaced with synthetic success.
-- Next natural sync and morning processes remain to be observed. No synthetic sync/watchdog/digest was run to obtain green.
+- Natural sync 02:21:11.037–02:21:17.613Z: completed, scheduled duration **6.576 s**. Generation **104**, ingestion duration 5.873 s; completed post-sync issue/drift/pending/immediate counts all **0**, overflow false. Historical maintenance failure remains recorded; current freshness is healthy.
+- Signed health 02:22:12Z: **23/23**, 14.326 s. Business counts/hashes unchanged at 02:22:38Z, duplicate IDs 0. Interlock readback still has the exact v56 ready marker.
+- Morning watchdog/digest observation continues in this task through a bounded heartbeat. No synthetic sync/watchdog/digest was run to obtain green.
 - **F09 OPEN**; v57 phase instrumentation is inactive after rollback, so new v57 phase timings are unavailable. The 8 unchanged Queue rewrites, history index threshold and legacy call-graph cleanup remain P3, unimplemented.
 
-Credentials, raw account/client evidence and recovery IDs are retained privately outside Git. No new features or business-rule changes were started after rollback.
+Credentials, raw account/client evidence and recovery IDs are retained privately outside Git. Temporary local night release helpers were removed; none was uploaded into Apps Script. No new features or business-rule changes were started after rollback.
+
+**MANUAL ACTION: NONE** for restored production. A future v57 attempt requires a revised, explicitly reviewed smoke/activation order.
+
+**v56 RESTORED — PRODUCTION SAFE**

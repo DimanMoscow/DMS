@@ -1,6 +1,6 @@
 # Current project state
 
-Last verified: 2026-09-14, 05:04 Europe/Moscow. Night v57 attempt rolled back to exact v56; writes restored and read back. Business hashes unchanged. Scheduled freshness awaits the next natural sync after a maintenance-skipped run.
+Last verified: 2026-09-14, 05:22 Europe/Moscow. Night v57 attempt rolled back to exact v56; writes restored and read back. Natural sync generation 104 succeeded with zero post-sync issues; signed health 23/23 in 14.326 s. Business hashes unchanged.
 
 ## Night v57 release attempt — ROLLED BACK
 
@@ -18,6 +18,11 @@ post-smoke business hashes unchanged. Web/API and signed MiniApp/Telegram reads
 work again. Numbered 57 exists but is inactive; its immutable snapshot is retained.
 Full branch gate with the new maintenance-contract tests: 337 + 47 PASS.
 F09 remains open; no v57 phase evidence is claimed after rollback.
+
+Natural sync at 02:21:17Z restored scheduled freshness (6.576 s, generation 104,
+completed post-sync issue/drift/pending/immediate counts 0). Signed health at
+02:22:12Z is 23/23; business hashes at 02:22:38Z remain unchanged. Morning
+natural-process observation continues; no manual owner action is required.
 
 Current authoritative result: [V57_NIGHT_RELEASE](V57_NIGHT_RELEASE.md).
 Readiness for the old smoke order is **NO**. Earlier YES below is historical.
