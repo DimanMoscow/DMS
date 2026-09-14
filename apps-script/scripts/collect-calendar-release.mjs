@@ -11,6 +11,8 @@ import {readCanonicalSource, sourceTreeSha256} from './source-integrity.mjs';
 import {fingerprint, SAFETY_TYPES} from './release-reconciliation.mjs';
 import {compileCalendarAcceptance} from './calendar-acceptance-evidence.mjs';
 import {assertPrivateRegularFile, isOutsidePath} from '../../scripts/path-policy.mjs';
+import {nativeUiChannel} from './native-ui-channel.mjs';
+import {collectorSafety} from './collector-safety.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repo = path.dirname(root);
@@ -172,6 +174,13 @@ export async function collectReleaseEvidence({readNative, readGoogle, readCalend
   const nativeAfter = await readNative();
   assert.equal(fingerprint(nativeAfter.scan), fingerprint(native.scan), 'cursor changed during collection');
   assert.equal(fingerprint(nativeAfter.generation), fingerprint(native.generation), 'sync changed during collection');
+  if(native.adapter==='native-ui-challenge-v1') {
+    const book=memoryWorkbook(rows),f=loadBundle('v56',{SpreadsheetApp:book.service});
+    assert.equal(native.scan.calendarFingerprint,f.context.getDmsCalendarFingerprint_(target.calendarId),'wrong native calendar');
+    native.safety=collectorSafety(rows,capture,native,f.context);
+    nativeAfter.safety=collectorSafety(rows,capture,nativeAfter,f.context);
+    assert.equal(book.writes.length,0);
+  }
   const safetyReport = Object.fromEntries(SAFETY_TYPES.map(key => [key, native.safety?.[key]]));
   const identities = {releaseCommitSha, candidateTreeSha256, numberedSourceSha256: candidateTreeSha256,
     baselineTreeSha256};
@@ -203,14 +212,16 @@ async function main() {
   assert.equal(process.argv.length, 4, 'usage: node collect-calendar-release.mjs private-config.json private-output.json');
   const [configPath, output] = process.argv.slice(2);
   assertPrivateRegularFile(configPath, repo, 'collector config'); const cfg = json(configPath);
-  for (const key of ['readerProfile', 'calendarProfile', 'nativeReceipt']) assertPrivateRegularFile(cfg[key], repo, key);
+  for (const key of ['readerProfile', 'calendarProfile']) assertPrivateRegularFile(cfg[key], repo, key);
+  const live=cfg.nativeAdapter==='native-ui-challenge-v1';
+  if(!live)assertPrivateRegularFile(cfg.nativeReceipt,repo,'nativeReceipt');
   const calendarProfile = json(cfg.calendarProfile);
   assert.deepEqual(calendarProfile.scopes, ['https://www.googleapis.com/auth/calendar.events.readonly']);
   const [readerToken, calendarToken] = await Promise.all([
     refreshGoogleAccessToken(loadAuthorizationProfile(cfg.readerProfile, 'reader')), refreshGoogleAccessToken(calendarProfile)]);
   const artifact = await collectReleaseEvidence({target: cfg.target,
     releaseCommitSha: execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim(),
-    readNative: async () => json(cfg.nativeReceipt), readGoogle: url => googleJson(readerToken, url),
+    readNative: live?nativeUiChannel({directory:cfg.nativeDirectory,target:cfg.target,repo}):async () => json(cfg.nativeReceipt), readGoogle: url => googleJson(readerToken, url),
     readCalendar: async q => {
       assert.equal(q.id, cfg.target.calendarId, 'unexpected calendar');
       const base = 'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(q.id) + '/events';
@@ -222,8 +233,9 @@ async function main() {
     }});
   // A file receipt is not a second live native read. The CLI deliberately refuses
   // activation admission until a supported live native adapter is installed.
-  artifact.status = 'DIAGNOSTIC_ONLY'; delete artifact.acceptance;
-  artifact.reason = 'Live native cursor/safety re-read adapter not yet available';
+  if(!live){artifact.status = 'DIAGNOSTIC_ONLY'; delete artifact.acceptance;
+    artifact.reason = 'Saved file receipt is not a live native read';}
+  else if(artifact.acceptance)artifact.status='RELEASE_ACCEPTANCE_CAPABLE';
   const hash = writeImmutableEvidence(output, artifact);
   console.log(JSON.stringify({status: artifact.status, artifactFingerprint: hash,
     drift: artifact.capture.before.issueCount, projected: artifact.capture.after.issueCount,

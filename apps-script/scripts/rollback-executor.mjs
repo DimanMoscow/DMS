@@ -9,14 +9,22 @@ export const ROLLBACK_ADAPTERS = Object.freeze(['close', 'readInterlock', 'inven
 // Every adapter is prepared/authenticated before admission. This executor has no
 // browser fallback hidden in the window, no credential discovery and no build.
 // readHead/readMapping expose normalized source/config, not deployment labels.
-export async function executeRollback({adapters, expected, authorization, clock, record}) {
+export async function executeRollback({adapters, expected, authorization, clock, record, transitionalWeb}) {
   assert.equal(authorization, 'EXECUTE_EXACT_V56_ROLLBACK');
-  for (const name of ROLLBACK_ADAPTERS) assert.equal(typeof adapters[name], 'function', 'missing adapter: ' + name);
+  for (const name of ROLLBACK_ADAPTERS.filter(name=>!transitionalWeb||name!=='rollbackWeb')) assert.equal(typeof adapters[name], 'function', 'missing adapter: ' + name);
   for (const name of ['now', 'sleep']) assert.equal(typeof clock[name], 'function');
   assert.equal(typeof record, 'function');
   assert.equal(expected.mapping.versionNumber, 56);
   assert.match(expected.web.sha, /^[a-f0-9]{40}$/);
   assert.ok(expected.web.deploymentId && expected.head.length > 0);
+  if(transitionalWeb){
+    assert.equal(transitionalWeb.phase,'v56-v57-transition');
+    assert.equal(transitionalWeb.webSha,expected.web.sha);
+    assert.deepEqual(transitionalWeb.numberedTrees,[
+      '873ec728daf92883c31f67eed8857b092360a7fe1fbba3e3d30d316379470a7d',
+      '332ef8a3c8672293598704abf62ee445b496d29d5bbddd4f4f98a9b1c404220c']);
+    assert.equal(transitionalWeb.compatibilityPassed,true);
+  }
   const trace = [];
   async function step(name, run, verify, timeoutMs = 30000) {
     const started = clock.now(); const controller = new AbortController();
@@ -49,6 +57,9 @@ export async function executeRollback({adapters, expected, authorization, clock,
       return {result, ambiguous};
     }, receipt => verify(receipt.result));
   }
+  const verifyWeb=result=>{assert.equal(result.state,'READY');assert.equal(result.sha,expected.web.sha);
+    assert.equal(result.deploymentId,expected.web.deploymentId);};
+  if(transitionalWeb)await step('preflight-transitional-web',adapters.readWeb,verifyWeb);
   const closed = await effectThenRead('closed-readback', adapters.close, adapters.readInterlock, state => {
     assert.equal(state.open, false); assert.ok(Number.isFinite(state.drainStartedAt));
     assert.ok(state.drainStartedAt >= clock.now() - 30000 && state.drainStartedAt <= clock.now(), 'fresh drain required');
@@ -66,9 +77,8 @@ export async function executeRollback({adapters, expected, authorization, clock,
     result => assert.equal(fingerprint(result), fingerprint(expected.head), 'HEAD source differs'));
   await effectThenRead('restore-mapping', signal => adapters.putMapping(expected.mapping, signal), adapters.readMapping,
     result => assert.deepEqual(result, expected.mapping, 'mapping differs'));
-  await effectThenRead('restore-web', signal => adapters.rollbackWeb(expected.web.deploymentId, signal), adapters.readWeb,
-    result => { assert.equal(result.state, 'READY'); assert.equal(result.sha, expected.web.sha);
-      assert.equal(result.deploymentId, expected.web.deploymentId); });
+  if(transitionalWeb)await step('unchanged-transitional-web',adapters.readWeb,verifyWeb);
+  else await effectThenRead('restore-web', signal => adapters.rollbackWeb(expected.web.deploymentId, signal), adapters.readWeb,verifyWeb);
   await step('closed-runtime', adapters.readRuntime, result => assert.deepEqual(result, expected.runtime));
   await step('closed-reconciliation', adapters.reconcile, result => {
     assert.equal(result.businessEffects, 0); assert.equal(result.safetyClean, true);

@@ -1,30 +1,7 @@
-# Аудит Telegram / Admin MiniApp после burn-in v56
+# Telegram and Admin MiniApp audit — anonymized technical findings
 
-Дата: 14.09.2026. Без production deploy и без тестовых записей в клиентский учёт.
-
-Актуальное продолжение: [V57_READINESS](V57_READINESS.md) — 335 + 47 tests,
-isolated signed E2E, fresh owner source/recovery evidence, Calendar gate и rollout.
-Ниже сохранён первый checkpoint аудита; его 328 tests и отсутствие configured
-Preview backend не описывают последующий локальный staging E2E.
-
-## Вывод
-
-Основные подтверждённые дефекты: пропуск давно созданного Calendar-события при движении окна; отсутствие истории разовых в обоих интерфейсах; отсутствие явного перехода к регистрации в Telegram; недоступность регистрации прошлых дней в MiniApp. Карточка без блока ошибочно выглядит как разовая, а её нулевые счётчики могут вводить в заблуждение. Watchdog по-прежнему имеет длинные выбросы задержки.
-
-Кандидат `apps-script/candidates/v57` исправляет подтверждённые пути ниже. Это локальный кандидат, **номер 57 в Google не создавался**. `production.json` остаётся на v56. Оставшиеся новые функции оформлены как backlog; настройки, цены и решения о посещении не менялись.
-
-## Что проверено живьём
-
-- GitHub `main`: `4ab73e2103e85c3e0dd199ac220db51d2ccd61d3`; Vercel `/api/health` вернул тот же SHA, релиз 0.2.7 и connected.
-- Управление Apps Script показывает активную версию 56. Описание deployment осталось от v49: описание не является identity. Публичный runtime probe прошёл проверку всех ожидаемых модулей v56 и обоих loaded-маркеров.
-- `/`, `/client`, `/api/health`, `/api/apps-script-runtime`: 200; некорректный POST: 400; неподдерживаемый метод: 405; `no-store` подтверждён.
-- Telegram Web: /start, /clients, /balances, /debt и /yesterday ответили; /report открыл выбор периода, подробный отчёт выявил F17. Просмотрены карточка разового, отсутствие истории, системный alert и запуск подписанного Admin MiniApp. Новые row/day/финансовые действия на настоящих строках не выполнялись.
-- Admin: Главная → Сегодня → Клиенты → карточка разового → Отчёт → Состояние системы. У сегодняшней будущей тренировки подтверждение недоступно до окончания. Отчёт показывает явно выбранный в таблице август; выбора периода в UI нет.
-- Живая диагностика 14.09 около 02:08 МСК: **23/23, 13 201 мс**, reconciliation 0, semantic financial 0, durable pending 0, queue errors 0, одна незарегистрированная запись. Это моментальная проверка, не доказательство устранения редкого drift/latency.
-- Read-only сравнение 19 блоков с 137 строками журнала: расхождений проведённого количества нет. Дубли ID в 137 строках журнала и 125 строках очереди не найдены. Есть ожидающие решения нескольких прошлых дней; они не подтверждались.
-- Частный repair-сценарий сверён по клиенту, обоим блокам, двум тренировкам, очереди и единственной оплате. Полные клиентские данные и operational URLs в публичный репозиторий не включены.
-
-**Границы проверки:** копия исходников из Git и публичные отпечатки подтверждены; полный повторный экспорт HEAD и numbered source через owner reader API в этом аудите не выполнялся. Для релиза он обязателен. Mutation walkthrough выполнен в памяти на fixtures; это не production smoke. Статический mobile fixture проверяет вёрстку, не мобильную Telegram-авторизацию. Не объявлять все возможные комбинации финансовых сценариев доказанными.
+Private live observations and customer-specific evidence are retained outside Git.
+The table describes code defects, fixture proof and proposed UX/backlog only.
 
 ## Findings
 
@@ -37,8 +14,8 @@ Preview backend не описывают последующий локальны�
 | F05 | P2 | Telegram dashboard и MiniApp связывают пустой blockId с «разовой» | Подписи «без блока» / «требуется регистрация», карточка отличает подтверждённую цену разовой от отсутствующего блока |
 | F06 | P2 | MiniApp pending исключает неизвестных, затем нулевой pending выводит «День обработан» | Отдельные состояния «Требуется регистрация» и «Нет событий» |
 | F07 | P2 | MiniApp разового показывает 0 проведено/0 оплачено из полей текущего блока, несмотря на журнал и платежи | Количество фактически проведённых берётся из истории; отменённые и списания без проведения не считаются посещениями. «Оплачено по блоку» показывается только для блока |
-| F08 | P2 | `/today` и `/attention` вызывают `syncCalendarToQueue` до ответа; естественный inline sync 13.09 занимал 8,468 с, scheduled 7,690–26,739 с в наблюдаемом фрагменте | Эти два чтения больше не запускают ingestion. Явное обновление из Calendar и scheduled ingestion остаются. Tradeoff: чтение показывает последнюю синхронизированную очередь |
-| F09 | P1 | Watchdog 13.09 12:10:14: 150,717 с; метрика healthCheck 140,072 с, lockHeld=0, Telegram=369 мс. В логе 127 с между system summary и reconciliation; точный Google-вызов не выделен | Не объявлен исправленным. Добавлены отдельные безопасные phase timings с finally; нужен последующий естественный production профиль после согласованного релиза |
+| F08 | P2 | `/today` and `/attention` called ingestion before returning a read | Candidate removes inline sync; explicit and scheduled ingestion remain |
+| F09 | P1 | Watchdog latency needs phase-level natural evidence | Keep the risk open; instrument phases without suppressing alerts |
 | F10 | P2 | Внимание проверяло статус `Планируется`, создатель/validation использует `Запланирован` | Опечатка исправлена; нет принудительной активации блока |
 | F11 | P2 | Отчёт закреплён за периодом в Sheet, нельзя выбрать месяц в MiniApp; тексты содержат Runtime/Source/Backend/Durable operations | Выбор месяца и понятная диагностика — backlog. Дата показана, сам отчёт не ошибочный |
 | F12 | P1 | MiniApp считает все pending, но управляет только сегодняшним днём; backlog старых известных клиентов не имеет рабочего экрана | Backlog отдельной очереди по датам. Никакого массового подтверждения |
@@ -46,7 +23,7 @@ Preview backend не описывают последующий локальны�
 | F14 | Проверка | 🚫/✅/💸/перенос: окончательный однозначный callback уже принимает намерение; cf2 остаётся внутренним | Регрессия лишнего экрана не воспроизведена в fixtures; replay, actor/chat/message/nonce/TTL сохранены |
 | F15 | Проверка | Confirm-day валидирует selected semantics: unrelated change, новая строка, stale selected row, replay | Затронутый fixture gate прошёл; глобальную revision-защиту не ослабляли |
 | F16 | P2 | Мобильная строка тренировки отводит статусу третью колонку и обрезает длинное имя многоточием | Имя переносится, статус расположен ниже. Визуально проверено на изолированных экранах 320/390/428 px |
-| F17 | P1 | Живой Telegram: «Текущий месяц подробно» открыл выбранный в Sheet предыдущий месяц и прибавил к его заработку прогноз текущего. `buildTelegramReportText_` складывал суммы без проверки периода | Кнопка точно называет источник месяца. Суммарный прогноз выводится только при совпадении месяца и года; иначе прогноз явно показан отдельно. Regression доказывает ошибку v56, проверяет другой месяц/год, неизвестную дату и корректное совпадение. Учётные данные не меняются |
+| F17 | P1 | Monthly report and forecast were combined without verifying equal month/year | Кнопка точно называет источник месяца. Суммарный прогноз выводится только при совпадении месяца и года; иначе прогноз явно показан отдельно. Regression доказывает ошибку v56, проверяет другой месяц/год, неизвестную дату и корректное совпадение. Учётные данные не меняются |
 
 ## A. Инвентаризация продукта
 
@@ -126,8 +103,6 @@ Telegram оставить для быстрых действий, уведомл
 Новые regression tests: `apps-script-burn-in-audit.test.mjs`, `miniapp-audit-views.test.mjs`. Harness `DMS_AUDIT_BUNDLE=1` позволяет выполнить затронутые существующие v56/stabilization fixtures на v57; baseline tests остаются на исторических источниках. Core OperationSafety, UndoSafety, FinancialSafety, ReleaseSafety и DomainOperations побайтно сохранены. Изменение confirmation-файла касается только UI после результата.
 
 Результат локального gate: **328/328 tests**, lint, typecheck, production build, dependency audit (0 vulnerabilities), snapshot verifier и migrations — пройдены. Отдельный `npm run test:audit-candidate`: **47/47** на новом bundle; он включён в `npm run check` и CI. Из 328 общих тестов 16 новых: 13 backend regressions и 3 render fixtures. Исторические тесты не выдаются за исполнение v57.
-
-Vercel автоматически создал Preview ветки. Его `/api/health` подтверждает revision ветки, но `dataMode=not-configured`; `/api/apps-script-runtime` возвращает 503 `backend_not_configured`. Это ограничение окружения Preview: end-to-end candidate/backend smoke не пройден. Production credentials или backend URL в Preview не переносились. Перед выпуском нужен изолированный backend либо отдельно разрешённая конфигурация и signed read-only smoke.
 
 Candidate tree: `332ef8a3c8672293598704abf62ee445b496d29d5bbddd4f4f98a9b1c404220c`, 26 файлов. Предметный Apps Script diff: `git diff --no-index apps-script/versions/v56 apps-script/candidates/v57`; 9 изменённых/добавленных файлов. Полная копия остальных исходников необходима для проверяемого staged release.
 

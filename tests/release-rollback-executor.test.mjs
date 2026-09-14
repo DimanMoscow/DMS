@@ -51,6 +51,19 @@ test('lost successful PUT response uses readback and does not duplicate the effe
   assert.equal((await executeRollback(f)).status, 'V56_RESTORED');
   assert.equal(f.calls.filter(x => x === 'putHead').length, 1);
 });
+
+test('verified transitional Web rollback restores HEAD and mapping without any Web switch',async()=>{
+  const f=fixture();delete f.adapters.rollbackWeb;
+  f.state.web={...f.expected.web,state:'READY'};
+  f.transitionalWeb={phase:'v56-v57-transition',webSha:f.expected.web.sha,compatibilityPassed:true,numberedTrees:[
+    '873ec728daf92883c31f67eed8857b092360a7fe1fbba3e3d30d316379470a7d',
+    '332ef8a3c8672293598704abf62ee445b496d29d5bbddd4f4f98a9b1c404220c']};
+  assert.equal((await executeRollback(f)).status,'V56_RESTORED');
+  assert.deepEqual(f.calls,['close','putHead','putMapping','open']);
+  assert.equal(f.clock.now()-f.state.drainStartedAt,420000);
+  const bad=fixture();bad.transitionalWeb={...f.transitionalWeb,webSha:'b'.repeat(40)};
+  await assert.rejects(executeRollback(bad));assert.deepEqual(bad.calls,[]);
+});
 test('in-flight operations block restore; signed failure closes again', async () => {
   const f = fixture(); const inventory = f.adapters.inventory;
   f.adapters.inventory = async () => ({...await inventory(), pending: 1});
