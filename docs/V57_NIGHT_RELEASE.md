@@ -4,6 +4,8 @@
 
 ## Identities
 
+**Morning result, 05:28:49Z:** rollback remains complete and writes remain open; source HEAD/numbered/mapping/runtime are independently exact v56. The initial 23/23 recovery gate below is historical. A known v56 Calendar horizon defect subsequently produced **one reconciliation drift**, and the natural watchdog reported it. Production is not claimed all-green at the morning checkpoint. Business values and counts remain unchanged; 72 moving technical dates were independently re-read as `=NOW()` formulas. No repair or second release was performed.
+
 - Main / Vercel Production SHA: `4ab73e2103e85c3e0dd199ac220db51d2ccd61d3`, Vercel READY.
 - PR #80 was not merged; preflight head `b28d8d67ca099d7feb91940f8170c0a44a6b3905`. Runtime candidate commit `af99236e18b1dd13273768171972063dc11af6eb`.
 - Active Apps Script numbered version **56**, `emergency-semantic-recovery`; HEAD and runtime independently exact after rollback and after reopened smoke.
@@ -51,10 +53,34 @@ The first restoration click was rejected by automatic approval review because sc
 - Sync 01:21:15.639–01:21:18.182Z: skipped with `release_maintenance`, 2.543 s. Retained as a real operational interruption; never cleared or replaced with synthetic success.
 - Natural sync 02:21:11.037–02:21:17.613Z: completed, scheduled duration **6.576 s**. Generation **104**, ingestion duration 5.873 s; completed post-sync issue/drift/pending/immediate counts all **0**, overflow false. Historical maintenance failure remains recorded; current freshness is healthy.
 - Signed health 02:22:12Z: **23/23**, 14.326 s. Business counts/hashes unchanged at 02:22:38Z, duplicate IDs 0. Interlock readback still has the exact v56 ready marker.
-- Morning watchdog/digest observation continues in this task through a bounded heartbeat. No synthetic sync/watchdog/digest was run to obtain green.
+- Morning watchdog/digest observation completed; the heartbeat was paused after the natural digest and final read-only verification. No synthetic sync/watchdog/digest was run to obtain green.
 - **F09 OPEN**; v57 phase instrumentation is inactive after rollback, so new v57 phase timings are unavailable. The 8 unchanged Queue rewrites, history index threshold and legacy call-graph cleanup remain P3, unimplemented.
 
 Credentials, raw account/client evidence and recovery IDs are retained privately outside Git. Temporary local night release helpers were removed; none was uploaded into Apps Script. No new features or business-rule changes were started after rollback.
+
+## Final morning observation — 14 September
+
+Times below are UTC; add three hours for Moscow.
+
+| Natural process | Completed at | Duration / result |
+| --- | --- | --- |
+| Backup | 00:02:31.478 | 5.118 s, completed; no later backup was due during this observation |
+| Watchdog | 03:10:34.247 | Scheduled 18.184 s; overall metric 18.921 s / health 17.449 s; original verdict healthy |
+| Sync | 03:21:21.281 | 9.937 s; generation 105, post-sync issues 0 |
+| Sync | 04:21:29.684 | 16.317 s; generation 106, post-sync issue/drift 1/1, pending/immediate 0/0 |
+| Watchdog | 05:10:27.726 | Scheduled 11.821 s; overall 12.208 s / health 10.604 s; alerted, metric partial. Exact failure: `calendar-queue-journal-reconciliation: drift_after_successful_sync; issues=1` |
+| Morning digest | 05:11:13.264 | Scheduled 17.686 s; metric 18.007 s, outcome sent/success. Natural internal Calendar sync metric 5.330 s, zero event/row writes; invoked by the existing digest code, not manually |
+| Sync | 05:21:16.823 | 6.352 s; generation 108, ingestion 5.724 s; completed post-sync issue/drift 1/1, pending/immediate 0/0, overflow false |
+
+The unchanged drift key connects the latest finding to the independently diagnosed 04:21 issue. Native read-only reconciliation at 04:28:00Z independently returned one issue, no safe repair. Raw Calendar API and actual v56 reconciliation code identify only `calendarTrainingMissingQueue`; all duplicate/accounting/link classes are zero. An existing event entered the rolling 24-hour reconciliation window without changing since August. Incremental ingestion therefore returned zero events; the next wide scan was not yet due. This is the previously documented v56 ingestion/reconciliation horizon gap, now reproduced on natural production runs after rollback.
+
+At 04:30:04Z, raw wide read returned 130 events including 19 deleted, with no further pages. The actual v56 planner proposed zero writes. The isolated v57 planner proposed one new pending row plus the eight unchanged rewrites; added attendance/payment effects were not applied or tested in production. **The earlier eight-rewrites-only preview is no longer a current release write-set.** Any subsequent release must repeat fresh preflight and explicitly review its new write-set as well as the corrected smoke/activation order.
+
+Final owner read-only verification at **05:28:49.687Z** proves HEAD = numbered 56 = immutable Git v56 under the same two substitutions; mapping is 56 and all runtime fingerprints match. Web health is connected at the original main SHA. Counts remain Clients 21 / Blocks 19 / Payments 35 / Journal 137 / Queue 125, duplicate IDs 0. Against initial recovery data, the only differences are the 72 independently verified NOW() formula values and the automation-status cell. No business repair, interlock change or source change occurred during monitoring.
+
+**F09 remains OPEN.** Natural watchdog overall/health samples are 14.434/13.401 s, 18.921/17.449 s and 12.208/10.604 s. No sample crossed 120/240 s, and the latest duration decreased; no two consecutive increases occurred. Detailed Calendar/reconciliation/Sheets/backup-validation phases inside the health check are unavailable in active v56; zero placeholder fields are not measurements. The final alert is the known Calendar drift, not a measured performance regression.
+
+The observer automation is **PAUSED** after completion. No new scopes, external sharing or billing changes were introduced. The next release still requires a revised reviewed plan; current v56 remains usable with the explicit Calendar drift risk above.
 
 **MANUAL ACTION: NONE** for restored production. A future v57 attempt requires a revised, explicitly reviewed smoke/activation order.
 

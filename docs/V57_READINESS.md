@@ -4,6 +4,8 @@
 
 Следующие A–E сохраняют доказательства предыдущего preflight. Их PASS не разрешает повторить опровергнутый rollout. Новый тест `release-maintenance-contract.test.mjs` воспроизводит блокировку подписанных чтений на обоих bundles без business writes.
 
+**Утреннее дополнение:** exact v56 повторно подтверждён owner reader в 05:28:49Z, бизнес-значения неизменны. Естественные sync/watchdog воспроизвели известный horizon-дефект v56: одна запись Calendar отсутствует в Queue до wide scan; alert сохранён. Локальный actual v57 planner теперь предлагает **1 новую pending row + 8 идентичных rewrites**, поэтому прежний preview «только 8» больше не является актуальным write-set. Перед повторным release нужны новый fresh preflight и review нового write-set вместе с исправленным порядком smoke/activation. F09 OPEN; утренний digest завершён, ночное наблюдение приостановлено.
+
 ## A. Изменения после первого аудита
 
 - Стоимость в карточке: активный блок → цена блока; без блока и `singlePrice > 0` → цена разовой; неизвестная цена → «—». Три render regression tests.

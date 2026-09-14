@@ -1,6 +1,6 @@
 # Current project state
 
-Last verified: 2026-09-14, 05:22 Europe/Moscow. Night v57 attempt rolled back to exact v56; writes restored and read back. Natural sync generation 104 succeeded with zero post-sync issues; signed health 23/23 in 14.326 s. Business hashes unchanged.
+Last verified: 2026-09-14, 08:29 Europe/Moscow. Night v57 attempt remains rolled back to exact v56; writes open and fresh HEAD/numbered/mapping/runtime checks pass. Business values unchanged. Morning sync generation 108 retains one known v56 Calendar horizon drift; watchdog alerted and digest sent. Initial recovery 23/23 below is historical, not a current all-green claim. Night observation completed and its automation is paused.
 
 ## Night v57 release attempt — ROLLED BACK
 
@@ -21,8 +21,21 @@ F09 remains open; no v57 phase evidence is claimed after rollback.
 
 Natural sync at 02:21:17Z restored scheduled freshness (6.576 s, generation 104,
 completed post-sync issue/drift/pending/immediate counts 0). Signed health at
-02:22:12Z is 23/23; business hashes at 02:22:38Z remain unchanged. Morning
-natural-process observation continues; no manual owner action is required.
+02:22:12Z is 23/23; business hashes at 02:22:38Z remain unchanged.
+
+Later natural runs reproduced the known v56 ingestion/reconciliation horizon gap:
+one unchanged future Calendar event enters the 24h reconciliation window before
+the next wide ingestion. Raw API + actual v56 code independently prove
+`calendarTrainingMissingQueue=1`, with all accounting/link issue classes zero.
+Morning sync generation 108 retains that drift; the 05:10Z watchdog alerted
+(overall 12.208 s / health 10.604 s), and the 05:11Z digest was sent naturally.
+Final owner source/runtime and business-data checks pass at 05:28:49Z. The only
+moving values are 72 verified NOW() cells and automation status. F09 stays open.
+No production changes were made by the observer. The heartbeat is paused.
+
+The v57 planner now previews one new pending row plus eight identical rewrites;
+the old eight-only preview cannot authorize a subsequent release. Fresh write-set
+and corrected smoke/activation order must be reviewed before a new attempt.
 
 Current authoritative result: [V57_NIGHT_RELEASE](V57_NIGHT_RELEASE.md).
 Readiness for the old smoke order is **NO**. Earlier YES below is historical.
