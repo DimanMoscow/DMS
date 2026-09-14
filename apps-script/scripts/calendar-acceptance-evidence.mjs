@@ -1,6 +1,17 @@
 import assert from 'node:assert/strict';
 import {ISSUE_TYPES, SAFETY_TYPES, fingerprint, createAcceptancePackage} from './release-reconciliation.mjs';
 
+export function compileSyncObservation(raw, source) {
+  if (raw.status === 'succeeded') return compileCompletedSync(raw, source);
+  assert.equal(source.version, 57);
+  assert.match(source.sourceTreeSha256, /^[a-f0-9]{64}$/);
+  assert.ok(['running', 'failed'].includes(raw.status));
+  assert.ok(Number.isSafeInteger(raw.syncGeneration) && raw.syncGeneration >= 0);
+  assert.equal(new Date(raw.lastSyncStarted).toISOString(), raw.lastSyncStarted);
+  return {...source, generation: raw.syncGeneration, status: raw.status,
+    startedAt: raw.lastSyncStarted, completedAt: null, postSync: null};
+}
+
 // Native v56/v57 property shape: postSync belongs to the enclosing generation.
 // Do not invent a completion flag when the persisted timestamps do not agree.
 export function compileCompletedSync(raw, {version, sourceTreeSha256}) {

@@ -37,13 +37,13 @@ test('activation journal preserves failure state, rejects corruption and refuses
   fs.writeFileSync(file, original.trimEnd());
   assert.throws(() => readActivationJournal(file), /incomplete/);
 });
-test('window includes a full second drain, rollback and fifteen-minute slack', () => {
+test('window retains both drains/slack and rejects the old oversized budget even in a longer gap', () => {
   const budget = releaseBudget();
   assert.equal(budget.activationSeconds, 1710);
   assert.equal(budget.rollbackSeconds, 1710);
   assert.equal(budget.requiredSeconds, 4320);
   assert.equal(admitWindow({availableSeconds: 3600, downstreamReady: true, scheduledConflict: false}).admitted, false);
-  assert.equal(admitWindow({availableSeconds: 4320, downstreamReady: true, scheduledConflict: false}).admitted, true);
+  assert.equal(admitWindow({availableSeconds: 4320, downstreamReady: true, scheduledConflict: false}).admitted, false);
   assert.equal(admitWindow({availableSeconds: 4320, downstreamReady: false, scheduledConflict: false}).admitted, false);
 });
 test('rehearsal opens before signed smoke; regression rehearses close and a fresh drain', () => {

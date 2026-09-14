@@ -23,7 +23,8 @@ export function releaseBudget() {
 export function admitWindow({availableSeconds, downstreamReady, scheduledConflict}) {
   const budget = releaseBudget();
   return {...budget, admitted: downstreamReady === true && scheduledConflict === false &&
-    Number.isFinite(availableSeconds) && availableSeconds >= budget.requiredSeconds};
+    budget.requiredSeconds <= 1800 && Number.isFinite(availableSeconds) &&
+    availableSeconds >= budget.requiredSeconds};
 }
 export function rehearse({failureAt = null} = {}) {
   const trace = [];

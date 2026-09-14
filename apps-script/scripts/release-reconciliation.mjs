@@ -9,7 +9,7 @@ export const ISSUE_TYPES = Object.freeze([
 ]);
 export const SAFETY_TYPES = Object.freeze([
   'duplicateJournalIds', 'duplicateClientIds', 'duplicateBlockIds', 'duplicatePaymentIds',
-  'finance', 'payment', 'clientBlockLink', 'blockJournalCounts', 'queueErrors',
+  'finance', 'payment', 'clientBlockLink', 'aliases', 'blockJournalCounts', 'queueErrors',
   'durablePending', 'durableStale', 'manualReview',
 ]);
 export const V57_POLICY = Object.freeze({
@@ -172,6 +172,11 @@ export function evaluateActivation(approved, pinnedFingerprint, previousState, o
     assert.ok(state.highestGeneration >= approved.baselineGeneration);
     assert.ok(observation.generation >= state.highestGeneration, 'generation went backwards');
     if (observation.generation > approved.baselineGeneration) state.phase = 'post';
+    // Native generation advances at completion, not at start. A source-bound
+    // running/failed observation must burn the exception before any later check.
+    if (observation.sync && observation.sync.version === 57 &&
+        observation.sync.sourceTreeSha256 === approved.candidateTreeSha256 &&
+        time(observation.sync.startedAt) >= time(state.openedAt)) state.phase = 'post';
     state.highestGeneration = observation.generation;
     assert.equal(observation.releaseCommitSha, approved.releaseCommitSha, 'release commit changed');
     assert.equal(observation.candidateTreeSha256, approved.candidateTreeSha256, 'candidate changed');
@@ -197,6 +202,7 @@ export function evaluateActivation(approved, pinnedFingerprint, previousState, o
     assert.ok(sync, 'completed post-sync evidence required');
     assert.equal(sync.version, 57); assert.equal(sync.status, 'succeeded');
     assert.equal(sync.generation, observation.generation);
+    assert.ok(sync.generation > approved.baselineGeneration, 'completed candidate generation must advance');
     assert.equal(sync.sourceTreeSha256, approved.candidateTreeSha256);
     assert.ok(time(sync.startedAt) >= time(state.openedAt));
     assert.ok(time(sync.completedAt) >= time(sync.startedAt) && time(sync.completedAt) <= at);

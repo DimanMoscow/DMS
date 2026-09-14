@@ -1,5 +1,16 @@
 # Current project state
 
+**2026-09-14 release-engineering checkpoint: preparation only, NO admission.**
+Actual v56 remains OPEN; main/Vercel unchanged, PR80 draft. Fresh generation114
+retains known horizon drift3; no new business effects. Tooling now tests the actual
+native running/failed sync lifecycle, includes aliases in never-exempt safety,
+collects immutable raw Calendar diagnostic evidence, and executes fixture rollback
+with deadlines/readbacks. The collector still lacks a live native receipt adapter;
+CLI output is deliberately DIAGNOSTIC_ONLY. Full live interlock/Web rollback/signed
+timing remains unproved. See [V57_RELEASE_ENGINEERING](V57_RELEASE_ENGINEERING.md)
+for actual measurements and blockers; this supersedes older preparation estimates
+and readiness statements as the current operational checkpoint.
+
 **Current task: preparation only; third release prohibited.** Metadata contract is
 fixed and the branch contains the exact numbered57 target/Web expectation, without
 claiming live v57 acceptance. Actual production remains exact v56, OPEN; PR #80 draft.

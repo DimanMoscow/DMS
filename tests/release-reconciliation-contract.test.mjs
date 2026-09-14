@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ISSUE_TYPES, SAFETY_TYPES, fingerprint, createAcceptancePackage,
   openActivation, evaluateActivation} from '../apps-script/scripts/release-reconciliation.mjs';
-import {compileCalendarAcceptance, compileCompletedSync} from '../apps-script/scripts/calendar-acceptance-evidence.mjs';
+import {compileCalendarAcceptance, compileCompletedSync, compileSyncObservation} from '../apps-script/scripts/calendar-acceptance-evidence.mjs';
+import {loadBundle} from './helpers/apps-script-bundle.mjs';
 
 const at = '2026-09-14T09:30:00.000Z';
 const later = '2026-09-14T09:40:00.000Z';
@@ -69,6 +70,25 @@ test('even a failed/partial candidate generation consumes the exception; no rewi
   const f = fixture(); f.observation.generation = 113;
   const result = f.evaluate(); assert.equal(result.ok, false); assert.equal(result.state.phase, 'post');
   f.observation.generation = 112; assert.equal(f.evaluate(f.observation, result.state).ok, false);
+});
+
+test('actual native start/failure retains generation and permanently consumes provisional admission', () => {
+  class FixedDate extends Date { constructor(...args) { super(...(args.length ? args : [later])); } static now() { return Date.parse(later); } }
+  const f = fixture(); const bundle = loadBundle('v57', {Date: FixedDate});
+  bundle.properties.set('DMS_CALENDAR_SYNC_GENERATION_V1', JSON.stringify({version: 1,
+    syncGeneration: 112, driftKeys: [], status: 'succeeded', lastSyncStarted: at, lastSyncCompleted: at}));
+  const native = bundle.context.beginDmsCalendarSyncGeneration_();
+  assert.equal(native.syncGeneration, 112);
+  for (const failed of [false, true]) {
+    if (failed) bundle.context.failDmsCalendarSyncGeneration_(native);
+    f.observation.checkedAt = later;
+    f.observation.sync = compileSyncObservation(native, {version: 57,
+      sourceTreeSha256: f.approved.candidateTreeSha256});
+    const result = f.evaluate();
+    assert.equal(result.ok, false); assert.equal(result.state.phase, 'post');
+    f.observation.sync = null;
+    assert.equal(f.evaluate(f.observation, result.state).ok, false);
+  }
 });
 test('raw zero without completed matching post-sync evidence fails', () => {
   for (const mutate of [
