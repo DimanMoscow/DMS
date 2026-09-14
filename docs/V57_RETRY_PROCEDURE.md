@@ -1,5 +1,7 @@
 # v57: corrected activation procedure — 14 September 2026
 
+**Latest execution admission: BLOCKED.** The owner-authorized 12:25–13:10 Moscow retry did not start a production switch. Fresh source/recovery/Calendar passed, but the activation/smoke time budget was not met and intermediate release metadata still requires a truthful contract for the three known horizon omissions. See [V57_RETRY_RELEASE_CHECKPOINT](V57_RETRY_RELEASE_CHECKPOINT.md). Earlier procedure YES below is not current execution readiness. Production remains exact v56 with OPEN ingress.
+
 This is a procedure correction, not a second deployment. The night rollback was
 correct; it did not establish a v57 regression. The owner selected activation
 before signed smoke and prohibited another switch during this task. No P1 code,

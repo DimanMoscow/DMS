@@ -1,5 +1,7 @@
 # План выпуска кандидата v57 — corrected activation order
 
+**Latest execution admission: BLOCKED.** The owner-authorized 12:25–13:10 Moscow retry did not start a production switch. Fresh source/recovery/Calendar passed, but the activation/smoke time budget was not met and intermediate release metadata still requires a truthful contract for the three known horizon omissions. See [V57_RETRY_RELEASE_CHECKPOINT](V57_RETRY_RELEASE_CHECKPOINT.md). Earlier procedure YES below is not current execution readiness. Production remains exact v56 with OPEN ingress.
+
 Действующая последовательность и доказательства: [V57_RETRY_PROCEDURE](V57_RETRY_PROCEDURE.md).
 **READY TO RETRY v57 RELEASE: YES** для исправленной процедуры и неизменённого candidate. В текущей задаче production не переключается.
 

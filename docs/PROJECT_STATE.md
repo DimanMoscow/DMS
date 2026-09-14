@@ -1,5 +1,7 @@
 # Current project state
 
+**Latest execution admission: BLOCKED.** The owner-authorized 12:25–13:10 Moscow retry did not start a production switch. Fresh source/recovery/Calendar passed, but the activation/smoke time budget was not met and intermediate release metadata still requires a truthful contract for the three known horizon omissions. See [V57_RETRY_RELEASE_CHECKPOINT](V57_RETRY_RELEASE_CHECKPOINT.md). Earlier procedure YES below is not current execution readiness. Production remains exact v56 with OPEN ingress.
+
 ## Corrected v57 procedure — 2026-09-14 12:22 Moscow
 
 **READY TO RETRY v57 RELEASE: YES** for the corrected procedure and unchanged candidate;
