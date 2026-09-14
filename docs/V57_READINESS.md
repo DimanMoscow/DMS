@@ -1,6 +1,6 @@
 # v57 — проверка готовности, 14 сентября 2026
 
-**READY FOR PRODUCTION APPROVAL: NO.** Код, изолированный E2E и owner source/recovery preflight проверены. Полный Calendar preflight ожидает включения Calendar API в отдельном OAuth-проекте: отдельный `calendar.events.readonly` уже выдан и сохранён, но raw API возвращает 403 `SERVICE_DISABLED` / `accessNotConfigured`. Production Apps Script использует GCP «По умолчанию», OAuth — отдельный Operations project. Включение и условия API вынесены на конкретное подтверждение; billing не требуется изменять. Коннектор и native v56 preview уже использованы; их ограничения не скрыты. Production остаётся v56; merge, HEAD, numbered version, deployment и рабочие данные не изменялись.
+**READY FOR PRODUCTION APPROVAL: YES**, на проверенный candidate и описанный ниже контролируемый release plan; это не выполненный deployment. Код, изолированный E2E, owner source/recovery и полный Calendar preflight пройдены. По отдельному разрешению включён Calendar API в техническом OAuth-проекте Operations; production Apps Script использует другой GCP-проект («По умолчанию»). Production остаётся v56: merge, HEAD, numbered version, deployment и рабочие данные не изменялись.
 
 ## A. Изменения после первого аудита
 
@@ -43,11 +43,11 @@
 | Reader + manifest + ledger | PASS: отдельный reviewed preflight проверил backup reference, restore, ledger `present-v2`, materialized candidate и runtime markers; только GET |
 | Repair consistency | PASS: affected client/current block 2 проведено / 8 осталось, старт 10.09, долг 0; prior block закрыт 10/10; payment уникален; обе нужные записи Journal относятся к новому блоку. IDs и исходные строки остаются в private evidence |
 | Native Calendar v56 preview | PASS: 03:16:37 Moscow, added/updated/cancelled/errors = 0, writes=[]; sync не запускался |
-| Candidate Calendar preview | PARTIAL: см. ниже; не повышать до полного PASS по bounded connector snapshot |
+| Candidate Calendar preview | PASS: raw Google Calendar API + exact saved scan cursor + actual v56/v57 planners; 129 событий, 19 deleted, все страницы прочитаны |
 
-Calendar snapshot: 110 событий, все страницы прочитаны, окно 11.08–15.09; свежие Queue/Clients/Settings прочитаны owner reader. Реальный planner v57 на этих данных предлагает **8 повторных записей существующих строк**, 0 добавлений, 0 отмен, 0 errors и 0 неразрешённых точечных поисков. Сравнение всех 17 значений не выявило изменений: 7 строк остаются `Ожидает`, 1 — `Требует регистрации`. Никаких attendance/payment writes. Это ожидаемое расширение чтения до reconciliation horizon, а не подтверждение этих тренировок.
+Calendar preflight **00:42:08Z**: Sheet read 00:39:22Z, сохранённый cursor `lastSuccessfulAt=00:21:13.120Z`, `lastWideVerificationAt=13.09 16:21:33.611Z`. Raw Calendar API использован только для рабочего календаря, с `calendar.events.readonly`; credentials и IDs остаются вне Git. Incremental query с `updatedMin=13.09 00:21:13.120Z`, `showDeleted=true`, без ограничения start/end вернул 0 событий (включая переносы за пределы горизонта). Wide query с 11.08 Moscow до 15.09 00:42:08Z вернул **129 событий, включая 19 cancelled**, без следующей страницы.
 
-Коннектор не возвращает `updated` и cancelled tombstones, а durable scan cursor остаётся в Script Properties. Поэтому snapshot не заменяет полный incremental+wide replay. Для закрытия gate требуется raw Calendar read-only capture, включая relevant updated/deleted events, и прогон реального candidate planner с явно зафиксированными scan assumptions (либо approved staged native candidate preview). Нельзя объявлять native v56 zero-write план доказательством zero-write v57.
+Точные v56/v57 planners исполнялись в VM без подмены бизнес-функций, с service-boundary ответами raw API. **v56: 0 writes; v57: 8 writes**, added/cancelled/errors = 0. Сравнение всех 17 значений не выявило изменений: 7 строк остаются `Ожидает`, 1 — `Требует регистрации`. Очередь, Журнал, клиенты и оплаты не изменялись. Нативный v56 preview независимо показал тот же нулевой результат. Earlier connector-only projection больше не является единственным доказательством; missing tombstones/cursor устранены. Перед фактическим staging/активацией повторить preview с новым фиксированным временем и остановиться при любом новом смысловом изменении.
 
 ## D. Identity
 
@@ -68,7 +68,7 @@ Calendar snapshot: 110 событий, все страницы прочитан�
 
 ## F. Порядок выпуска
 
-Предпочтителен **единый контролируемый backend-first выпуск с закрытой записью до завершения Web**, после снятия Calendar blocker и отдельного production approval.
+Предпочтителен **единый контролируемый backend-first выпуск с закрытой записью до завершения Web**, после отдельного подтверждения конкретного production release summary.
 
 1. Обновить main/live identities, offline plan exact PR SHA, recovery freshness и Calendar write-set. Не пересекать естественные backup/digest окна.
 2. Закрыть существующий P1 interlock и проверить read-back; выждать установленный drain **420 s** для старых исполнений. Ничего не подтверждать вручную ради теста.
@@ -83,4 +83,4 @@ Rollback — согласованный возврат deployment mapping и Web
 
 ## G. Итог
 
-PR готов к дальнейшему review, но **production approval пока запрашивать рано**: ожидается включение Calendar API в отдельном OAuth-проекте и полный read-only planner preflight. Сам по себе `releaseReady:true` в source/recovery helper покрывает только его собственные проверки и не снимает этот gate. Любой будущий релиз требует конкретного подтверждённого release summary.
+Технические preflight gates закрыты. **READY FOR PRODUCTION APPROVAL: YES** для точного candidate tree и backend-first контролируемого окна выше. Перед исполнением актуализировать время, backup freshness и exact main/production identity; любые расхождения возвращают readiness в NO. Blanket OAuth/технические разрешения не использованы как разрешение на production deploy. Требуется подтверждение конкретного release summary; до него PR остаётся draft, production v56.

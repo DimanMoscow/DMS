@@ -5,7 +5,8 @@ Production остаётся v56. PR содержит candidate source и сов�
 Текущий preflight и проверенный порядок: [V57_READINESS](V57_READINESS.md).
 Выбран backend-first в одном контролируемом окне с закрытой записью до Web READY
 и совпадения runtime identities. Смешанные read-контракты протестированы; strict
-runtime mismatch не отключается. Calendar gate ещё не закрыт, readiness NO.
+runtime mismatch не отключается. Raw Calendar gate закрыт; техническая readiness
+YES для отдельного release approval, production пока v56.
 
 1. После review заново получить `origin/main` и живые Vercel/Apps Script identities. При изменившемся baseline остановить выпуск и пересобрать diff. Проверить полный HEAD и numbered source через owner reader, а не только deployment label.
 2. Завершить gate: dependency audit, lint, все tests, typecheck/build, snapshot verifier, migrations; отдельно candidate replay/concurrency/fault fixtures. Проверить PR Preview без production writes. Зафиксировать точный commit и candidate tree.
