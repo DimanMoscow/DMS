@@ -633,6 +633,23 @@
         "ZZZZZZZZZZZZZZZZZZZZEmergencyRecovery.gs"
       ],
       "matchesCandidate": "v56"
+    },
+    "v57": {
+      "baseVersion": "v56",
+      "fileCount": 26,
+      "sourceTreeSha256": "332ef8a3c8672293598704abf62ee445b496d29d5bbddd4f4f98a9b1c404220c",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZTelegramArchive.gs",
+        "ZZZZZTelegramUpcomingActions.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZZZTelegramConfirmations.gs",
+        "ZZZZZZZZZZZZZZZZZZZZZAuditReadViews.gs"
+      ],
+      "matchesCandidate": "v57"
     }
   },
   "candidates": {

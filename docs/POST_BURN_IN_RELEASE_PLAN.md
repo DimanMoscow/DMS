@@ -1,6 +1,8 @@
-# План выпуска кандидата v57 — НЕ разрешение на deployment
+# План выпуска кандидата v57 — прежний порядок опровергнут
 
-Production остаётся v56. PR содержит candidate source и совместимые дополнительные поля read API; numbered v57 не создавался.
+14.09: разрешённая ночная попытка создала numbered 57 и вернула production mapping/HEAD на v56. Main/Vercel не менялись; writes восстановлены. Точный результат: [V57_NIGHT_RELEASE](V57_NIGHT_RELEASE.md).
+
+**Не исполнять следующий исторический порядок.** P1 interlock закрывает весь POST ingress, поэтому signed read smoke до открытия writes невозможен. Новый actual-bundle test доказывает это на v56 и v57. Перед повторным выпуском требуется отдельно согласованный порядок с guarded activation перед signed reads либо новая проверенная реализация maintenance-read contract. Ночью P1 код не менялся. Numbered 57 уже существует и не должен создаваться повторно как будто номер свободен.
 
 Текущий preflight и проверенный порядок: [V57_READINESS](V57_READINESS.md).
 Выбран backend-first в одном контролируемом окне с закрытой записью до Web READY

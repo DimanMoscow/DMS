@@ -1,6 +1,8 @@
 # v57 — проверка готовности, 14 сентября 2026
 
-**READY FOR PRODUCTION APPROVAL: YES**, на проверенный candidate и описанный ниже контролируемый release plan; это не выполненный deployment. Код, изолированный E2E, owner source/recovery и полный Calendar preflight пройдены. По отдельному разрешению включён Calendar API в техническом OAuth-проекте Operations; production Apps Script использует другой GCP-проект («По умолчанию»). Production остаётся v56: merge, HEAD, numbered version, deployment и рабочие данные не изменялись.
+**READY FOR PRODUCTION APPROVAL: NO для прежнего порядка smoke.** Ночная разрешённая попытка создала exact numbered v57 и переключила Apps Script mapping, затем была остановлена: production interlock блокирует весь `doPost`, включая signed reads. Невозможно одновременно держать interlock закрытым и получить успешный Telegram/MiniApp smoke. Это свойство присутствует и в v56, и в v57; прежнее YES не учитывало фактический ingress-контракт. Mapping и HEAD возвращены на v56. Main/Vercel не менялись. Ночной фактический результат: [V57_NIGHT_RELEASE](V57_NIGHT_RELEASE.md).
+
+Следующие A–E сохраняют доказательства предыдущего preflight. Их PASS не разрешает повторить опровергнутый rollout. Новый тест `release-maintenance-contract.test.mjs` воспроизводит блокировку подписанных чтений на обоих bundles без business writes.
 
 ## A. Изменения после первого аудита
 
@@ -68,7 +70,7 @@ Calendar preflight **00:42:08Z**: Sheet read 00:39:22Z, сохранённый c
 
 ## F. Порядок выпуска
 
-Предпочтителен **единый контролируемый backend-first выпуск с закрытой записью до завершения Web**, после отдельного подтверждения конкретного production release summary.
+**Ниже сохранён опровергнутый порядок; НЕ исполнять.** Шаг 5 требует signed reads при закрытом `doPost`, что фактически невыполнимо. Строгие source/runtime проверки проходят, но не заменяют signed smoke.
 
 1. Обновить main/live identities, offline plan exact PR SHA, recovery freshness и Calendar write-set. Не пересекать естественные backup/digest окна.
 2. Закрыть существующий P1 interlock и проверить read-back; выждать установленный drain **420 s** для старых исполнений. Ничего не подтверждать вручную ради теста.
@@ -77,10 +79,10 @@ Calendar preflight **00:42:08Z**: Sheet read 00:39:22Z, сохранённый c
 5. После Vercel READY проверить exact SHA, runtime, signed reads и исходные счётчики; только затем открыть interlock и проверить read-back. Вернувшиеся stale acceptance обязаны отказать или вернуть durable result.
 6. Наблюдать естественные sync/watchdog и post-sync reconciliation; новые реальные клиентские действия не использовать как smoke fixtures.
 
-Причина: новые read-поля optional и оба смешанных UI-контракта проходят, но strict runtime probe текущего Web с v57 возвращает 502. Backend-first с удержанием interlock не оставляет разрешённые mutations в промежутке несовпадающих identities. Web-first даёт промежуточную работающую v56 UI-версию, но не устраняет последующее обновление runtime pointer и добавляет production deployment. Минимальное безопасное окно определяется фактическими read-back + Vercel READY + smoke, а не обещанием нескольких секунд; 420 s drain обязателен отдельно. Нельзя держать паузу через обязательное расписание.
+Проверка смешанных read-полей остаётся верной для открытого ingress. Она не доказывает чтение при закрытом interlock: fixture E2E запускался с `releaseReady=true`. Для следующего решения есть два разных варианта: отдельно согласовать signed smoke после guarded activation либо подготовить новый candidate с отдельно доказанным read-only maintenance-контрактом. Ночью ни один вариант не применялся; ограничения P1 не ослаблялись. Рекомендуемый минимальный вариант — явное согласование активации только после exact source/runtime/Web, native financial/durable/reconciliation gates с немедленным signed smoke и rollback при регрессии. Это изменение условия открытия записи требует нового решения владельца.
 
 Rollback — согласованный возврат deployment mapping и Web pointer к точному v56 при закрытой записи и повторном drain/read-back. Полную таблицу не восстанавливать поверх новых операций; data repair только по отдельному точному плану. Существующий `release-stabilization.mjs` hardcoded для другого candidate и не является готовой командой выпуска v57.
 
 ## G. Итог
 
-Технические preflight gates закрыты. **READY FOR PRODUCTION APPROVAL: YES** для точного candidate tree и backend-first контролируемого окна выше. Перед исполнением актуализировать время, backup freshness и exact main/production identity; любые расхождения возвращают readiness в NO. Blanket OAuth/технические разрешения не использованы как разрешение на production deploy. Требуется подтверждение конкретного release summary; до него PR остаётся draft, production v56.
+**READY FOR PRODUCTION APPROVAL: NO** для ранее утверждённого порядка. Candidate source/fixtures прошли проверки; выпуск остановлен противоречием maintenance/signed-smoke, подтверждённым на production и в двух новых regression tests. Numbered v57 сохранён как immutable неактивная версия. Повторный релиз не выполнять до исправления и согласования gate-порядка. Production baseline восстановлен на v56; данные не восстанавливались поверх рабочей таблицы.

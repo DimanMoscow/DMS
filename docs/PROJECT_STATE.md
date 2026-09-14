@@ -1,6 +1,26 @@
 # Current project state
 
-Last verified: 2026-09-11, 12:28 Europe/Moscow. Emergency recovery runtime and data are restored; final read-only gate is green.
+Last verified: 2026-09-14, 05:04 Europe/Moscow. Night v57 attempt rolled back to exact v56; writes restored and read back. Business hashes unchanged. Scheduled freshness awaits the next natural sync after a maintenance-skipped run.
+
+## Night v57 release attempt — ROLLED BACK
+
+The owner authorized release and rollback. Numbered Apps Script 57 was created,
+independently source-verified and briefly mapped with the ingress closed. The
+required signed smoke could not work: the unchanged v56/v57 P1 interlock blocks
+all POST reads too. This disproves the previous readiness rollout order; it does
+not prove a newly introduced v57 business regression. Mapping and complete HEAD
+were restored to exact v56. Main/Vercel remain
+`4ab73e2103e85c3e0dd199ac220db51d2ccd61d3`; PR #80 is unmerged.
+
+Normal writes restored at 02:00:47Z, independently read back at 02:02:09Z.
+Durable pending/stale/manual review 0/0/0; raw reconciliation 0 issues;
+post-smoke business hashes unchanged. Web/API and signed MiniApp/Telegram reads
+work again. Numbered 57 exists but is inactive; its immutable snapshot is retained.
+Full branch gate with the new maintenance-contract tests: 337 + 47 PASS.
+F09 remains open; no v57 phase evidence is claimed after rollback.
+
+Current authoritative result: [V57_NIGHT_RELEASE](V57_NIGHT_RELEASE.md).
+Readiness for the old smoke order is **NO**. Earlier YES below is historical.
 
 ## Post-burn-in audit checkpoint — 2026-09-14
 
