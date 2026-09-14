@@ -1,5 +1,25 @@
 # Current project state
 
+## Corrected v57 procedure — 2026-09-14 12:17 Moscow
+
+**READY TO RETRY v57 RELEASE: YES** for the corrected procedure and unchanged candidate;
+no deployment was performed in this procedure task. Authoritative active sequence:
+[V57_RETRY_PROCEDURE](V57_RETRY_PROCEDURE.md). CLOSED permits GET/runtime/native
+checks; guarded OPEN precedes immediate signed read-only smoke. Rollback uses the
+same boundary and restores both HEAD and mapping. No P1 bypass or source change.
+
+Fresh owner readback 09:07Z: HEAD/mapping exact v56, numbered 57 exact candidate;
+main/Vercel unchanged. New fixed-time raw Calendar preview 09:12Z: **3 pending
+additions + 8 identical rewrites**, no cancellation/error, all 17 values equal to
+normal v56 wide scan; projected reconciliation zero. Targeted tests **22/22**.
+The 12:25–13:10 Moscow window is conditional on actual natural sync completion,
+fresh preflight and sufficient rollback reserve. Prior snapshots below retain
+their historical timestamps and do not override this corrected procedure.
+
+F09 OPEN: latest natural v56 watchdog 09:10Z is 34.120 s overall / 32.367 s health;
+two consecutive increases trigger performance investigation and no functional
+expansion, not attribution to inactive v57. Production stays open on v56.
+
 Last verified: 2026-09-14, 08:29 Europe/Moscow. Night v57 attempt remains rolled back to exact v56; writes open and fresh HEAD/numbered/mapping/runtime checks pass. Business values unchanged. Morning sync generation 108 retains one known v56 Calendar horizon drift; watchdog alerted and digest sent. Initial recovery 23/23 below is historical, not a current all-green claim. Night observation completed and its automation is paused.
 
 ## Night v57 release attempt — ROLLED BACK
