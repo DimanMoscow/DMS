@@ -1,6 +1,6 @@
 # Current project state
 
-## Corrected v57 procedure — 2026-09-14 12:17 Moscow
+## Corrected v57 procedure — 2026-09-14 12:22 Moscow
 
 **READY TO RETRY v57 RELEASE: YES** for the corrected procedure and unchanged candidate;
 no deployment was performed in this procedure task. Authoritative active sequence:
@@ -8,11 +8,11 @@ no deployment was performed in this procedure task. Authoritative active sequenc
 checks; guarded OPEN precedes immediate signed read-only smoke. Rollback uses the
 same boundary and restores both HEAD and mapping. No P1 bypass or source change.
 
-Fresh owner readback 09:07Z: HEAD/mapping exact v56, numbered 57 exact candidate;
-main/Vercel unchanged. New fixed-time raw Calendar preview 09:12Z: **3 pending
+Fresh owner readback 09:21:43Z: HEAD/mapping exact v56, numbered 57 exact candidate;
+main/Vercel unchanged. New fixed-time raw Calendar preview 09:22:18Z: **3 pending
 additions + 8 identical rewrites**, no cancellation/error, all 17 values equal to
 normal v56 wide scan; projected reconciliation zero. Targeted tests **22/22**.
-The 12:25–13:10 Moscow window is conditional on actual natural sync completion,
+Automatic CI 27c00ff passed 351/351 + 47/47 and all checks. Natural sync at 12:21 finished (generation 112, 6.498 s ingestion, known drift 3). The 12:25–13:10 Moscow window remains conditional on
 fresh preflight and sufficient rollback reserve. Prior snapshots below retain
 their historical timestamps and do not override this corrected procedure.
 

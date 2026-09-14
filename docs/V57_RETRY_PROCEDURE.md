@@ -13,7 +13,7 @@ below must all pass before a retry can close the interlock.
 
 ## Fresh identity and scope proof
 
-Owner API readback at **2026-09-14 09:07:09Z**:
+Owner API readback at **2026-09-14 09:21:43Z**:
 
 - Main and Vercel production: `4ab73e2103e85c3e0dd199ac220db51d2ccd61d3`, READY.
 - PR #80: `e513a5411c585f831a9bbd373b096153083fbaad`, draft, unmerged at check.
@@ -155,10 +155,10 @@ Do not overwrite the whole Sheet or revert legitimate intervening operations.
 
 ## Fresh expected Calendar write-set
 
-Fixed time **2026-09-14 09:12:32.435Z**, Sheet capture **09:07:09.792Z**,
-live cursor `lastSuccessfulAt=08:21:12.241Z`, last wide **13 September 16:21:33.611Z**.
-Raw API incremental `updatedMin=13 September 08:21:12.241Z`, `showDeleted=true`:
-**0 events**. Wide interval **10 August 21:00Z – 15 September 09:12:32.435Z**:
+Fixed time **2026-09-14 09:22:18.013Z**, Sheet capture **09:21:43.331Z**,
+live cursor `lastSuccessfulAt=09:21:11.049Z`, last wide **13 September 16:21:33.611Z**.
+Raw API incremental `updatedMin=13 September 09:21:11.049Z`, `showDeleted=true`:
+**0 events**. Wide interval **10 August 21:00Z – 15 September 09:22:18.013Z**:
 **132 events, 19 cancelled**, one page; no unconsumed page tokens.
 
 | Actual planner | Add | Rewrite | Cancel | Errors | Projected reconciliation |
@@ -193,13 +193,13 @@ require the same per-row proof, never a blanket allowlist.
 
 Live UI lists exactly five owner clock triggers. Recorded cadence is sync hourly,
 watchdog every two hours, backup 03:00 Moscow hour, morning 08:00 hour, evening
-22:00 hour. Natural sync finished **11:21:19.760 Moscow**, watchdog finished
-**12:10:50.717 Moscow**. Next expected sync is around **12:21**, then **13:21**;
+22:00 hour. Natural sync generation 112 finished **12:21:17.547 Moscow**, watchdog finished
+**12:10:50.717 Moscow**. Next expected sync is around **13:21**;
 next watchdog around **14:10**. These are observed trigger phases, not a Google
 guarantee of exact seconds.
 
 Proposed reservation: **14 September 12:25–13:10 Moscow (09:25–10:10 UTC)**,
-only after actual completion of the natural 12:21 sync and renewed checks.
+the natural 12:21 sync has now completed; execution-time fresh gates still apply.
 Finish activation + immediate smoke by **12:45**; otherwise start rollback with
 25 minutes reserved to restore/verify by **13:10**, leaving roughly 11 minutes
 before the next expected sync. If preflight, CI, Google/Vercel latency, pending
@@ -217,3 +217,24 @@ placeholders must not be reported as measured zero-cost phases. Alerts remain.
 
 No OAuth consent, new scope, API enablement or permission change was granted in
 this task. Existing owner reader and Calendar read-only authorizations worked.
+
+## Final procedure-task receipt
+
+- Natural sync **09:21:11.049–09:21:17.547Z**, generation 112, ingestion 6.498 s;
+  scheduled metric overall **7.166 s**. Queue/event writes **0/0**, post-sync
+  issue/drift **3/3** matches the enumerated v56 horizon omissions, no other classes.
+- Source/HEAD/mapping/runtime readback repeated **09:21:43.331Z**, still exact v56;
+  numbered 57 remains exact and inactive, candidate tree unchanged.
+- Raw preview repeated **09:22:18.013Z** with that new cursor: still **3 + 8**,
+  v56 normal-wide equivalence across all 17 values, projected issues zero.
+- Automatic PR CI for `27c00ff4b7c375c27c79004097ca969840a257ab`:
+  [run 34827289460](https://github.com/DimanMoscow/DMS/actions/runs/34827289460)
+  **SUCCESS**, full tests **351/351**, candidate **47/47**, lint/typecheck/build,
+  dependency audit **0 vulnerabilities**, snapshots/migrations and ledger checks.
+  CI ran automatically on the PR update; it was not a new runtime candidate.
+- Read-only business comparison at 09:07Z against 05:28Z: Clients 21, Blocks 19,
+  Payments 35, Journal 137, Queue 125; duplicate IDs 0, unexpected changed cells 0.
+  The 72 changing timestamp cells were already individually verified as NOW().
+- Only docs/tests were committed and PR metadata updated. No production source,
+  mapping, interlock, trigger, Calendar or Sheet mutation was made in this task.
+  Fresh recovery/restore remains a required action of a future release preflight.
