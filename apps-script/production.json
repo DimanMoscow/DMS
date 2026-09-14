@@ -1,21 +1,45 @@
 {
-  "formatVersion": 1,
-  "candidate": "v56",
-  "snapshot": "v56",
-  "numberedVersion": 56,
+  "formatVersion": 2,
+  "candidate": "v57",
+  "snapshot": "v57",
+  "numberedVersion": 57,
   "runtimeIdentity": {
     "service": "dms-fitness-apps-script",
-    "release": "emergency-semantic-recovery",
-    "routerSha256": "845880a146750df5f7d94ceae4ddfcb533fe2f995d566b26a1635630721ffbd7",
+    "release": "post-burn-in-audit",
+    "routerSha256": "161d134be312bf1e35206e31f290c670f930b16daaa9c3f50559b6e5d7dd4866",
     "clientPortalSha256": "763e56aebc3bd07db8bae8e70e33e40ea3ab29856f7fb9ed408c482e979e4b98",
+    "telegramConfirmationsSha256": "b2e901820acae7e6453d57d562d244caeb916abb1a190583c95e0318a1460ba5",
     "clientPortalHandlerLoaded": true,
-    "telegramConfirmationsSha256": "cdf03fac0af9b7757c0ba5090817fadac35819ff9685c4afba6ac4590b1fbb7e",
     "telegramConfirmationsHandlerLoaded": true
   },
-  "lastVerified": {
-    "at": "2026-09-11T09:24:14.440Z",
-    "liveGatePassed": 23,
-    "liveGateTotal": 23,
-    "reconciliationIssues": 0
+  "baseline": {
+    "formatVersion": 1,
+    "candidate": "v56",
+    "snapshot": "v56",
+    "numberedVersion": 56,
+    "runtimeIdentity": {
+      "service": "dms-fitness-apps-script",
+      "release": "emergency-semantic-recovery",
+      "routerSha256": "845880a146750df5f7d94ceae4ddfcb533fe2f995d566b26a1635630721ffbd7",
+      "clientPortalSha256": "763e56aebc3bd07db8bae8e70e33e40ea3ab29856f7fb9ed408c482e979e4b98",
+      "clientPortalHandlerLoaded": true,
+      "telegramConfirmationsSha256": "cdf03fac0af9b7757c0ba5090817fadac35819ff9685c4afba6ac4590b1fbb7e",
+      "telegramConfirmationsHandlerLoaded": true
+    },
+    "lastVerified": {
+      "at": "2026-09-11T09:24:14.440Z",
+      "liveGatePassed": 23,
+      "liveGateTotal": 23,
+      "reconciliationIssues": 0
+    }
+  },
+  "releaseGate": {
+    "contractVersion": 1,
+    "state": "prepared",
+    "allowedIssueType": "calendarTrainingMissingQueue",
+    "maxPreflightAgeSeconds": 300,
+    "maxActivationSeconds": 1800,
+    "successfulSyncRequiresCompletedEvidence": true,
+    "postSyncReconciliationIssues": 0
   }
 }

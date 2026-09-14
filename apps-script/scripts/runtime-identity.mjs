@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 export const EXPECTED_RUNTIME_SERVICE = "dms-fitness-apps-script";
 export const EXPECTED_RUNTIME_RELEASE = "emergency-semantic-recovery";
 
-export function verifyRuntimeIdentity(identity, expectedHashes, { requireOk = true } = {}) {
+export function verifyRuntimeIdentity(identity, expectedHashes, {
+  requireOk = true, expectedRelease = EXPECTED_RUNTIME_RELEASE,
+} = {}) {
   const keys = [
     "clientPortalHandlerLoaded", "clientPortalSha256", "release", "routerSha256", "service",
     "telegramConfirmationsHandlerLoaded", "telegramConfirmationsSha256",
@@ -12,7 +14,7 @@ export function verifyRuntimeIdentity(identity, expectedHashes, { requireOk = tr
   assert.deepEqual(Object.keys(identity).sort(), keys.sort(), "runtime identity fields differ");
   if (requireOk) assert.equal(identity.ok, true);
   assert.equal(identity.service, EXPECTED_RUNTIME_SERVICE);
-  assert.equal(identity.release, EXPECTED_RUNTIME_RELEASE);
+  assert.equal(identity.release, expectedRelease);
   assert.equal(identity.clientPortalHandlerLoaded, true);
   assert.equal(identity.telegramConfirmationsHandlerLoaded, true);
   assert.equal(identity.routerSha256, expectedHashes.routerSha256);

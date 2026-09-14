@@ -27,6 +27,8 @@ const response = await fetch(url, {
 assert.equal(response.ok, true, `runtime identity returned HTTP ${response.status}`);
 
 const identity = await response.json();
-verifyRuntimeIdentity(identity, runtimeSourceHashes(candidateDirectory));
+const {runtimeSourceRelease} = await import('./runtime-source-hashes.mjs');
+verifyRuntimeIdentity(identity, runtimeSourceHashes(candidateDirectory),
+  {expectedRelease: runtimeSourceRelease(candidateDirectory)});
 
 console.log('Apps Script runtime identity verified: ' + production.snapshot);

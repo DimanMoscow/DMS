@@ -1,9 +1,9 @@
 export const EXPECTED_APPS_SCRIPT_RUNTIME = {
   "service": "dms-fitness-apps-script",
-  "release": "emergency-semantic-recovery",
-  "routerSha256": "845880a146750df5f7d94ceae4ddfcb533fe2f995d566b26a1635630721ffbd7",
+  "release": "post-burn-in-audit",
+  "routerSha256": "161d134be312bf1e35206e31f290c670f930b16daaa9c3f50559b6e5d7dd4866",
   "clientPortalSha256": "763e56aebc3bd07db8bae8e70e33e40ea3ab29856f7fb9ed408c482e979e4b98",
-  "telegramConfirmationsSha256": "cdf03fac0af9b7757c0ba5090817fadac35819ff9685c4afba6ac4590b1fbb7e"
+  "telegramConfirmationsSha256": "b2e901820acae7e6453d57d562d244caeb916abb1a190583c95e0318a1460ba5"
 } as const;
 
 export function matchesAppsScriptRuntime(identity: Record<string, unknown>) {

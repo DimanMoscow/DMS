@@ -1,5 +1,10 @@
 # v57 retry admission — BLOCKED, 14 September 2026
 
+Historical second-attempt checkpoint. Subsequent preparation fixes the metadata
+contract without production changes; see
+[V57_RELEASE_TOOLING_PREPARED](V57_RELEASE_TOOLING_PREPARED.md). The owner has not
+authorized a third attempt; exact v56 remains OPEN and PR #80 remains draft.
+
 The owner authorized the corrected release in **12:25–13:10 Moscow**, with
 initial activation and signed smoke complete by **12:45**. This attempt did not
 close the interlock, stage HEAD, switch a deployment, or merge main.

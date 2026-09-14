@@ -34,7 +34,8 @@ export function buildReleaseCheckpoint({
     throw new Error("MiniApp source revision is unavailable");
   }
   try {
-    verifyRuntimeIdentity(appsScriptRuntime, expectedProduction.runtimeIdentity);
+    verifyRuntimeIdentity(appsScriptRuntime, expectedProduction.runtimeIdentity,
+      {expectedRelease: expectedProduction.runtimeIdentity.release});
   } catch {
     throw new Error("Apps Script runtime identity is not verified");
   }

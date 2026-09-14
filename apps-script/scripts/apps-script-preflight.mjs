@@ -204,7 +204,8 @@ export async function runAppsScriptPreflight({
   candidateName = "v50",
   fetchImpl = fetch,
 }) {
-  const production = readJson(path.join(appsScriptRoot, "production.json"));
+  const {preflightBaseline} = await import('./production-target.mjs');
+  const production = preflightBaseline(readJson(path.join(appsScriptRoot, "production.json")));
   const verification = readJson(path.join(appsScriptRoot, "verification.json"));
   const baselineName = production.snapshot;
   assert.match(candidateName, /^(?:v\d+|stabilization)$/,
@@ -212,7 +213,7 @@ export async function runAppsScriptPreflight({
   const baselineRoot = path.join(appsScriptRoot, "versions", baselineName);
   const candidateRoot = path.join(appsScriptRoot, "candidates", candidateName);
   assertCandidateIntegrity(verification, candidateName, candidateRoot);
-  const recovery = verifyBackupManifest(backupManifest);
+  const recovery = verifyBackupManifest(backupManifest, {productionPointer: production});
   const accessToken = await refreshGoogleAccessToken(profile, fetchImpl);
 
   const [headResponse, versionResponse, deploymentsResponse] = await Promise.all([

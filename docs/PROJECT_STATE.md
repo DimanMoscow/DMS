@@ -1,6 +1,15 @@
 # Current project state
 
-**Latest execution admission: BLOCKED.** The owner-authorized 12:25–13:10 Moscow retry did not start a production switch. Fresh source/recovery/Calendar passed, but the activation/smoke time budget was not met and intermediate release metadata still requires a truthful contract for the three known horizon omissions. See [V57_RETRY_RELEASE_CHECKPOINT](V57_RETRY_RELEASE_CHECKPOINT.md). Earlier procedure YES below is not current execution readiness. Production remains exact v56 with OPEN ingress.
+**Current task: preparation only; third release prohibited.** Metadata contract is
+fixed and the branch contains the exact numbered57 target/Web expectation, without
+claiming live v57 acceptance. Actual production remains exact v56, OPEN; PR #80 draft.
+**READY TO EXECUTE v57 WITHOUT IN-WINDOW PREPARATION: NO**: the bounded activation,
+full rollback and 15-minute slack require 72 minutes, exceeding the hourly sync gap;
+the complete Web rollback path still requires proof. Current authoritative checkpoint:
+[V57_RELEASE_TOOLING_PREPARED](V57_RELEASE_TOOLING_PREPARED.md). Older YES/readiness
+statements below are historical. No third attempt or production mutation occurred.
+
+**Previous execution admission: BLOCKED.** The owner-authorized 12:25–13:10 Moscow retry did not start a production switch. Its timing and metadata failures are recorded in [V57_RETRY_RELEASE_CHECKPOINT](V57_RETRY_RELEASE_CHECKPOINT.md).
 
 ## Corrected v57 procedure — 2026-09-14 12:22 Moscow
 

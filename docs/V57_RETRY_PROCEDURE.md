@@ -1,5 +1,11 @@
 # v57: corrected activation procedure — 14 September 2026
 
+**Current override: third attempt prohibited; execution readiness NO.** The new
+two-phase metadata contract, prepared target commit, exact issue identities and
+72-minute worst-case budget are documented in
+[V57_RELEASE_TOOLING_PREPARED](V57_RELEASE_TOOLING_PREPARED.md). Historical approval
+and timing below do not authorize another attempt or an old count-only exception.
+
 **Latest execution admission: BLOCKED.** The owner-authorized 12:25–13:10 Moscow retry did not start a production switch. Fresh source/recovery/Calendar passed, but the activation/smoke time budget was not met and intermediate release metadata still requires a truthful contract for the three known horizon omissions. See [V57_RETRY_RELEASE_CHECKPOINT](V57_RETRY_RELEASE_CHECKPOINT.md). Earlier procedure YES below is not current execution readiness. Production remains exact v56 with OPEN ingress.
 
 This is a procedure correction, not a second deployment. The night rollback was
