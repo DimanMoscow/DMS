@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-export function loadBundle(candidate = 'v51', overrides = {}, {releaseReady = true} = {}) {
+export function loadBundle(candidate = 'v51', overrides = {}, {releaseReady = true, numbered = false} = {}) {
   const writes = [];
   const logs = [];
   const properties = new Map([
@@ -71,11 +71,11 @@ export function loadBundle(candidate = 'v51', overrides = {}, {releaseReady = tr
   // initial, paused HEAD opt out and exercise the real default-deny behavior.
   if ((/^v(?:5[1-9]|[6-9]\d+)$/.test(candidate) || candidate === 'stabilization') && releaseReady) {
     context.PropertiesService.getScriptProperties().setProperty(
-      'DMS_P1_RELEASE_READY', (candidate === 'stabilization' || candidate === 'v56')
+      'DMS_P1_RELEASE_READY', (candidate === 'stabilization' || candidate === 'v56' || candidate === 'v57')
         ? 'emergency-semantic-recovery-2026-09' : candidate === 'v55' ? 'system-stabilization-2026-09' : candidate
     );
   }
-  const root = `apps-script/candidates/${candidate}`;
+  const root = `apps-script/${numbered ? 'versions' : 'candidates'}/${candidate}`;
   const files = fs.readdirSync(root).filter(name => name.endsWith('.gs')).sort();
   for (const name of files) {
     new vm.Script(fs.readFileSync(`${root}/${name}`, 'utf8'), {filename: `${root}/${name}`})

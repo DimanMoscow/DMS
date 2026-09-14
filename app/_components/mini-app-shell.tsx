@@ -52,12 +52,14 @@ type ClientSummary = {
   singlePrice: number;
 };
 type WaitingTraining = {
+  dateLabel?: string;
   queueId: string; time: string; endTime: string; client: string; blockId: string;
   matching: string; decision: string; status: string; processed: boolean;
   calendarTitle: string; needsRegistration: boolean;
   semanticRevision: string;
 };
 type Bootstrap = {
+  registrationQueue?: WaitingTraining[];
   generatedAt: string;
   today: { title: string; dateKey: string; waiting: WaitingTraining[]; revision: string };
   summary: {
@@ -70,6 +72,7 @@ type Bootstrap = {
 };
 type ClientDetail = ClientSummary & {
   conditions: string; blockStatus: string; blockTotal: number; blockStart: string;
+  trainingHistory?: { id: string; date: string; type: string; status: string; blockId: string }[];
   trainingDates: string[]; undatedTrainings: number; undatedCharged: number;
   upcoming: { label: string }[]; upcomingMore: number;
   clientPortal: {
@@ -521,6 +524,9 @@ function TodayView({ data, busyKey, onDecision, onOnboard, onConfirmDay }: {
   onOnboard: (item: WaitingTraining, mode: CalendarOnboardingMode) => void;
   onConfirmDay: () => void;
 }) {
+  const olderRegistrations = (data.registrationQueue || []).filter((item) =>
+    !data.today.waiting.some((today) => today.queueId === item.queueId));
+  const unresolved = data.today.waiting.filter((item) => item.needsRegistration && !item.processed).length;
   const pending = data.today.waiting.filter((item) => !item.processed && !item.needsRegistration);
   const decided = pending.filter((item) =>
     ["Проведена", "Отмена без списания", "Отмена со списанием"].includes(item.decision)
@@ -544,7 +550,7 @@ function TodayView({ data, busyKey, onDecision, onOnboard, onConfirmDay }: {
         <article className={`training-card ${item.processed ? "training-processed" : ""}`} key={item.queueId}>
           <header className="training-summary">
             <time>{item.time || "—"}<small>{item.endTime ? `до ${item.endTime}` : ""}</small></time>
-            <div><strong>{item.client}</strong><span>{item.blockId || "Разовая"} · {item.decision || "без решения"}</span></div>
+            <div><strong>{item.client}</strong><span>{item.blockId || (item.needsRegistration ? "Требуется регистрация" : "Без блока")} · {item.decision || "без решения"}</span></div>
             <span className="status-badge">{item.status}</span>
           </header>
           {item.needsRegistration ? <>
@@ -565,14 +571,26 @@ function TodayView({ data, busyKey, onDecision, onOnboard, onConfirmDay }: {
           {item.processed && <p className="processed-note">Событие обработано — повторное действие заблокировано.</p>}
         </article>
       )}</section>}
+    {olderRegistrations.length > 0 && <section className="content-section">
+      <h2>Регистрация · другие дни</h2>
+      <p>Эти записи ещё требуют решения и не входят в подтверждение сегодняшнего дня.</p>
+      {olderRegistrations.map((item) => <article className="training-card registration-history-card" key={item.queueId}>
+        <strong>{item.client}</strong><p>{item.dateLabel} · {item.time}</p>
+        <div className="onboarding-actions">
+          <button type="button" disabled={Boolean(busyKey)} onClick={() => onOnboard(item, "new")}>Новый клиент</button>
+          <button type="button" disabled={Boolean(busyKey)} onClick={() => onOnboard(item, "link")}>Связать</button>
+          <button type="button" disabled={Boolean(busyKey)} onClick={() => onOnboard(item, "ignore")}>Игнорировать</button>
+        </div>
+      </article>)}
+    </section>}
     <section className="day-confirmation">
       <div>
-        <strong>{pending.length ? `${decided.length} из ${pending.length} решений выбраны` : "День обработан"}</strong>
+        <strong>{pending.length ? `${decided.length} из ${pending.length} решений выбраны` : unresolved ? `Требуется регистрация: ${unresolved}` : data.today.waiting.length ? "День обработан" : "Нет событий"}</strong>
         <span>{pending.length
           ? dayEnded
             ? "Проверьте решения перед записью в журнал."
             : `Подтвердить день можно после ${latestEndTime || "окончания тренировок"}.`
-          : "Повторных списаний не будет."}</span>
+          : unresolved ? "Создайте клиента, свяжите с существующим или игнорируйте событие." : "Повторных списаний не будет."}</span>
       </div>
       <button className="primary-button" type="button" disabled={!ready || Boolean(busyKey)} onClick={onConfirmDay}>
         {busyKey === "day" ? "Подтверждаю…" : "Подтвердить день"}
@@ -672,7 +690,7 @@ function CalendarOnboardingSheet({ state, clients, initData, onCancel, onResolve
     <section className="confirmation-sheet onboarding-sheet" role="dialog" aria-modal="true"
       aria-labelledby="calendar-onboarding-title">
       <span className="sheet-handle" />
-      <p className="confirmation-subject">Calendar onboarding</p>
+      <p className="confirmation-subject">Регистрация из календаря</p>
       <h2 id="calendar-onboarding-title">
         {state.mode === "new" ? "Новый клиент" : state.mode === "link" ? "Связать запись" : "Игнорировать событие?"}
       </h2>
@@ -732,7 +750,7 @@ function CalendarOnboardingSheet({ state, clients, initData, onCancel, onResolve
         <button className="primary-button" type="button" disabled={busy || (
           !preview && state.mode === "link" && !clientId
         )} onClick={preview ? resolve : loadPreview}>
-          {busy ? "Проверяю…" : preview ? "Подтвердить" : "Показать preview"}
+          {busy ? "Проверяю…" : preview ? "Подтвердить" : "Проверить данные"}
         </button>
       </div>
     </section>
@@ -897,25 +915,31 @@ function LoadedClientCard({ detail, initData, onBack }: {
 
   return <Page title={detail.name} subtitle={detail.id} back={onBack}>
     <section className="metric-grid metric-grid-three">
-      <div className="metric-card"><strong>{detail.completed}</strong><span>проведено</span></div>
+      <div className="metric-card"><strong>{detail.blockId ? detail.completed : detail.trainingHistory
+        ? detail.trainingHistory.filter((item) => item.type === "Фактически проведена" && item.status === "Проведена").length : "—"}</strong><span>{detail.blockId ? "учтено в блоке" : "проведено"}</span></div>
       <div className="metric-card"><strong>{detail.blockId ? detail.remaining : "—"}</strong><span>осталось</span></div>
       <div className="metric-card"><strong>{detail.debt ? money(detail.debt) : "0 ₽"}</strong><span>долг</span></div>
     </section>
     <section className="detail-card">
-      <Detail label="Формат" value={detail.blockId ? `${detail.blockId} · ${detail.format}` : "Разовые тренировки"} />
+      <Detail label="Формат" value={detail.blockId ? `${detail.blockId} · ${detail.format}` : detail.singlePrice ? "Разовые тренировки" : "Нет активного блока"} />
       <Detail label="Статус блока" value={detail.blockStatus || "—"} />
-      <Detail label="Стоимость" value={detail.blockId ? money(detail.blockPrice) : money(detail.singlePrice)} />
-      <Detail label="Оплачено" value={money(detail.paid)} />
+      <Detail label="Стоимость" value={detail.blockId ? money(detail.blockPrice) : detail.singlePrice > 0 ? money(detail.singlePrice) : "—"} />
+      {detail.blockId && <Detail label="Оплачено по блоку" value={money(detail.paid)} />}
     </section>
     <section className="content-section"><h2>Ближайшие записи</h2>{detail.upcoming.length
       ? detail.upcoming.map((item) => <p className="timeline-item" key={item.label}>{item.label}</p>)
       : <Empty text="Записей на ближайшие 45 дней нет." />}</section>
-    <section className="content-section"><h2>История блока</h2>{detail.trainingDates.length
+    {detail.trainingHistory && <section className="content-section"><h2>История тренировок</h2>
+      {detail.trainingHistory.length ? <ul className="history-list">{detail.trainingHistory.map((item) =>
+        <li key={item.id}>{item.date} · {item.type} · {item.status}{item.blockId ? ' · ' + item.blockId : ''}</li>
+      )}</ul> : <p>Записей пока нет.</p>}
+    </section>}
+    {detail.blockId && <section className="content-section"><h2>История текущего блока</h2>{detail.trainingDates.length
       ? <p className="history-text">{detail.trainingDates.join(" · ")}</p>
-      : <Empty text="Дат пока нет." />}</section>
+      : <Empty text="Дат пока нет." />}</section>}
     {detail.conditions && <section className="content-section"><h2>Условия и заметки</h2><p className="history-text">{detail.conditions}</p></section>}
     <section className="content-section portal-admin-card">
-      <h2>Client Portal</h2>
+      <h2>Кабинет клиента</h2>
       <p className="history-text">{portal.status === "linked"
         ? "Telegram-профиль клиента привязан."
         : portal.status === "invited"

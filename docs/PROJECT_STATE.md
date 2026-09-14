@@ -1,5 +1,13 @@
 # Current project state
 
+**2026-09-14 transitional Web preparation only.** This separate branch retains
+production v56 and adds an exact v56/v57 Web runtime contract, optional read-view
+fallbacks and signed actual-numbered-bundle compatibility tests. No production
+deployment or main merge is authorized in this task. See
+[TRANSITIONAL_WEB](TRANSITIONAL_WEB.md) for the source-bound contract and future
+backend-only HEAD + mapping rollback. PR80 remains the separate backend candidate.
+Historical production verification entries below are not a fresh release admission.
+
 Last verified: 2026-09-11, 12:28 Europe/Moscow. Emergency recovery runtime and data are restored; final read-only gate is green.
 
 ## Production identity
