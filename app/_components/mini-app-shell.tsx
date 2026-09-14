@@ -690,7 +690,7 @@ function CalendarOnboardingSheet({ state, clients, initData, onCancel, onResolve
     <section className="confirmation-sheet onboarding-sheet" role="dialog" aria-modal="true"
       aria-labelledby="calendar-onboarding-title">
       <span className="sheet-handle" />
-      <p className="confirmation-subject">Calendar onboarding</p>
+      <p className="confirmation-subject">Регистрация из календаря</p>
       <h2 id="calendar-onboarding-title">
         {state.mode === "new" ? "Новый клиент" : state.mode === "link" ? "Связать запись" : "Игнорировать событие?"}
       </h2>
@@ -750,7 +750,7 @@ function CalendarOnboardingSheet({ state, clients, initData, onCancel, onResolve
         <button className="primary-button" type="button" disabled={busy || (
           !preview && state.mode === "link" && !clientId
         )} onClick={preview ? resolve : loadPreview}>
-          {busy ? "Проверяю…" : preview ? "Подтвердить" : "Показать preview"}
+          {busy ? "Проверяю…" : preview ? "Подтвердить" : "Проверить данные"}
         </button>
       </div>
     </section>
