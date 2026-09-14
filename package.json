@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "node --test tests/*.test.mjs",
+    "test:audit-candidate": "node scripts/test-audit-candidate.mjs",
     "typecheck": "tsc --noEmit",
     "verify:apps-script": "node apps-script/scripts/verify-snapshots.mjs",
     "preflight:client-pilot": "node apps-script/migrations/client-portal-v1/pilot-preflight.mjs",
@@ -37,7 +38,7 @@
     "verify:migrations": "node apps-script/scripts/verify-migrations.mjs",
     "verify:migration-history": "node apps-script/scripts/verify-ledger-history.mjs",
     "check:miniapp": "npm run lint && npm run test && npm run typecheck && npm run build",
-    "check": "npm run verify:dependency-policy && npm run audit:dependencies && npm run check:miniapp && npm run verify:apps-script && npm run verify:migrations"
+    "check": "npm run verify:dependency-policy && npm run audit:dependencies && npm run check:miniapp && npm run test:audit-candidate && npm run verify:apps-script && npm run verify:migrations"
   },
   "dependencies": {
     "next": "16.3.4",

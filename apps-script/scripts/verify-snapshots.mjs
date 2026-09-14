@@ -11,7 +11,8 @@ import {
   sourceTreeSha256,
 } from "./source-integrity.mjs";
 import { verifyRuntimeIdentity } from "./runtime-identity.mjs";
-import { runtimeSourceHashes } from "./runtime-source-hashes.mjs";
+import { runtimeSourceHashes, runtimeSourceRelease } from "./runtime-source-hashes.mjs";
+import {verifyPreparedTarget} from './production-target.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const appsScriptDirectory = path.resolve(scriptDirectory, "..");
@@ -325,6 +326,12 @@ console.log(
 );
 console.log(`v38 -> v39 changed files: ${changedFiles.join(", ")}`);
 
+if (production.formatVersion === 2) {
+  verifyPreparedTarget(production);
+  const baselineDirectory = path.join(appsScriptDirectory, 'versions', production.baseline.snapshot);
+  verifyRuntimeIdentity(production.baseline.runtimeIdentity, runtimeSourceHashes(baselineDirectory),
+    {requireOk: false, expectedRelease: runtimeSourceRelease(baselineDirectory)});
+} else {
 assert.deepEqual(Object.keys(production).sort(), [
   "candidate",
   "formatVersion",
@@ -334,6 +341,7 @@ assert.deepEqual(Object.keys(production).sort(), [
   "snapshot",
 ]);
 assert.equal(production.formatVersion, 1);
+}
 assert.match(production.candidate, /^v\d+$/);
 assert.equal(production.snapshot, production.candidate);
 assert.equal(production.numberedVersion, Number(production.snapshot.slice(1)));
@@ -343,6 +351,7 @@ assert.equal(
   verification.candidates[production.candidate]?.sourceTreeSha256,
   "production candidate and snapshot tree hashes differ",
 );
+if (production.formatVersion === 1) {
 assert.deepEqual(Object.keys(production.lastVerified).sort(), [
   "at", "liveGatePassed", "liveGateTotal", "reconciliationIssues",
 ]);
@@ -360,10 +369,13 @@ assert.equal(Number.isNaN(verifiedAt.getTime()), false, "production verification
 assert.match(production.lastVerified.at,
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/,
   "production verification time must be UTC");
+}
 verifyRuntimeIdentity(production.runtimeIdentity,
   runtimeSourceHashes(path.join(appsScriptDirectory, 'versions', production.snapshot)),
-  { requireOk: false });
+  { requireOk: false,
+    expectedRelease: runtimeSourceRelease(path.join(appsScriptDirectory, 'versions', production.snapshot)) });
 console.log(
+  production.formatVersion === 2 ? `Prepared release target verified: ${production.snapshot}; live acceptance NOT claimed.` :
   `Production pointer verified: ${production.snapshot}, ` +
   `${production.lastVerified.liveGatePassed}/${production.lastVerified.liveGateTotal}, ` +
   `reconciliation ${production.lastVerified.reconciliationIssues}.`,

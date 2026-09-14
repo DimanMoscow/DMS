@@ -1,5 +1,12 @@
 # Current project state
 
+**Two-phase release preparation, no deployment authorization.** The compatible Web
+accepts only two verified identities; native collection uses fresh challenge-bound
+read-only receipts. Rollback restores HEAD and mapping without changing Web.
+See [V57_TWO_PHASE_PROOF](V57_TWO_PHASE_PROOF.md) for the generic protocol.
+Operational receipts and historic execution details remain in the private archive.
+Rehearsal and public publication require the owner-authorized privacy gate.
+
 Last verified: 2026-09-11, 12:28 Europe/Moscow. Emergency recovery runtime and data are restored; final read-only gate is green.
 
 ## Production identity

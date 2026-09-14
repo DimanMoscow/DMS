@@ -341,7 +341,7 @@ h1 {
 
 .training-summary {
   display: grid;
-  grid-template-columns: 55px minmax(0, 1fr) auto;
+  grid-template-columns: 55px minmax(0, 1fr);
   gap: 11px;
   align-items: center;
   padding: 14px;
@@ -351,7 +351,9 @@ h1 {
 .training-summary time small { margin-top: 3px; color: var(--muted); font-size: 9px; font-weight: 500; }
 .training-summary > div { display: grid; gap: 4px; min-width: 0; }
 .training-summary strong,
-.training-summary div span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.training-summary div span { overflow-wrap: anywhere; white-space: normal; }
+.training-summary > .status-badge { grid-column: 2; justify-self: start; max-width: none; }
+.registration-history-card { padding: 14px; margin: 12px 0; overflow-wrap: anywhere; }
 .training-summary strong { font-size: 14px; }
 .training-summary div span { color: var(--muted); font-size: 10px; }
 
@@ -613,6 +615,9 @@ h1 {
 .secondary-button { border: 1px solid var(--line); border-radius: 11px; color: var(--metal); background: transparent; }
 
 button { cursor: pointer; }
+.history-list { padding-left: 20px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.history-list li { margin-bottom: 8px; overflow-wrap: anywhere; }
+.training-summary strong, .page-title h1 { overflow-wrap: anywhere; }
 button:focus-visible,
 input:focus-visible,
 select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

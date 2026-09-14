@@ -29,7 +29,7 @@
           "repositorySourceSha256": "343f02a12e80a6b440315bda34f114ba324efc6eb4db8e794ded2166c0567507",
           "redactions": []
         },
-        "\u041a\u043e\u0434.gs": {
+        "Код.gs": {
           "type": "SERVER_JS",
           "originalSourceSha256": "558eb4251179ef11c18e8d9c9c454e2a11231ea6ae128bf782cfc46eb79507fd",
           "repositorySourceSha256": "558eb4251179ef11c18e8d9c9c454e2a11231ea6ae128bf782cfc46eb79507fd",
@@ -129,7 +129,7 @@
           "repositorySourceSha256": "343f02a12e80a6b440315bda34f114ba324efc6eb4db8e794ded2166c0567507",
           "redactions": []
         },
-        "\u041a\u043e\u0434.gs": {
+        "Код.gs": {
           "type": "SERVER_JS",
           "originalSourceSha256": "558eb4251179ef11c18e8d9c9c454e2a11231ea6ae128bf782cfc46eb79507fd",
           "repositorySourceSha256": "558eb4251179ef11c18e8d9c9c454e2a11231ea6ae128bf782cfc46eb79507fd",
@@ -346,7 +346,7 @@
       "expectedChangedFiles": [
         "TelegramBot.gs",
         "ZZZZZZZRuntime.gs",
-        "\u041a\u043e\u0434.gs"
+        "Код.gs"
       ],
       "liveVerification": {
         "method": "Apps Script Editor numbered source, production deployment metadata, 17-check live gate, and reconciliation",
@@ -394,7 +394,7 @@
         "ZZZZZZZZZZZZZZUndoSafety.gs",
         "ZZZZZZZZZZZZZZZFinancialSafety.gs",
         "ZZZZZZZZZZZZZZZZReleaseSafety.gs",
-        "\u041a\u043e\u0434.gs"
+        "Код.gs"
       ],
       "files": {
         "appsscript.json": {
@@ -521,7 +521,7 @@
           "repositorySourceSha256": "8d81851e0cf7f4ce1df2687d373f6c86399657cc2beccd8f1cdeb4bf5edff6ba",
           "redactions": []
         },
-        "\u041a\u043e\u0434.gs": {
+        "Код.gs": {
           "type": "SERVER_JS",
           "originalSourceSha256": "69982812c6d73718a45020ce361d27bba679b6624100a7f33140e258f4157c89",
           "repositorySourceSha256": "69982812c6d73718a45020ce361d27bba679b6624100a7f33140e258f4157c89",
@@ -633,6 +633,23 @@
         "ZZZZZZZZZZZZZZZZZZZZEmergencyRecovery.gs"
       ],
       "matchesCandidate": "v56"
+    },
+    "v57": {
+      "baseVersion": "v56",
+      "fileCount": 26,
+      "sourceTreeSha256": "332ef8a3c8672293598704abf62ee445b496d29d5bbddd4f4f98a9b1c404220c",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZTelegramArchive.gs",
+        "ZZZZZTelegramUpcomingActions.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZZZTelegramConfirmations.gs",
+        "ZZZZZZZZZZZZZZZZZZZZZAuditReadViews.gs"
+      ],
+      "matchesCandidate": "v57"
     }
   },
   "candidates": {
@@ -724,7 +741,7 @@
       "expectedChangedFiles": [
         "TelegramBot.gs",
         "ZZZZZZZRuntime.gs",
-        "\u041a\u043e\u0434.gs"
+        "Код.gs"
       ]
     },
     "v50": {
@@ -757,7 +774,7 @@
         "ZZZZZZZZZZZZZZUndoSafety.gs",
         "ZZZZZZZZZZZZZZZFinancialSafety.gs",
         "ZZZZZZZZZZZZZZZZReleaseSafety.gs",
-        "\u041a\u043e\u0434.gs"
+        "Код.gs"
       ]
     },
     "v52": {
@@ -857,6 +874,22 @@
         "ZZZZZZZZZZZZZZZZZZDomainOperations.gs",
         "ZZZZZZZZZZZZZZZZZZZSinglePayments.gs",
         "ZZZZZZZZZZZZZZZZZZZZEmergencyRecovery.gs"
+      ]
+    },
+    "v57": {
+      "baseVersion": "v56",
+      "fileCount": 26,
+      "sourceTreeSha256": "332ef8a3c8672293598704abf62ee445b496d29d5bbddd4f4f98a9b1c404220c",
+      "expectedChangedFiles": [
+        "CalendarSync.gs",
+        "TelegramBot.gs",
+        "TelegramFinal.gs",
+        "ZZTelegramArchive.gs",
+        "ZZZZZTelegramUpcomingActions.gs",
+        "ZZZZZZZRuntime.gs",
+        "ZZZZZZZZMiniAppApi.gs",
+        "ZZZZZZZZZZZZTelegramConfirmations.gs",
+        "ZZZZZZZZZZZZZZZZZZZZZAuditReadViews.gs"
       ]
     }
   }

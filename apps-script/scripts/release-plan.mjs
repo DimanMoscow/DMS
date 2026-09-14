@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { readCanonicalSource, sha256, sourceTreeSha256 } from "./source-integrity.mjs";
 import { verifySourceState } from "../../scripts/verify-source-state.mjs";
+import { preflightBaseline } from './production-target.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const appsScriptRoot = path.resolve(scriptDirectory, "..");
@@ -46,7 +47,7 @@ export function buildOfflineReleasePlan({
     "a verified Git source revision is required");
 
   const verification = readJson(path.join(root, "verification.json"));
-  const production = readJson(path.join(root, "production.json"));
+  const production = preflightBaseline(readJson(path.join(root, "production.json")));
   const candidateMetadata = verification.candidates?.[candidate];
   assert.ok(candidateMetadata, `${candidate}: candidate verification metadata is missing`);
   assert.equal(production.candidate, baseline, "baseline is not the recorded production candidate");

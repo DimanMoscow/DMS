@@ -1,0 +1,109 @@
+# Telegram and Admin MiniApp audit — anonymized technical findings
+
+Private live observations and customer-specific evidence are retained outside Git.
+The table describes code defects, fixture proof and proposed UX/backlog only.
+
+## Findings
+
+| ID | Приоритет | Подтверждение / причина | Результат |
+|---|---|---|---|
+| F01 | P1 | `CalendarSync.gs`: unseen future events отбрасываются; subsequent updatedMin не возвращает неизменённое событие, wide раз в сутки; reconciliation всё время движется на 24 ч | Исправлено в кандидате. Ingestion использует тот же bounded Calendar snapshot, который уже прочитан до sync. До/после используют одну временную границу; после записи выполняется свежая сверка, alert не подавляется. Regression воспроизводит v56 и проверяет candidate |
+| F02 | P2 | `getTelegramBlockTrainingHistory_` требует blockId; текущая Telegram-карточка разового вообще не выводит даты | Новый независимый clientId-scoped путь «История тренировок», пагинация по 10, архив тоже поддержан. Даты неизвестных исторических записей не выдумываются |
+| F03 | P1 | `refreshDmsTelegramDomainUi_` завершает день без next action; attention даёт кнопки лишь известных клиентов | Telegram предлагает MiniApp: создать / связать / игнорировать. Только навигация, без новой записи клиента |
+| F04 | P1 | `getDmsMiniAppQueueSnapshot_`: счётчик регистрации охватывает очередь, items ограничены сегодняшней датой | В bootstrap добавлен отдельный список незарегистрированных событий других дней. Они доступны в «Сегодня», но не включаются в acceptedRows сегодняшнего подтверждения |
+| F05 | P2 | Telegram dashboard и MiniApp связывают пустой blockId с «разовой» | Подписи «без блока» / «требуется регистрация», карточка отличает подтверждённую цену разовой от отсутствующего блока |
+| F06 | P2 | MiniApp pending исключает неизвестных, затем нулевой pending выводит «День обработан» | Отдельные состояния «Требуется регистрация» и «Нет событий» |
+| F07 | P2 | MiniApp разового показывает 0 проведено/0 оплачено из полей текущего блока, несмотря на журнал и платежи | Количество фактически проведённых берётся из истории; отменённые и списания без проведения не считаются посещениями. «Оплачено по блоку» показывается только для блока |
+| F08 | P2 | `/today` and `/attention` called ingestion before returning a read | Candidate removes inline sync; explicit and scheduled ingestion remain |
+| F09 | P1 | Watchdog latency needs phase-level natural evidence | Keep the risk open; instrument phases without suppressing alerts |
+| F10 | P2 | Внимание проверяло статус `Планируется`, создатель/validation использует `Запланирован` | Опечатка исправлена; нет принудительной активации блока |
+| F11 | P2 | Отчёт закреплён за периодом в Sheet, нельзя выбрать месяц в MiniApp; тексты содержат Runtime/Source/Backend/Durable operations | Выбор месяца и понятная диагностика — backlog. Дата показана, сам отчёт не ошибочный |
+| F12 | P1 | MiniApp считает все pending, но управляет только сегодняшним днём; backlog старых известных клиентов не имеет рабочего экрана | Backlog отдельной очереди по датам. Никакого массового подтверждения |
+| F13 | P3 | ARCHITECTURE называет v51 активным при PROJECT_STATE и production.json=v56; README не указывает источник identity; множество retained legacy функций | Уточнены источники identity; legacy inventory приложен. Удаление legacy требует отдельной проверки графа вызовов, не выполнялось |
+| F14 | Проверка | 🚫/✅/💸/перенос: окончательный однозначный callback уже принимает намерение; cf2 остаётся внутренним | Регрессия лишнего экрана не воспроизведена в fixtures; replay, actor/chat/message/nonce/TTL сохранены |
+| F15 | Проверка | Confirm-day валидирует selected semantics: unrelated change, новая строка, stale selected row, replay | Затронутый fixture gate прошёл; глобальную revision-защиту не ослабляли |
+| F16 | P2 | Мобильная строка тренировки отводит статусу третью колонку и обрезает длинное имя многоточием | Имя переносится, статус расположен ниже. Визуально проверено на изолированных экранах 320/390/428 px |
+| F17 | P1 | Monthly report and forecast were combined without verifying equal month/year | Кнопка точно называет источник месяца. Суммарный прогноз выводится только при совпадении месяца и года; иначе прогноз явно показан отдельно. Regression доказывает ошибку v56, проверяет другой месяц/год, неизвестную дату и корректное совпадение. Учётные данные не меняются |
+
+## A. Инвентаризация продукта
+
+Полный перечень literal callback definitions из v56: [AUDIT_TELEGRAM_BUTTONS.csv](AUDIT_TELEGRAM_BUTTONS.csv). Колонки: текст, исходный callback до security sealing, файл, renderer, строка. Это перечень определений, не количество уникальных кнопок на одном экране. Callback `qv` генерируется при рендере и привязан к исходному сообщению. Legacy-определения вынесены в [AUDIT_LEGACY_FUNCTIONS.csv](AUDIT_LEGACY_FUNCTIONS.csv); наличие legacy-имени само по себе не доказывает отсутствие вызовов.
+
+Все пользовательские Telegram-действия ниже вызываются авторизованным администратором в разрешённом чате; MiniApp требует подписанный Telegram initData. Клиентский портал не получает эти полномочия. Полный backend/maintenance inventory и таблица lock/audit: [OPERATIONS_MAP.md](OPERATIONS_MAP.md).
+
+| Экран / действие | Источник истины | Эффект / preconditions | Empty/error / восстановление |
+|---|---|---|---|
+| /start, /menu, Главное меню, /cancel | Telegram pending cache | Меню очищает текущий ввод; /cancel отменяет незавершённый сценарий | Повторное открытие меню; не отменяет уже проведённую операцию |
+| /today, /day, /yesterday; обновить Calendar | Queue; Calendar при явном refresh | v56 today делает ingestion; candidate today читает очередь. Yesterday читает выбранный день | Пустой день; stale view → обновить, затем заново выбрать |
+| /attention | Clients, Blocks, Queue | v56 inline sync; candidate read + next action | Нет вопросов; неизвестный клиент → MiniApp |
+| /clients, /client, поиск, страницы, карточка | Clients/Blocks/Journal/Calendar | Только чтение; существующий clientId | Нет совпадений, архив, календарь временно недоступен; назад к списку |
+| /balances, /debt | Clients, формулы учёта | Только чтение | Нет остатков/долгов; нет действия оплаты автоматически |
+| /report, периоды | Sheet Report или Journal/Payments для выбранного периода | Только чтение; указанный период | Нет записей; назад к периодам |
+| /more, /settings, system health, /chatid | Settings, runtime, ledgers | Чтение; health может быть медленным | Ошибка диагностики → повторить; не считать отсутствие результата зелёным |
+| Оплаты / история блоков / история тренировок | Payments / Blocks / Journal | Чтение; clientId, независимость истории от активного блока | Нет записей; Telegram назад к карточке; history page clamp |
+| Внести оплату (перевод/наличные) | Payments + выбранный block | Сумма, способ, подтверждение; durable cf2, ScriptLock | Невалидная сумма / stale / replay; отмена платежа — отдельная проверяемая операция |
+| Отменить оплату | Payments + audit | Точная существующая операция, подтверждение и связь клиента/блока | Повторное исполнение no-op либо fail-closed; audit сохраняется |
+| Новый клиент / новый блок | Clients, Blocks, возможная оплата | Явный ввод формата, количества, цены, даты; подтверждение | Дубликат/плохие параметры → отказ; до подтверждения /cancel |
+| Подарить / корректировать остаток | Block и Journal | Явный тип коррекции и количество; защищённое подтверждение | Некорректное состояние → отказ; domain undo только если anchors не изменились |
+| Пауза / возобновить / закрыть | Blocks/Clients | Точный статус/блок, cf2 + общий lock | Stale → перечитать; undo не универсальный откат дня |
+| Параметры блока / имя / цена разовой / заметка | Clients/Blocks | Ввод и финальное подтверждение конкретного изменения | /cancel до commit; после — audit и применимый guarded undo |
+| Архив / восстановить | Clients и текущая связь блока | Проверка отсутствия активного блока, подтверждение | Активный блок запрещает архив; история сохраняется |
+| /schedule, ближайшие записи, создать | Calendar, client aliases | Дата/время/длительность, conflict preview и подтверждение | Конфликт, нет записей 45 дней, Calendar unavailable; создание защищено operationId |
+| Перенос / отмена будущего события | Calendar + Queue | Точный event, stale-state recheck, cf2 + lock | Missing/moved/deleted → отказ или доказанный no-op; не повторять слепо |
+| ✅/💸/🚫/перенос строки | Queue и accepted semantic row | Первое однозначное нажатие принимает ровно показанное действие; перенос запрашивает дату | TTL/stale/concurrent → отказ; durable result исключает двойной эффект |
+| Подтвердить день | Queue/Journal/Blocks/Calendar/Payments | Выбранные строки, окончание тренировки, domain preflight, shared lock | Новая строка не присоединяется; stale строка остаётся на проверку; replay без второго эффекта |
+| Unknown new/link/ignore | Queue + Clients/aliases; new может создать block/payment | Preview точного результата, explicit submit; известный активный client для link | Alias conflict, resolved, Journal exists, invalid price → fail-closed; compound rollback fixture |
+| Undo / audit / backup / переключатели уведомлений | Audit / backup / Settings | Отдельные подтверждаемые writes; backup не является безопасным read | Guarded undo может отказать; backup проверяется restore, notification toggle не тестировался живьём |
+| MiniApp invite/revoke и замеры/correction | Invitations/Access/Measurements | Явный admin action; correction append-only | Истёкший invite, double tap, no-op correction; fixture проверки без отправки клиенту |
+
+## B–C. Walkthrough и пределы покрытия
+
+| Сценарии | Метод / результат |
+|---|---|
+| Все команды и основной router | Существующий navigation fixture плюс чтение текущего handler; Telegram меню/карточка просмотрены. Production today/attention не запускались из-за доказанного inline write |
+| Разовая / active / без блока / индивидуальный / гибрид / архив | Code paths и живой список форматов; разовая карточка воспроизведена; history fixtures включают старые блоки и записи без даты |
+| День: first click, stale, новая строка, несвязанная строка, повтор, concurrent | Executable domain/row fixtures; без реального confirm-day |
+| Оплаты, подарки, adjustment, пауза/возобновление, закрытие, rename/note, undo | Существующие operation/financial/undo tests и карта входов. Полный реальный write walkthrough исключён; не все форматные комбинации имеют отдельный сценарий |
+| Calendar missing/moved/deleted / pagination / horizon / outage | Fixture suite и новый time-driven regression; production Calendar не менялся |
+| Unknown new/link/ignore | Existing onboarding fixture + новый all-date read fixture; реального клиента не создавали |
+| MiniApp navigation/back/loading/search/report/health | Живой signed UI; render fixtures для unknown-only, older registration, one-off counters; local mobile rendering с длинным именем |
+| Reload/stale/duplicate/error | Backend durable replay/fault fixtures, source review client requestId; web reload требует новой signed session при TTL. Не выдавать server-render fixture за проверку browser retry после потери сети |
+
+## D. Целевая навигация без перепроектирования
+
+| Где | Основное действие | Вторичное / детали |
+|---|---|---|
+| Telegram: Сегодня / Вчера | Быстро отметить исключение и подтвердить выбранный день | Явное обновление Calendar; переход в MiniApp к регистрации |
+| Telegram: Внимание | Открыть конкретный незакрытый вопрос | Остаток, долг, unknown; избежать простого списка без следующего шага |
+| Telegram: Клиент | Записать/перенести, остаток, история | Оплаты, блоки и управление — компактная подгруппа; существующие действия пока не удалять |
+| MiniApp: Сегодня | Понятные строки тренировок и дневной итог | Отдельная регистрация других дней, без включения в confirm-day |
+| MiniApp: Очередь (backlog) | Выбрать дату и конкретную проблему | Ошибки, регистрации, прошлые pending; никакой кнопки «подтвердить всё» |
+| MiniApp: Клиенты | Полная история клиента | Блоки, оплаты, условия, приглашение, замеры |
+| MiniApp: Финансы | Период, остатки и долги | Подробные записи и сверка; не смешивать выручку и поступления |
+| MiniApp: Система | Понятно: работает / нужна проверка / не удалось проверить | Технические идентификаторы и профили под «Подробности» |
+
+Telegram оставить для быстрых действий, уведомлений, поиска и короткой истории. Сложный onboarding, редактирование условий/блоков, подробные платежи, приглашения, замеры и диагностику удобнее сосредоточить в MiniApp. Это целевое распределение; существующие рабочие Telegram-пути не удалялись и не перемещались без проверки замены.
+
+## E. Backlog полезных функций
+
+| Приоритет | Проблема → сценарий | Ценность | Риск / куда |
+|---|---|---|---|
+| P1 | Старые pending теряются → открыть очередь по датам | Не пропускать подтверждения и исключения | Средний: не расширять accepted selection; MiniApp/backend |
+| P1 | Health иногда дольше proxy timeout → получить свежий статус с указанием времени и отдельно запустить проверку | Диагностика без долгого ожидания и ложного зелёного | Средний: TTL/status semantics, нельзя скрыть drift; backend/MiniApp |
+| P1 | Неясен оплаченный следующий блок → показать текущий и следующий, старт и основание активации | Предотвратить ошибочное повторное внесение денег | Высокий: бизнес-правила старта/продления согласовать; MiniApp/backend |
+| P2 | Платежи и блоки доступны в Telegram, но не полностью в MiniApp → единая read-only история клиента | Меньше ручных сверок | Низкий для чтения, высокий для новых финансовых writes; MiniApp |
+| P2 | Отчёт закреплён за Sheet → выбрать месяц без изменения ячейки отчёта | Не открывать таблицу ради периода | Средний: точная семантика дат/возвратов; MiniApp/backend |
+| P2 | Непонятна свежесть расписания → время последней успешной синхронизации на экране дня | После удаления inline sync пользователь видит актуальность | Низкий; Telegram/MiniApp |
+| P2 | Низкий остаток без контекста → показать план ближайших занятий и наличие оплаченного продления | Меньше ручной проверки renewals | Средний: не рассылать клиентам автоматически; MiniApp |
+| P2 | Неоднозначный исход после timeout → статус операции по сохранённому operationId | Безопасное продолжение без повторного ввода | Средний: удерживать actor binding и durable result; backend/MiniApp |
+| P3 | Много legacy-кода → проверенный реестр доступных путей и постепенное удаление неиспользуемых | Снижает риск исправить неправильную функцию | Средний: требуется граф вызовов + snapshots; backend |
+
+## F–G. Исправления, доказательства и выпуск
+
+Новые regression tests: `apps-script-burn-in-audit.test.mjs`, `miniapp-audit-views.test.mjs`. Harness `DMS_AUDIT_BUNDLE=1` позволяет выполнить затронутые существующие v56/stabilization fixtures на v57; baseline tests остаются на исторических источниках. Core OperationSafety, UndoSafety, FinancialSafety, ReleaseSafety и DomainOperations побайтно сохранены. Изменение confirmation-файла касается только UI после результата.
+
+Результат локального gate: **328/328 tests**, lint, typecheck, production build, dependency audit (0 vulnerabilities), snapshot verifier и migrations — пройдены. Отдельный `npm run test:audit-candidate`: **47/47** на новом bundle; он включён в `npm run check` и CI. Из 328 общих тестов 16 новых: 13 backend regressions и 3 render fixtures. Исторические тесты не выдаются за исполнение v57.
+
+Candidate tree: `332ef8a3c8672293598704abf62ee445b496d29d5bbddd4f4f98a9b1c404220c`, 26 файлов. Предметный Apps Script diff: `git diff --no-index apps-script/versions/v56 apps-script/candidates/v57`; 9 изменённых/добавленных файлов. Полная копия остальных исходников необходима для проверяемого staged release.
+
+Для выпуска требуется свежий exact-source gate, полный repo gate и отдельный release approval. До него **не merge main**, не создавать numbered version, не менять HEAD, deployment, triggers, настройки или данные. Подробный план: [POST_BURN_IN_RELEASE_PLAN.md](POST_BURN_IN_RELEASE_PLAN.md).
