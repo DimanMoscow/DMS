@@ -189,7 +189,7 @@ test("resolution is locked, event-specific, audited and journal-independent", as
   assert.doesNotMatch(calendarSource, /calendarTitle:\s*String\(write/);
   assert.match(routeSource, /"preview_calendar_onboarding"/);
   assert.match(routeSource, /"resolve_calendar_onboarding"/);
-  assert.match(shellSource, /Показать preview/);
+  assert.match(shellSource, /Проверить данные/);
   assert.match(shellSource, /Новый клиент/);
   assert.match(shellSource, /Связать/);
   assert.match(shellSource, /Игнорировать/);
