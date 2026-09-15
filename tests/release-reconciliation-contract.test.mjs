@@ -170,6 +170,27 @@ test('raw receipt compiler derives identities and expiry; rejects incomplete or 
   const compiled = compileCalendarAcceptance(envelope);
   assert.equal(compiled.package.issues.length, 3);
   assert.equal(compiled.package.expiresAt, '2026-09-14T09:35:00.000Z');
+  const overlap = structuredClone(envelope);
+  const values = Array(17).fill(''); values[0] = 'fixture-existing'; values[13] = 'Отменена';
+  const noop = {row: 100, values, copyTemplate: false};
+  overlap.capture.queue.push({row: 100, values: [...values]});
+  overlap.capture.baselineWrites.push(structuredClone(noop));
+  overlap.capture.candidateWrites.push(structuredClone(noop));
+  overlap.capture.v56WideWrites.push(structuredClone(noop));
+  assert.equal(compileCalendarAcceptance(overlap).package.issues.length, 3);
+  for (const mutate of [
+    x => { x.capture.baselineWrites[0].values[13] = 'Ожидает'; },
+    x => { x.capture.baselineWrites[0].values[7] = 'different-client'; },
+    x => { x.capture.baselineWrites[0].values[12] = 100; },
+    x => { x.capture.baselineWrites[0].row = 101; },
+    x => { x.capture.baselineWrites.push(structuredClone(noop)); },
+    x => { x.capture.baselineWrites[0].values.pop(); },
+    x => { x.capture.candidateWrites.pop(); },
+    x => { x.capture.baselineWrites[0].copyTemplate = true; },
+  ]) {
+    const invalid = structuredClone(overlap); mutate(invalid);
+    assert.throws(() => compileCalendarAcceptance(invalid));
+  }
   envelope.capture.paginationComplete = false;
   assert.throws(() => compileCalendarAcceptance(envelope));
   envelope.capture.paginationComplete = true; envelope.observedAt.safety = '2026-09-14T09:20:00.000Z';

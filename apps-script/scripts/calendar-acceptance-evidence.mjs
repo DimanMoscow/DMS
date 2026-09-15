@@ -40,7 +40,23 @@ export function compileCompletedSync(raw, {version, sourceTreeSha256}) {
 // bundle reports/plans and independently checked financial/durable evidence.
 export function compileCalendarAcceptance({capture, safetyReport, identities, businessRevision, observedAt}) {
   assert.equal(capture.productionMutations, 0);
-  assert.equal(capture.baselineWrites.length, 0, 'baseline has an unreviewed write set');
+  // An incremental overlap may revisit an unchanged row. Admit only complete,
+  // existing-row no-ops also present in the candidate plan; never an addition or
+  // a semantic change. Counts alone cannot establish this equivalence.
+  const baselineRows = new Set();
+  for (const write of capture.baselineWrites) {
+    assert.ok(Number.isSafeInteger(write.row) && write.row >= 4 && !baselineRows.has(write.row),
+      'invalid or duplicate baseline write');
+    baselineRows.add(write.row);
+    const matches = capture.queue.filter(row => row.row === write.row);
+    assert.equal(matches.length, 1, 'baseline addition or ambiguous row');
+    assert.equal(write.values.length, 17, 'complete baseline row required');
+    assert.deepEqual(write.values, Array.from({length: 17}, (_, i) => matches[0].values[i] ?? ''),
+      'baseline semantic change');
+    const candidate = capture.candidateWrites.filter(row => row.row === write.row);
+    assert.equal(candidate.length, 1, 'baseline write missing from candidate');
+    assert.deepEqual(write, candidate[0], 'baseline write differs from candidate');
+  }
   assert.deepEqual(capture.candidateWrites, capture.v56WideWrites, 'v56 wide equivalence differs');
   assert.equal(capture.after.issueCount, 0);
   assert.equal(capture.financial.issues.length, 0);
