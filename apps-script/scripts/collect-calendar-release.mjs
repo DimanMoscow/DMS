@@ -13,6 +13,7 @@ import {compileCalendarAcceptance} from './calendar-acceptance-evidence.mjs';
 import {assertPrivateRegularFile, isOutsidePath} from '../../scripts/path-policy.mjs';
 import {nativeUiChannel} from './native-ui-channel.mjs';
 import {collectorSafety} from './collector-safety.mjs';
+import {sheetBusinessRevision} from './business-revision.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repo = path.dirname(root);
@@ -145,11 +146,14 @@ export async function collectReleaseEvidence({readNative, readGoogle, readCalend
   assert.equal(native.generation.status, 'succeeded');
   const api = 'https://script.googleapis.com/v1/projects/' + encodeURIComponent(target.scriptId);
   const sourceStart = clock();
-  const [head, v56, v57, mappings, sheet] = await Promise.all([
+  const [head, v56, v57, mappings, sheet, formulas] = await Promise.all([
     readGoogle(api + '/content'), readGoogle(api + '/content?versionNumber=56'),
     readGoogle(api + '/content?versionNumber=57'), readGoogle(api + '/deployments'),
     readGoogle('https://sheets.googleapis.com/v4/spreadsheets/' + encodeURIComponent(target.sheetId) +
       '/values:batchGet?' + new URLSearchParams([['valueRenderOption', 'UNFORMATTED_VALUE'],
+        ['dateTimeRenderOption', 'SERIAL_NUMBER'], ...Object.entries(columns).map(([n, col]) => ['ranges', "'" + n + "'!A:" + col])])),
+    readGoogle('https://sheets.googleapis.com/v4/spreadsheets/' + encodeURIComponent(target.sheetId) +
+      '/values:batchGet?' + new URLSearchParams([['valueRenderOption', 'FORMULA'],
         ['dateTimeRenderOption', 'SERIAL_NUMBER'], ...Object.entries(columns).map(([n, col]) => ['ranges', "'" + n + "'!A:" + col])]))]);
   const verification = json(path.join(root, 'verification.json'));
   const substitutions = verifyRemoteBaseline({remoteFiles: normalizeRemoteFiles(v56.files),
@@ -185,13 +189,14 @@ export async function collectReleaseEvidence({readNative, readGoogle, readCalend
   const identities = {releaseCommitSha, candidateTreeSha256, numberedSourceSha256: candidateTreeSha256,
     baselineTreeSha256};
   const artifact = {formatVersion: 1, finishedAt: clock(), native, nativeAfter, capture,
-    sources: {head, v56, v57, production: production[0]}, sheet,
+    sources: {head, v56, v57, production: production[0]}, sheet, formulas,
     status: 'NO_GO', productionMutations: 0};
   try {
     assert.ok(Date.parse(nativeAfter.checkedAt) >= Date.parse(sheetCheckedAt), 'independent native re-read missing');
     assert.equal(fingerprint(nativeAfter.safety), fingerprint(native.safety), 'native safety changed during collection');
     const result = compileCalendarAcceptance({capture, safetyReport, identities,
-      businessRevision: fingerprint(rows), observedAt: {source: sourceStart, safety: native.checkedAt, cursor: native.checkedAt}});
+      businessRevision: sheetBusinessRevision(sheet.valueRanges, formulas.valueRanges),
+      observedAt: {source: sourceStart, safety: native.checkedAt, cursor: native.checkedAt}});
     assert.ok(Date.parse(clock()) <= Date.parse(result.package.expiresAt), 'collection expired');
     artifact.acceptance = result; artifact.status = 'AWAITING_SEPARATE_APPROVAL';
   } catch (error) { artifact.reason = error.message; }
