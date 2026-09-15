@@ -1,11 +1,20 @@
 # Current project state
 
-**Two-phase release preparation, no deployment authorization.** The compatible Web
-accepts only two verified identities; native collection uses fresh challenge-bound
-read-only receipts. Rollback restores HEAD and mapping without changing Web.
+**Two-phase backend release preparation.** The compatible Web is deployed at
+`35c3f7c85960c3630f0653a42e2aff944c69758c` (PR84); backend HEAD/mapping remain v56
+and the interlock is OPEN. PR80 remains draft/unmerged. The Web accepts only two
+verified identities; native collection uses fresh challenge-bound read-only
+receipts. Rollback restores HEAD and mapping without changing Web.
 See [V57_TWO_PHASE_PROOF](V57_TWO_PHASE_PROOF.md) for the generic protocol.
 Operational receipts and historic execution details remain in the private archive.
 Rehearsal and public publication require the owner-authorized privacy gate.
+
+Admission tooling now verifies complete, identical baseline overlap rewrites
+instead of rejecting them solely because their count is nonzero. Business
+revisions bind formula evidence and evaluated values, with normalization limited
+to literal `NOW()` in the three documented legacy audit timestamp columns.
+Financial values, formula edits, row identities and relations remain checked.
+Runtime candidate and P1 modules are unchanged. Fresh acceptance is still required.
 
 Last verified: 2026-09-11, 12:28 Europe/Moscow. Emergency recovery runtime and data are restored; final read-only gate is green.
 

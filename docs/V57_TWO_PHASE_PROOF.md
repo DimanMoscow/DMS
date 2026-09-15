@@ -1,7 +1,8 @@
 # Two-phase rollout contract — preparation only
 
 Backend remains exact v56; interlock OPEN. PR80 stays draft/unmerged.
-No Apps Script HEAD/mapping/version or Web switch occurred.
+No Apps Script HEAD/mapping/version switch has occurred in the current rollout.
+The separately approved compatible Web is deployed at the verified PR84 merge.
 No client/payment/attendance/block/alias data writes were performed.
 
 ## Separate Web artifact
@@ -16,9 +17,9 @@ Unknown runtime, altered fingerprints and missing markers fail closed. Optional
 v57 history/registration fields are absent, not invented, on v56.
 Local Web gate: 324 tests, lint/types/build/dependency audit/snapshots/migrations PASS.
 
-The separate Web branch is published as draft PR84 after exact-diff privacy review
-and owner authorization. It is not merged or deployed to production. Publication
-of the generic tooling is separate from authorization for a production switch.
+PR84 was squash-merged through required checks after owner authorization and
+exact-diff privacy review. The single automatic production deployment is READY
+at `35c3f7c85960c3630f0653a42e2aff944c69758c`. The backend switch remains separate.
 
 ## Native collector
 
@@ -40,6 +41,18 @@ Live capture and acceptance receipts belong outside Git. A release-capable packa
 must bind the complete known issue set, exact proposed writes and source identity.
 It expires after five minutes and is not approval for a later retry: recollection
 and separate exact approval are required.
+
+Incremental overlap writes are acceptable only when every existing row retains
+all 17 values and the exact write also occurs in the candidate plan. Additions,
+semantic changes, duplicate rows and incomplete writes remain NO-GO. A cancelled
+planner counter does not establish a new cancellation; compare the actual row.
+
+The revision includes both evaluated values and independently read FORMULA
+receipts. Only literal `=NOW()` in Payments I, Journal Q and Queue O audit cells
+is represented by its unchanged formula. Known ARRAYFORMULA spill results retain
+their evaluated values in the fingerprint, including money and completed counts.
+All other value changes and every formula edit remain revision changes. This
+normalization changes release tooling only; runtime/security semantics are intact.
 
 ## Interlock rehearsal requirements
 
