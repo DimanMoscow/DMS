@@ -40,7 +40,7 @@
     "check": "npm run verify:dependency-policy && npm run audit:dependencies && npm run check:miniapp && npm run verify:apps-script && npm run verify:migrations"
   },
   "dependencies": {
-    "next": "16.3.4",
+    "next": "16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
