@@ -41,7 +41,7 @@ function web(backend) {
 }
 
 test('transition manifest binds exactly two immutable numbered trees; production pointer remains v56',()=>{
-  assert.equal(runtime.RUNTIME_MIGRATION.phase,'v56-v57-transition');
+  assert.equal(runtime.RUNTIME_MIGRATION.phase,'v56-v57-attention-checked-transition');
   assert.deepEqual(runtime.RUNTIME_MIGRATION.identities.map(x=>x.version),[56,57]);
   for(const entry of runtime.RUNTIME_MIGRATION.identities){
     const directory='apps-script/versions/v'+entry.version;
