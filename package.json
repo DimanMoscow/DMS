@@ -40,7 +40,7 @@
     "check": "npm run verify:dependency-policy && npm run audit:dependencies && npm run check:miniapp && npm run verify:apps-script && npm run verify:migrations"
   },
   "dependencies": {
-    "next": "16.3.4",
+    "next": "16.4.3",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -49,7 +49,7 @@
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.3.4",
+    "eslint-config-next": "16.4.3",
     "typescript": "5.9.3"
   }
 }
